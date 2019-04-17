@@ -1,0 +1,43 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Arguments",
+        "repositoryURL": "https://github.com/elegantchaos/Arguments",
+        "state": {
+          "branch": null,
+          "revision": "781c924c16e9e4cbad65db8a5ed510fb711de3da",
+          "version": "1.0.7"
+        }
+      },
+      {
+        "package": "Docopt",
+        "repositoryURL": "https://github.com/elegantchaos/docopt.swift",
+        "state": {
+          "branch": null,
+          "revision": "a236953ec13b4c2c54a4450110973d9ff9db7711",
+          "version": "0.6.10"
+        }
+      },
+      {
+        "package": "Logger",
+        "repositoryURL": "https://github.com/elegantchaos/Logger",
+        "state": {
+          "branch": null,
+          "revision": "a171ea58414a3a0c5d34be909879a7ff8a2d5ae5",
+          "version": "1.3.4"
+        }
+      },
+      {
+        "package": "Runner",
+        "repositoryURL": "https://github.com/elegantchaos/Runner",
+        "state": {
+          "branch": null,
+          "revision": "1a257b260150b7a7a9771f636a6a373682ad54e5",
+          "version": "1.0.1"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
