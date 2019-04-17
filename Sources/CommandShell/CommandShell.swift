@@ -19,8 +19,14 @@ public class Shell {
     public func exit(result: Result) -> Never {
         if result.code != 0 {
             print("Error: \(result.description)")
+            if !result.supplementary.isEmpty {
+                print(result.supplementary)
+            }
+        } else {
+            print("Done.")
         }
 
+        print("")
         Foundation.exit(result.code)
     }
     

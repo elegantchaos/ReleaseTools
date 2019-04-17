@@ -7,6 +7,9 @@ import Arguments
 import CommandShell
 import Foundation
 
+extension Result {
+    static let exportFailed = Result(300, "Exporting failed.")
+}
 
 class ExportCommand: Command {
     static let exportPath = ".build/export"
@@ -40,7 +43,7 @@ class ExportCommand: Command {
         if result.status == 0 {
             return .ok
         } else {
-            var returnResult = Result.archiveFailed
+            var returnResult = Result.exportFailed
             returnResult.supplementary = result.stderr
             return returnResult
         }

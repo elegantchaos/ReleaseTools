@@ -29,7 +29,7 @@ extension Result {
 }
 
 class ArchiveCommand: Command {
-    static let archivePath = ".build/archive"
+    static let archivePath = ".build/archive.xcarchive"
     
     override var name: String { return "archive" }
 
