@@ -16,6 +16,13 @@ struct SchemesSpec: Decodable {
     let workspace: WorkspaceSpec
 }
 
+extension CommandLine {
+    static var name: String {
+        let url = URL(fileURLWithPath: arguments[0])
+        return url.lastPathComponent
+    }
+}
+
 class ArchiveCommand: Command {
     override var name: String { return "archive" }
 
@@ -29,6 +36,10 @@ class ArchiveCommand: Command {
             }
         }
         return nil
+    }
+    
+    func defaultScheme(for workspace: String) -> String? {
+        return UserDefaults.standard.string(forKey: "defaultScheme.\(workspace)")
     }
     
     func schemes(xcode: Runner, workspace: String) throws -> [String] {
@@ -51,13 +62,20 @@ class ArchiveCommand: Command {
         }
 
         var scheme = arguments.argument("scheme")
-        if scheme.isEmpty, let defaultScheme = try schemes(xcode: xcode, workspace: workspace).first {
+        if scheme.isEmpty, let defaultScheme = defaultScheme(for: workspace) {
             scheme = defaultScheme
         }
         guard !scheme.isEmpty else {
+            print("No default scheme set for archiving.")
+            print("Set using \(CommandLine.name) archive <scheme> --set-default")
             return .badArguments
         }
 
+        if arguments.flag("set-default") {
+            UserDefaults.standard.set(scheme, forKey: "defaultScheme.\(workspace)")
+        }
+        
+        print("Archiving scheme \(scheme).")
         let result = try xcode.sync(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", ".build/archive"])
         if result.status == 0 {
             return .ok

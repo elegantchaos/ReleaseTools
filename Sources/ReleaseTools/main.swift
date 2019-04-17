@@ -11,7 +11,7 @@ let documentation = """
 Various release utilities.
 
 Usage:
-    release archive [<scheme>]
+    release archive [<scheme> [--set-default]]
 
 Arguments:
     <scheme>        name of the scheme to archive
@@ -19,7 +19,7 @@ Arguments:
 Options:
 
     --help          show help
-
+    --set-default   set the specified scheme as the default one to use
 
 Exit Status:
 
