@@ -48,7 +48,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
       useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "$(SOURCE_ROOT)"
+      customWorkingDirectory = "$(SOURCE_ROOT)../../.."
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
@@ -66,6 +66,10 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "export"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "compress"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

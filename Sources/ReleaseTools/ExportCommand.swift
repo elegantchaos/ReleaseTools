@@ -16,7 +16,7 @@ class ExportCommand: Command {
     
     override var name: String { return "export" }
     
-    override var usage: String { return "release export" }
+    override var usage: String { return "release export [<scheme> [--set-default]]" }
 
     override func run(shell: Shell) throws -> Result {
         let xcode = XcodeRunner()
