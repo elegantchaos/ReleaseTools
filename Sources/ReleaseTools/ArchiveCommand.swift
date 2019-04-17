@@ -24,6 +24,10 @@ extension CommandLine {
     }
 }
 
+extension Result {
+    static let archiveFailed = Result(100, "Archiving failed.")
+}
+
 class ArchiveCommand: Command {
     override var name: String { return "archive" }
 
@@ -33,14 +37,14 @@ class ArchiveCommand: Command {
     
     override var options: [String : String] { return [ "--set-default": "set the specified scheme as the default one to use" ] }
 
-    override func run(arguments: Arguments) throws -> ReturnCode {
+    override func run(shell: Shell) throws -> Result {
         
         let xcode = XcodeRunner()
         guard let workspace = xcode.defaultWorkspace else {
             return .badArguments
         }
 
-        var scheme = arguments.argument("scheme")
+        var scheme = shell.arguments.argument("scheme")
         if scheme.isEmpty, let defaultScheme = xcode.defaultScheme(for: workspace) {
             scheme = defaultScheme
         }
@@ -50,7 +54,7 @@ class ArchiveCommand: Command {
             return .badArguments
         }
 
-        if arguments.flag("set-default") {
+        if shell.arguments.flag("set-default") {
             xcode.setDefaultScheme(scheme, for: workspace)
         }
         

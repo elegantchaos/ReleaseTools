@@ -22,6 +22,7 @@
 
 /* Begin PBXBuildFile section */
 		22E8E54022677886001A3DEB /* Command.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_12 /* Command.swift */; };
+		22E8E54222677D90001A3DEB /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E8E54122677D90001A3DEB /* Result.swift */; };
 		OBJ_100 /* Logger.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "Logger::Logger::Product" /* Logger.framework */; };
 		OBJ_101 /* Docopt.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "Docopt::Docopt::Product" /* Docopt.framework */; };
 		OBJ_102 /* Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "Runner::Runner::Product" /* Runner.framework */; };
@@ -207,6 +208,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		22E8E54122677D90001A3DEB /* Result.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Result.swift; sourceTree = "<group>"; };
 		"Arguments::Arguments::Product" /* Arguments.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Arguments.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		"Docopt::Docopt::Product" /* Docopt.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Docopt.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		"Logger::Logger::Product" /* Logger.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Logger.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -532,6 +534,7 @@
 			children = (
 				OBJ_9 /* CommandShell.swift */,
 				OBJ_12 /* Command.swift */,
+				22E8E54122677D90001A3DEB /* Result.swift */,
 			);
 			name = CommandShell;
 			path = Sources/CommandShell;
@@ -898,6 +901,7 @@
 			files = (
 				OBJ_97 /* CommandShell.swift in Sources */,
 				22E8E54022677886001A3DEB /* Command.swift in Sources */,
+				22E8E54222677D90001A3DEB /* Result.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

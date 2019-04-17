@@ -18,9 +18,9 @@ open class Command {
     
     open var options: [String:String] { return [:] }
     
-    open var returns: [ReturnCode:String] { return [:] }
+    open var returns: [Result] { return [] }
     
-    open func run(arguments: Arguments) throws -> ReturnCode {
+    open func run(shell: Shell) throws -> Result {
         print("Command \(name) unimplemented." )
         return .ok
     }

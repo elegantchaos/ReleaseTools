@@ -12,7 +12,7 @@ class CompressCommand: Command {
 
     override var usage: String { return "release compress" }
 
-    override func run(arguments: Arguments) throws -> ReturnCode {
+    override func run(shell: Shell) throws -> Result {
         return .ok
         /*
  BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" .build/export/Bookish.app/Contents/Info.plist)

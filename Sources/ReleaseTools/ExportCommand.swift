@@ -11,7 +11,7 @@ class ExportCommand: Command {
     
     override var usage: String { return "release export" }
 
-    override func run(arguments: Arguments) throws -> ReturnCode {
+    override func run(shell: Shell) throws -> Result {
         
         /*
  echo "Exporting"

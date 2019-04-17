@@ -6,59 +6,47 @@
 import Arguments
 import Foundation
 
-public enum ReturnCode: Int32 {
-    case ok = 0
-    case unknownCommand = 1
-    case badArguments = 2
-    case archiveFailed = 3
-    case runFailed = 4
-    
-    func returnStatus() -> Never {
-        exit(rawValue)
-    }
-}
-
 public class Shell {
     let commands: [Command]
+    public let arguments: Arguments
     
     public init(commands: [Command]) {
         self.commands = commands
+        let documentation = Shell.buildDocumentation(for: commands)
+        self.arguments = Arguments(documentation: documentation, version: "1.0")
+    }
+    
+    public func exit(result: Result) -> Never {
+        Foundation.exit(result.code)
     }
     
     public func run() {
-        let documentation = buildDocumentation(for: commands)
-        let args = Arguments(documentation: documentation, version: "1.0")
-        
         for command in commands {
-            if args.command(command.name) {
+            if arguments.command(command.name) {
                 do {
-                    try command.run(arguments: args).returnStatus()
+                    let result = try command.run(shell: self)
+                    exit(result: result)
+                    
                 } catch {
-                    ReturnCode.runFailed.returnStatus()
+                    exit(result: .runFailed)
                 }
             }
         }
         
-        ReturnCode.badArguments.returnStatus()
+        exit(result: .badArguments)
     }
 
-    func buildDocumentation(for commands: [Command]) -> String {
+    class func buildDocumentation(for commands: [Command]) -> String {
         var usage = ""
         var arguments: [String:String] = [:]
         var options = [ "--help": "show help"]
-        var returns: [ReturnCode:String] = [
-            .ok: "If the arguments were ok and the command executed successfully.",
-            .unknownCommand: "If the command was unknown.",
-            .badArguments: "If there was an error parsing the arguments.",
-            .runFailed: "If launching a sub-command failed."
-        ]
-        
+        var results: [Result] = [ .ok, .unknownCommand, .badArguments, .runFailed ]
         
         for command in commands {
             usage += "    \(command.usage)\n"
             arguments.merge(command.arguments, uniquingKeysWith: { (k1, k2) in return k1 })
             options.merge(command.options, uniquingKeysWith: { (k1, k2) in return k1 })
-            returns.merge(command.returns, uniquingKeysWith: { (k1, k2) in return k1 })
+            results.append(contentsOf: command.returns)
         }
         
         var optionText = ""
@@ -71,9 +59,9 @@ public class Shell {
             argumentText += "    \(argument.key)    \(argument.value)\n"
         }
         
-        var returnText = ""
-        for key in returns.keys.sorted(by: { return $0.rawValue < $1.rawValue }) {
-            returnText += "    \(key.rawValue)    \(returns[key]!)\n"
+        var resultText = ""
+        for key in results.sorted(by: { return $0.code < $1.code }) {
+            resultText += "    \(key.code)    \(key.description)\n"
         }
         
         return """
@@ -92,7 +80,7 @@ public class Shell {
         
         The command exits with one of the following values:
         
-        \(returnText)
+        \(resultText)
         
         """
     }
