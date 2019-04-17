@@ -29,6 +29,8 @@ extension Result {
 }
 
 class ArchiveCommand: Command {
+    static let archivePath = ".build/archive"
+    
     override var name: String { return "archive" }
 
     override var usage: String { return "release archive [<scheme> [--set-default]]" }
@@ -44,27 +46,24 @@ class ArchiveCommand: Command {
             return .badArguments
         }
 
-        var scheme = shell.arguments.argument("scheme")
-        if scheme.isEmpty, let defaultScheme = xcode.defaultScheme(for: workspace) {
-            scheme = defaultScheme
-        }
-        guard !scheme.isEmpty else {
-            print("No default scheme set for archiving.")
-            print("Set using \(CommandLine.name) archive <scheme> --set-default")
-            return .badArguments
+        guard let scheme = xcode.scheme(for: workspace, shell: shell) else {
+            var result = Result.noDefaultScheme
+            result.supplementary = "Set using \(CommandLine.name) \(name) <scheme> --set-default."
+            return result
         }
 
         if shell.arguments.flag("set-default") {
             xcode.setDefaultScheme(scheme, for: workspace)
         }
         
-        print("Archiving scheme \(scheme).")
-        let result = try xcode.sync(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", ".build/archive"])
+        shell.log("Archiving scheme \(scheme).")
+        let result = try xcode.sync(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", ArchiveCommand.archivePath])
         if result.status == 0 {
             return .ok
         } else {
-            print(result.stderr)
-            return .archiveFailed
+            var returnResult = Result.archiveFailed
+            returnResult.supplementary = result.stderr
+            return returnResult
         }
     }
 }

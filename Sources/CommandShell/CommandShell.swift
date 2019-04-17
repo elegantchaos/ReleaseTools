@@ -17,6 +17,10 @@ public class Shell {
     }
     
     public func exit(result: Result) -> Never {
+        if result.code != 0 {
+            print("Error: \(result.description)")
+        }
+
         Foundation.exit(result.code)
     }
     
@@ -36,6 +40,10 @@ public class Shell {
         exit(result: .badArguments)
     }
 
+    public func log(_ message: String) {
+        print(message)
+    }
+    
     class func buildDocumentation(for commands: [Command]) -> String {
         var usage = ""
         var arguments: [String:String] = [:]

@@ -5,6 +5,13 @@
 
 import Runner
 import Foundation
+import CommandShell
+
+extension Result {
+    static let missingWorkspace = Result(201, "The workspace was not specified, and could not be inferred.")
+    static let noDefaultScheme = Result(202, "No default scheme set.")
+}
+
 
 class XcodeRunner: Runner {
     init() {
@@ -41,5 +48,10 @@ class XcodeRunner: Runner {
 
     func setDefaultScheme(_ scheme: String, for workspace: String) {
         UserDefaults.standard.set(scheme, forKey: "defaultScheme.\(workspace)")
+    }
+    
+    func scheme(for workspace: String, shell: Shell) -> String? {
+        let scheme = shell.arguments.argument("scheme")
+        return scheme.isEmpty ? defaultScheme(for: workspace) : scheme
     }
 }

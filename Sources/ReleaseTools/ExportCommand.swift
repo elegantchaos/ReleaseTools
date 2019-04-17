@@ -5,21 +5,44 @@
 
 import Arguments
 import CommandShell
+import Foundation
+
 
 class ExportCommand: Command {
+    static let exportPath = ".build/export"
+    
     override var name: String { return "export" }
     
     override var usage: String { return "release export" }
 
     override func run(shell: Shell) throws -> Result {
-        
-        /*
- echo "Exporting"
- rm -rf "$PWD/.build/export"
- xcodebuild -exportArchive -archivePath "$PWD/.build/archive.xcarchive" -exportPath "$PWD/.build/export" -exportOptionsPlist "$PWD/Sources/BookishMac/Resources/Export Options.plist" -allowProvisioningUpdates
+        let xcode = XcodeRunner()
+        guard let workspace = xcode.defaultWorkspace else {
+            return .missingWorkspace
+        }
 
- */
-        
-        return .ok
+        guard let scheme = xcode.scheme(for: workspace, shell: shell) else {
+            var result = Result.noDefaultScheme
+            result.supplementary = "Set using \(CommandLine.name) \(name) <scheme> --set-default."
+            return result
+        }
+
+        if shell.arguments.flag("set-default") {
+            xcode.setDefaultScheme(scheme, for: workspace)
+        }
+
+        let exportPath = ExportCommand.exportPath
+        let exportOptionsPath = "Sources/\(scheme)/Resources/Export Options.plist"
+
+        shell.log("Exporting \(scheme).")
+        try? FileManager.default.removeItem(atPath: exportPath)
+        let result = try xcode.sync(arguments: ["-exportArchive", "-archivePath", ArchiveCommand.archivePath, "-exportPath", exportPath, "-exportOptionsPlist", exportOptionsPath, "-allowProvisioningUpdates"])
+        if result.status == 0 {
+            return .ok
+        } else {
+            var returnResult = Result.archiveFailed
+            returnResult.supplementary = result.stderr
+            return returnResult
+        }
     }
 }

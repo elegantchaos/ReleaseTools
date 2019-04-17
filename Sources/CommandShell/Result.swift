@@ -8,6 +8,7 @@ import Foundation
 public struct Result {
     public let code: Int32
     public let description: String
+    public var supplementary: String = ""
     
     public init(_ code: Int32, _ description: String) {
         self.code = code
