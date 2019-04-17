@@ -69,6 +69,14 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--to=Dependencies/Website/updates"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--latest=Dependencies/Website/"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "compress"
             isEnabled = "YES">
          </CommandLineArgument>

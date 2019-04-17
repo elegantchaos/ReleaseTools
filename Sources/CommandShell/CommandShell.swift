@@ -38,7 +38,9 @@ public class Shell {
                     exit(result: result)
                     
                 } catch {
-                    exit(result: .runFailed)
+                    var result = Result.runFailed
+                    result.supplementary = String(describing: error)
+                    exit(result: result)
                 }
             }
         }
