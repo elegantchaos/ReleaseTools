@@ -8,7 +8,7 @@ import Arguments
 class Command {
     var name: String { return "" }
 
-    func run(arguments: Arguments) -> ReturnCode {
+    func run(arguments: Arguments) throws -> ReturnCode {
         print("Command \(name) unimplemented." )
         return .ok
     }

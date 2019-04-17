@@ -69,6 +69,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "ReleaseTools"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--help"
             isEnabled = "NO">
          </CommandLineArgument>

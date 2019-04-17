@@ -11,13 +11,15 @@ let documentation = """
 Various release utilities.
 
 Usage:
-  release archive
+    release archive [<scheme>]
 
 Arguments:
+    <scheme>        name of the scheme to archive
 
 Options:
 
---help      show help
+    --help          show help
+
 
 Exit Status:
 
@@ -36,6 +38,10 @@ enum ReturnCode: Int32 {
     case badArguments = 2
     case archiveFailed = 3
     case runFailed = 4
+    
+    func returnStatus() -> Never {
+        exit(rawValue)
+    }
 }
 
 let commands = [ ArchiveCommand() ]
@@ -44,10 +50,13 @@ let args = Arguments(documentation: documentation, version: "1.0")
 
 for command in commands {
     if args.command(command.name) {
-        exit(command.run(arguments: args).rawValue)
+        do {
+            try command.run(arguments: args).returnStatus()
+        } catch {
+            ReturnCode.runFailed.returnStatus()
+        }
     }
 }
 
-let result: ReturnCode = .badArguments
-exit(result.rawValue)
+ReturnCode.badArguments.returnStatus()
 

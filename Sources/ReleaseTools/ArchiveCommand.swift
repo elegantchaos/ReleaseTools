@@ -7,6 +7,15 @@ import Foundation
 import Arguments
 import Runner
 
+struct WorkspaceSpec: Decodable {
+    let name: String
+    let schemes: [String]
+}
+
+struct SchemesSpec: Decodable {
+    let workspace: WorkspaceSpec
+}
+
 class ArchiveCommand: Command {
     override var name: String { return "archive" }
 
@@ -21,27 +30,40 @@ class ArchiveCommand: Command {
         }
         return nil
     }
-        
-    override func run(arguments: Arguments) -> ReturnCode {
-        
-//        echo "Archiving"
-//        xcodebuild -workspace Bookish.xcworkspace -scheme BookishMac archive -archivePath "$PWD/.build/archive" > "$PWD/.build/archive.log"
+    
+    func schemes(xcode: Runner, workspace: String) throws -> [String] {
+        let result = try xcode.sync(arguments: ["-workspace", workspace, "-list", "-json"])
+        if result.status == 0, let data = result.stdout.data(using: .utf8) {
+            let decoder = JSONDecoder()
+            let schemes = try decoder.decode(SchemesSpec.self, from: data)
+            return schemes.workspace.schemes
+        } else {
+            print(result.stderr)
+            return []
+        }
+    }
+    
+    override func run(arguments: Arguments) throws -> ReturnCode {
         
         let xcode = Runner(for: URL(fileURLWithPath: "/usr/bin/xcodebuild"))
         guard let workspace = defaultWorkspace() else {
             return .badArguments
         }
 
-        do {
-            let result = try xcode.sync(arguments: ["-workspace", workspace, "-scheme", "BookishMac", "archive", "-archivePath", ".build/archive"])
-            if result.status == 0 {
-                return .ok
-            } else {
-                print(result.stderr)
-                return .archiveFailed
-            }
-        } catch {
-            return .runFailed
+        var scheme = arguments.argument("scheme")
+        if scheme.isEmpty, let defaultScheme = try schemes(xcode: xcode, workspace: workspace).first {
+            scheme = defaultScheme
+        }
+        guard !scheme.isEmpty else {
+            return .badArguments
+        }
+
+        let result = try xcode.sync(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", ".build/archive"])
+        if result.status == 0 {
+            return .ok
+        } else {
+            print(result.stderr)
+            return .archiveFailed
         }
     }
 }
