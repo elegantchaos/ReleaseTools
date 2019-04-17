@@ -6,6 +6,7 @@
 import Foundation
 import Arguments
 import Runner
+import CommandShell
 
 struct WorkspaceSpec: Decodable {
     let name: String
@@ -32,44 +33,15 @@ class ArchiveCommand: Command {
     
     override var options: [String : String] { return [ "--set-default": "set the specified scheme as the default one to use" ] }
 
-    
-    func defaultWorkspace() -> String? {
-        let url = URL(fileURLWithPath: ".")
-        if let contents = try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [], options: [.skipsPackageDescendants, .skipsSubdirectoryDescendants, .skipsHiddenFiles]) {
-            for item in contents {
-                if item.pathExtension == "xcworkspace" {
-                    return item.lastPathComponent
-                }
-            }
-        }
-        return nil
-    }
-    
-    func defaultScheme(for workspace: String) -> String? {
-        return UserDefaults.standard.string(forKey: "defaultScheme.\(workspace)")
-    }
-    
-    func schemes(xcode: Runner, workspace: String) throws -> [String] {
-        let result = try xcode.sync(arguments: ["-workspace", workspace, "-list", "-json"])
-        if result.status == 0, let data = result.stdout.data(using: .utf8) {
-            let decoder = JSONDecoder()
-            let schemes = try decoder.decode(SchemesSpec.self, from: data)
-            return schemes.workspace.schemes
-        } else {
-            print(result.stderr)
-            return []
-        }
-    }
-    
     override func run(arguments: Arguments) throws -> ReturnCode {
         
-        let xcode = Runner(for: URL(fileURLWithPath: "/usr/bin/xcodebuild"))
-        guard let workspace = defaultWorkspace() else {
+        let xcode = XcodeRunner()
+        guard let workspace = xcode.defaultWorkspace else {
             return .badArguments
         }
 
         var scheme = arguments.argument("scheme")
-        if scheme.isEmpty, let defaultScheme = defaultScheme(for: workspace) {
+        if scheme.isEmpty, let defaultScheme = xcode.defaultScheme(for: workspace) {
             scheme = defaultScheme
         }
         guard !scheme.isEmpty else {
@@ -79,7 +51,7 @@ class ArchiveCommand: Command {
         }
 
         if arguments.flag("set-default") {
-            UserDefaults.standard.set(scheme, forKey: "defaultScheme.\(workspace)")
+            xcode.setDefaultScheme(scheme, for: workspace)
         }
         
         print("Archiving scheme \(scheme).")

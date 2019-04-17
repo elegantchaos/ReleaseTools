@@ -4,6 +4,7 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Arguments
+import CommandShell
 
 class ExportCommand: Command {
     override var name: String { return "export" }
@@ -11,6 +12,14 @@ class ExportCommand: Command {
     override var usage: String { return "release export" }
 
     override func run(arguments: Arguments) throws -> ReturnCode {
+        
+        /*
+ echo "Exporting"
+ rm -rf "$PWD/.build/export"
+ xcodebuild -exportArchive -archivePath "$PWD/.build/archive.xcarchive" -exportPath "$PWD/.build/export" -exportOptionsPlist "$PWD/Sources/BookishMac/Resources/Export Options.plist" -allowProvisioningUpdates
+
+ */
+        
         return .ok
     }
 }

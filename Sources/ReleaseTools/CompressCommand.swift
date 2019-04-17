@@ -5,6 +5,7 @@
 
 import Foundation
 import Arguments
+import CommandShell
 
 class CompressCommand: Command {
     override var name: String { return "archive" }

@@ -6,7 +6,8 @@ import PackageDescription
 let package = Package(
     name: "ReleaseTools",
     products: [
-        .executable(name: "ReleaseTools", targets: ["ReleaseTools"])
+        .executable(name: "ReleaseTools", targets: ["ReleaseTools"]),
+        .library(name: "CommandShell", targets: ["CommandShell"])
     ],
     dependencies: [
         .package(url: "https://github.com/elegantchaos/Runner", from: "1.0.1"),
@@ -16,8 +17,11 @@ let package = Package(
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
-            name: "ReleaseTools",
+            name: "CommandShell",
             dependencies: ["Runner", "Arguments"]),
+        .target(
+            name: "ReleaseTools",
+            dependencies: ["CommandShell"]),
         .testTarget(
             name: "ReleaseToolsTests",
             dependencies: ["ReleaseTools"]),
