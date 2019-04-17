@@ -7,30 +7,7 @@ import Foundation
 import Runner
 import Arguments
 
-let documentation = """
-Various release utilities.
 
-Usage:
-    release archive [<scheme> [--set-default]]
-
-Arguments:
-    <scheme>        name of the scheme to archive
-
-Options:
-
-    --help          show help
-    --set-default   set the specified scheme as the default one to use
-
-Exit Status:
-
-The coverage command exits with one of the following values:
-
-0   If the arguments were ok and the threshold was met (or not specified).
-1   If there was an error parsing the arguments.
-2   If the threshold wasn't met.
-
-
-"""
 
 enum ReturnCode: Int32 {
     case ok = 0
@@ -44,9 +21,64 @@ enum ReturnCode: Int32 {
     }
 }
 
-let commands = [ ArchiveCommand() ]
-let args = Arguments(documentation: documentation, version: "1.0")
+func buildDocumentation(for commands: [Command]) -> String {
+    var usage = ""
+    var arguments: [String:String] = [:]
+    var options = [ "--help": "show help"]
+    var returns: [ReturnCode:String] = [
+        .ok: "If the arguments were ok and the command executed successfully.",
+        .unknownCommand: "If the command was unknown.",
+        .badArguments: "If there was an error parsing the arguments.",
+        .runFailed: "If launching a sub-command failed."
+    ]
 
+
+    for command in commands {
+        usage += "    \(command.usage)\n"
+        arguments.merge(command.arguments, uniquingKeysWith: { (k1, k2) in return k1 })
+        options.merge(command.options, uniquingKeysWith: { (k1, k2) in return k1 })
+        returns.merge(command.returns, uniquingKeysWith: { (k1, k2) in return k1 })
+    }
+
+    var optionText = ""
+    for option in options {
+        optionText += "    \(option.key)     \(option.value)\n"
+    }
+    
+    var argumentText = ""
+    for argument in arguments {
+        argumentText += "    \(argument.key)    \(argument.value)\n"
+    }
+
+    var returnText = ""
+    for key in returns.keys.sorted(by: { return $0.rawValue < $1.rawValue }) {
+        returnText += "    \(key.rawValue)    \(returns[key]!)\n"
+    }
+
+    return """
+    Various release utilities.
+    
+    Usage:
+    \(usage)
+    
+    Arguments:
+    \(argumentText)
+    
+    Options:
+    \(optionText)
+    
+    Exit Status:
+    
+    The command exits with one of the following values:
+    
+    \(returnText)
+    
+    """
+}
+
+let commands = [ ArchiveCommand(), CompressCommand(), ExportCommand() ]
+let documentation = buildDocumentation(for: commands)
+let args = Arguments(documentation: documentation, version: "1.0")
 
 for command in commands {
     if args.command(command.name) {

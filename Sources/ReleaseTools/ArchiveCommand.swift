@@ -26,6 +26,13 @@ extension CommandLine {
 class ArchiveCommand: Command {
     override var name: String { return "archive" }
 
+    override var usage: String { return "release archive [<scheme> [--set-default]]" }
+
+    override var arguments: [String : String] { return [ "<scheme>": "name of the scheme to archive" ] }
+    
+    override var options: [String : String] { return [ "--set-default": "set the specified scheme as the default one to use" ] }
+
+    
     func defaultWorkspace() -> String? {
         let url = URL(fileURLWithPath: ".")
         if let contents = try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [], options: [.skipsPackageDescendants, .skipsSubdirectoryDescendants, .skipsHiddenFiles]) {

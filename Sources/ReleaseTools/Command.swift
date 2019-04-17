@@ -8,6 +8,14 @@ import Arguments
 class Command {
     var name: String { return "" }
 
+    var usage: String { return "" }
+    
+    var arguments: [String:String] { return [:] }
+    
+    var options: [String:String] { return [:] }
+    
+    var returns: [ReturnCode:String] { return [:] }
+    
     func run(arguments: Arguments) throws -> ReturnCode {
         print("Command \(name) unimplemented." )
         return .ok
