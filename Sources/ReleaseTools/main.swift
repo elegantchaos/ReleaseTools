@@ -13,5 +13,5 @@ extension Result {
     }
 }
 
-let shell = Shell(commands: [ ArchiveCommand(), CompressCommand(), ExportCommand(), AppcastCommand() ])
+let shell = Shell(commands: [ ArchiveCommand(), CompressCommand(), ExportCommand(), AppcastCommand(), PublishCommand() ])
 shell.run()

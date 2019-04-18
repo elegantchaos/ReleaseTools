@@ -70,6 +70,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "appcast"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "publish"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--repo=Dependencies/Website"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -78,7 +86,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--to=Dependencies/Website/updates"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--latest=Dependencies/Website/"
