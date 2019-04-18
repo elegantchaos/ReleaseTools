@@ -74,11 +74,15 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "publish"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "compress"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--repo=Dependencies/Website"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
@@ -86,15 +90,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--to=Dependencies/Website/updates"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--latest=Dependencies/Website/"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "compress"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
       <AdditionalOptions>

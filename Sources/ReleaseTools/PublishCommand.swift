@@ -29,12 +29,14 @@ class PublishCommand: Command {
             return .infoUnreadable
         }
         
+        shell.log("Committing updates.")
         let message = "v\(archive.version), build \(archive.build)"
         let result = try git.sync(arguments: ["commit", "-a", "-m", message])
         if result.status != 0 {
             return Result.commitFailed.adding(runnerResult: result)
         }
         
+        shell.log("Pushing updates.")
         let pushResult = try git.sync(arguments: ["push"])
         if pushResult.status != 0 {
             return Result.pushFailed.adding(runnerResult: pushResult)

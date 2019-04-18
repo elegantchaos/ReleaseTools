@@ -35,7 +35,7 @@ struct XcodeArchive {
         self.version = version
         let url = URL(fileURLWithPath: path)
         self.name = url.lastPathComponent
-        self.shortName = url.deletingLastPathComponent().lastPathComponent
+        self.shortName = url.deletingPathExtension().lastPathComponent
         self.lowername = shortName.lowercased()
     }
     
