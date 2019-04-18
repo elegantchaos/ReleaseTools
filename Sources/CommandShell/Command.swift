@@ -12,7 +12,7 @@ open class Command {
     
     open var name: String { return "" }
 
-    open var usage: String { return "" }
+    open var usage: [String] { return [] }
     
     open var arguments: [String:String] { return [:] }
     

@@ -38,9 +38,7 @@ public class Shell {
                     exit(result: result)
                     
                 } catch {
-                    var result = Result.runFailed
-                    result.supplementary = String(describing: error)
-                    exit(result: result)
+                    exit(result: Result.runFailed.adding(supplementary: String(describing: error)))
                 }
             }
         }
@@ -53,18 +51,24 @@ public class Shell {
     }
     
     class func buildDocumentation(for commands: [Command]) -> String {
-        var usage = ""
+        var usages: [String] = []
         var arguments: [String:String] = [:]
-        var options = [ "--help": "show help"]
+        var options = [ "--help": "Show this help."]
         var results: [Result] = [ .ok, .unknownCommand, .badArguments, .runFailed ]
         
         for command in commands {
-            usage += "    \(command.usage)\n"
+            usages.append(contentsOf: command.usage)
             arguments.merge(command.arguments, uniquingKeysWith: { (k1, k2) in return k1 })
             options.merge(command.options, uniquingKeysWith: { (k1, k2) in return k1 })
             results.append(contentsOf: command.returns)
         }
         
+        let name = CommandLine.name
+        var usageText = ""
+        for usage in usages {
+            usageText += "    \(name) \(usage)\n"
+        }
+
         var optionText = ""
         for option in options {
             optionText += "    \(option.key)     \(option.value)\n"
@@ -76,7 +80,12 @@ public class Shell {
         }
         
         var resultText = ""
+        var codesUsed: [Int32:String] = [:]
         for key in results.sorted(by: { return $0.code < $1.code }) {
+            if let duplicate = codesUsed[key.code] {
+                print("Warning: duplicate code \(key.code) for \(key.description) and \(duplicate)")
+            }
+            codesUsed[key.code] = key.description
             resultText += "    \(key.code)    \(key.description)\n"
         }
         
@@ -84,7 +93,7 @@ public class Shell {
         Various release utilities.
         
         Usage:
-        \(usage)
+        \(usageText)
         
         Arguments:
         \(argumentText)
