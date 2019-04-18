@@ -10,7 +10,6 @@ import Runner
 extension Result {
     static let buildAppcastGeneratorFailed = Result(500, "Failed to build the generate_appcast tool.")
     static let appcastGeneratorFailed = Result(501, "Failed to generate the appcast.")
-    static let couldntGetKeychainPath = Result(502, "Failed to get the keychain path.")
 }
 
 
@@ -20,7 +19,7 @@ class AppcastCommand: Command {
     
     override var usage: [String] { return ["appcast --to=<to>"] }
 
-    override var returns: [Result] { return [.buildAppcastGeneratorFailed, .appcastGeneratorFailed, .couldntGetKeychainPath] }
+    override var returns: [Result] { return [.buildAppcastGeneratorFailed, .appcastGeneratorFailed] }
     
     override func run(shell: Shell) throws -> Result {
         let xcode = XcodeRunner()
@@ -28,9 +27,7 @@ class AppcastCommand: Command {
             return .badArguments
         }
         
-        guard let keyChainPath = NSURL(fileURLWithPath: "~/Library/Keychains/login.keychain").standardizingPath?.path else {
-            return .couldntGetKeychainPath
-        }
+        let keyChainPath = ("~/Library/Keychains/login.keychain" as NSString).expandingTildeInPath
         
         shell.log("Rebuilding appcast.")
         let result = try xcode.sync(arguments: ["build", "-workspace", workspace, "-scheme", "generate_appcast", "BUILD_DIR=.build"])
@@ -38,7 +35,7 @@ class AppcastCommand: Command {
             return Result.buildAppcastGeneratorFailed.adding(supplementary: result.stderr)
         }
         
-        let workspaceName = URL(fileURLWithPath: workspace).deletingPathExtension().path
+        let workspaceName = URL(fileURLWithPath: workspace).deletingPathExtension().lastPathComponent
         let keyName = "\(workspaceName) Sparkle Key"
         let appcastPath = try shell.arguments.expectedOption("to")
         
