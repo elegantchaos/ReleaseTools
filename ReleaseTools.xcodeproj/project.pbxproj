@@ -21,6 +21,8 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		22E8E6452268ACA9001A3DEB /* AppcastCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E8E6442268ACA9001A3DEB /* AppcastCommand.swift */; };
+		22E8E6472268B3BD001A3DEB /* CommandLine+CommandShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E8E6462268B3BD001A3DEB /* CommandLine+CommandShell.swift */; };
 		OBJ_101 /* Arguments.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "Arguments::Arguments::Product" /* Arguments.framework */; };
 		OBJ_102 /* Logger.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "Logger::Logger::Product" /* Logger.framework */; };
 		OBJ_103 /* Docopt.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "Docopt::Docopt::Product" /* Docopt.framework */; };
@@ -208,6 +210,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		22E8E6442268ACA9001A3DEB /* AppcastCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppcastCommand.swift; sourceTree = "<group>"; };
+		22E8E6462268B3BD001A3DEB /* CommandLine+CommandShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CommandLine+CommandShell.swift"; sourceTree = "<group>"; };
 		"Arguments::Arguments::Product" /* Arguments.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Arguments.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		"Docopt::Docopt::Product" /* Docopt.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Docopt.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		"Logger::Logger::Product" /* Logger.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Logger.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -333,6 +337,7 @@
 			children = (
 				OBJ_13 /* ArchiveCommand.swift */,
 				OBJ_14 /* CompressCommand.swift */,
+				22E8E6442268ACA9001A3DEB /* AppcastCommand.swift */,
 				OBJ_15 /* ExportCommand.swift */,
 				OBJ_16 /* XcodeRunner.swift */,
 				OBJ_17 /* main.swift */,
@@ -455,7 +460,7 @@
 			path = .build/checkouts/Logger/Sources/Logger;
 			sourceTree = SOURCE_ROOT;
 		};
-		OBJ_5 /*  */ = {
+		OBJ_5 = {
 			isa = PBXGroup;
 			children = (
 				OBJ_6 /* Package.swift */,
@@ -467,7 +472,6 @@
 				OBJ_71 /* ReleaseTools.xcworkspace */,
 				OBJ_72 /* README.md */,
 			);
-			name = "";
 			sourceTree = "<group>";
 		};
 		OBJ_55 /* LoggerKit */ = {
@@ -532,6 +536,7 @@
 			children = (
 				OBJ_9 /* Command.swift */,
 				OBJ_10 /* CommandShell.swift */,
+				22E8E6462268B3BD001A3DEB /* CommandLine+CommandShell.swift */,
 				OBJ_11 /* Result.swift */,
 			);
 			name = CommandShell;
@@ -757,7 +762,7 @@
 				English,
 				en,
 			);
-			mainGroup = OBJ_5 /*  */;
+			mainGroup = OBJ_5;
 			productRefGroup = OBJ_62 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -836,6 +841,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 0;
 			files = (
+				22E8E6452268ACA9001A3DEB /* AppcastCommand.swift in Sources */,
 				OBJ_159 /* ArchiveCommand.swift in Sources */,
 				OBJ_160 /* CompressCommand.swift in Sources */,
 				OBJ_161 /* ExportCommand.swift in Sources */,
@@ -899,6 +905,7 @@
 			files = (
 				OBJ_97 /* Command.swift in Sources */,
 				OBJ_98 /* CommandShell.swift in Sources */,
+				22E8E6472268B3BD001A3DEB /* CommandLine+CommandShell.swift in Sources */,
 				OBJ_99 /* Result.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

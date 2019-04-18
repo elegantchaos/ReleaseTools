@@ -16,8 +16,10 @@ extension Result {
 class CompressCommand: Command {
     override var name: String { return "compress" }
 
-    override var usage: String { return "release compress --to=<to> --latest=<latest>" }
+    override var usage: [String] { return ["compress --to=<to> --latest=<latest>"] }
 
+    override var returns: [Result] { return [.infoUnreadable, .infoMissing] }
+    
     override func run(shell: Shell) throws -> Result {
         let archiveURL = URL(fileURLWithPath: ArchiveCommand.archivePath).appendingPathComponent("Info.plist")
         let data = try Data(contentsOf: archiveURL)
@@ -45,9 +47,7 @@ class CompressCommand: Command {
         shell.log("Compressing \(appName) to \(archiveFolder) as \(archiveName).")
         let result = try ditto.sync(arguments: ["-c", "-k", "--sequesterRsrc", "--keepParent", exportedAppPath.path, destination.path])
         if result.status != 0 {
-            var returnResult = Result.exportFailed
-            returnResult.supplementary = result.stderr
-            return returnResult
+            return Result.exportFailed.adding(supplementary: result.stderr)
         }
         
         let latestFolder = try shell.arguments.expectedOption("latest")
@@ -55,14 +55,5 @@ class CompressCommand: Command {
         try FileManager.default.copyItem(at: destination, to: latestZip)
 
         return .ok
-        /*
- BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" .build/export/Bookish.app/Contents/Info.plist)
- VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" .build/export/Bookish.app/Contents/Info.plist)
- echo $BUILD
- echo $VERSION
- ditto -c -k --sequesterRsrc --keepParent ".build/export/Bookish.app/" "Dependencies/Website/updates/bookish-$VERSION-$BUILD.zip"
- rm -rf Dependencies/Website/updates/.tmp
-*/
-        
     }
 }

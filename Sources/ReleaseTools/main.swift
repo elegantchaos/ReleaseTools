@@ -5,7 +5,13 @@
 
 import Foundation
 import CommandShell
+import Runner
 
+extension Result {
+    func adding(runnerResult: Runner.Result) -> Result {
+        return adding(supplementary: [runnerResult.stdout, runnerResult.stderr].joined(separator: "\n\n"))
+    }
+}
 
-let shell = Shell(commands: [ ArchiveCommand(), CompressCommand(), ExportCommand() ])
+let shell = Shell(commands: [ ArchiveCommand(), CompressCommand(), ExportCommand(), AppcastCommand() ])
 shell.run()

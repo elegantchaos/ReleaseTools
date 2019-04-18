@@ -16,8 +16,10 @@ class ExportCommand: Command {
     
     override var name: String { return "export" }
     
-    override var usage: String { return "release export [<scheme> [--set-default]]" }
+    override var usage: [String] { return ["export [<scheme> [--set-default]]"] }
 
+    override var returns: [Result] { return [.exportFailed] }
+    
     override func run(shell: Shell) throws -> Result {
         let xcode = XcodeRunner()
         guard let workspace = xcode.defaultWorkspace else {
@@ -25,9 +27,7 @@ class ExportCommand: Command {
         }
 
         guard let scheme = xcode.scheme(for: workspace, shell: shell) else {
-            var result = Result.noDefaultScheme
-            result.supplementary = "Set using \(CommandLine.name) \(name) <scheme> --set-default."
-            return result
+            return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(name) <scheme> --set-default.")
         }
 
         if shell.arguments.flag("set-default") {
@@ -43,9 +43,7 @@ class ExportCommand: Command {
         if result.status == 0 {
             return .ok
         } else {
-            var returnResult = Result.exportFailed
-            returnResult.supplementary = result.stderr
-            return returnResult
+            return Result.exportFailed.adding(supplementary: result.stderr)
         }
     }
 }
