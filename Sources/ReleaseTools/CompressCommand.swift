@@ -36,7 +36,9 @@ class CompressCommand: Command {
         }
         
         let latestFolder = try shell.arguments.expectedOption("latest")
+        shell.log("Saving copy of archive to \(latestFolder) as \(archive.unversionedZipName).")
         let latestZip = URL(fileURLWithPath: latestFolder).appendingPathComponent(archive.unversionedZipName)
+        try? FileManager.default.removeItem(at: latestZip)
         try FileManager.default.copyItem(at: destination, to: latestZip)
         
         return .ok

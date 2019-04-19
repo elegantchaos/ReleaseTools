@@ -78,6 +78,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "compress"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "update-build"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -90,11 +94,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--to=Dependencies/Website/updates"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--latest=Dependencies/Website/"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
       <AdditionalOptions>

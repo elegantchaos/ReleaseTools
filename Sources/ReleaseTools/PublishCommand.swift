@@ -21,7 +21,7 @@ class PublishCommand: Command {
     override var options: [String : String] { return ["--repo=<repo>": "The repository containing the appcast and updates."] }
     
     override func run(shell: Shell) throws -> Result {
-        let git = Runner(for: URL(fileURLWithPath: "/usr/local/bin/git"))
+        let git = GitRunner()
         let appcastRepo = try shell.arguments.expectedOption("repo")
         git.cwd = URL(fileURLWithPath: appcastRepo)
 

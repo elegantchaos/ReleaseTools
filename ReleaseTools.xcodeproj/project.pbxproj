@@ -21,6 +21,8 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		2231C3D5226A0B3C009A9937 /* UpdateBuildCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2231C3D4226A0B3C009A9937 /* UpdateBuildCommand.swift */; };
+		2231C3D7226A0BFF009A9937 /* GitRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2231C3D6226A0BFF009A9937 /* GitRunner.swift */; };
 		22E8E6452268ACA9001A3DEB /* AppcastCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E8E6442268ACA9001A3DEB /* AppcastCommand.swift */; };
 		22E8E6472268B3BD001A3DEB /* CommandLine+CommandShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E8E6462268B3BD001A3DEB /* CommandLine+CommandShell.swift */; };
 		22E8E6492268BBE6001A3DEB /* PublishCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E8E6482268BBE6001A3DEB /* PublishCommand.swift */; };
@@ -212,6 +214,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2231C3D4226A0B3C009A9937 /* UpdateBuildCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateBuildCommand.swift; sourceTree = "<group>"; };
+		2231C3D6226A0BFF009A9937 /* GitRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRunner.swift; sourceTree = "<group>"; };
 		22E8E6442268ACA9001A3DEB /* AppcastCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppcastCommand.swift; sourceTree = "<group>"; };
 		22E8E6462268B3BD001A3DEB /* CommandLine+CommandShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CommandLine+CommandShell.swift"; sourceTree = "<group>"; };
 		22E8E6482268BBE6001A3DEB /* PublishCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishCommand.swift; sourceTree = "<group>"; };
@@ -341,10 +345,12 @@
 			children = (
 				OBJ_13 /* ArchiveCommand.swift */,
 				OBJ_14 /* CompressCommand.swift */,
+				2231C3D4226A0B3C009A9937 /* UpdateBuildCommand.swift */,
 				22E8E6442268ACA9001A3DEB /* AppcastCommand.swift */,
 				22E8E6482268BBE6001A3DEB /* PublishCommand.swift */,
 				OBJ_15 /* ExportCommand.swift */,
 				OBJ_16 /* XcodeRunner.swift */,
+				2231C3D6226A0BFF009A9937 /* GitRunner.swift */,
 				22E8E64A2268C112001A3DEB /* XcodeArchive.swift */,
 				OBJ_17 /* main.swift */,
 			);
@@ -851,7 +857,9 @@
 				22E8E6492268BBE6001A3DEB /* PublishCommand.swift in Sources */,
 				22E8E64B2268C112001A3DEB /* XcodeArchive.swift in Sources */,
 				OBJ_159 /* ArchiveCommand.swift in Sources */,
+				2231C3D7226A0BFF009A9937 /* GitRunner.swift in Sources */,
 				OBJ_160 /* CompressCommand.swift in Sources */,
+				2231C3D5226A0B3C009A9937 /* UpdateBuildCommand.swift in Sources */,
 				OBJ_161 /* ExportCommand.swift in Sources */,
 				OBJ_162 /* XcodeRunner.swift in Sources */,
 				OBJ_163 /* main.swift in Sources */,
