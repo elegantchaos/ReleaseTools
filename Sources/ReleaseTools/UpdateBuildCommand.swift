@@ -26,6 +26,7 @@ class UpdateBuildCommand: Command {
         let git = GitRunner()
         if let repo = shell.arguments.option("repo") {
             git.cwd = URL(fileURLWithPath: repo)
+            chdir(repo)
         }
 
         var result = try git.sync(arguments: ["rev-list", "--count", "HEAD"])
@@ -53,7 +54,7 @@ class UpdateBuildCommand: Command {
                 return .writingConfigFailed
             }
             
-            result = try git.sync(arguments: ["update-index", "--assume-unchanged", configURL.path])
+            result = try git.sync(arguments: ["update-index", "--assume-unchanged", "Configs/BuildNumber.xcconfig"])
             if result.status != 0 {
                 return Result.updatingIndexFailed.adding(runnerResult: result)
             }
