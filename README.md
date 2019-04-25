@@ -1,4 +1,3 @@
-__NB: `CommandShell` should be in a separate repo, and will be soon.__
 
 # Release Tools
 
@@ -43,3 +42,11 @@ Assumes that the submodule defining the website which hosts the appcast is locat
 ## UpdateBuild
 
 Outputs the `Configs/BuildNumber.xcconfig` file, containing a build number derived from the count of git commits.
+
+# Building
+
+The tool is currently built using swift package manager: `swift build`.
+
+You can build and run in a single line with `swift run ReleaseTools <command> <args>`.
+
+
