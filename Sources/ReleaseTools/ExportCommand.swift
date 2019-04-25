@@ -16,7 +16,7 @@ class ExportCommand: Command {
     
     override var name: String { return "export" }
     
-    override var usage: [String] { return ["export [<scheme> [--set-default]]"] }
+    override var usage: [String] { return ["[<scheme> [--set-default]]"] }
 
     override var returns: [Result] { return [.exportFailed] }
     

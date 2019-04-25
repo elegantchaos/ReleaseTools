@@ -14,7 +14,7 @@ extension Result {
 class CompressCommand: Command {
     override var name: String { return "compress" }
 
-    override var usage: [String] { return ["compress --to=<to> --latest=<latest>"] }
+    override var usage: [String] { return ["--to=<to> --latest=<latest>"] }
 
     override var returns: [Result] { return [.infoUnreadable] }
     

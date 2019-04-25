@@ -15,7 +15,7 @@ class PublishCommand: Command {
     
     override var name: String { return "publish" }
     
-    override var usage: [String] { return ["publish --repo=<repo>"] }
+    override var usage: [String] { return ["--repo=<repo>"] }
     
     override var options: [String : String] { return ["--repo=<repo>": "The repository containing the appcast and updates."] }
     

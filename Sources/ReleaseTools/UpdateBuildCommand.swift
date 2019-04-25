@@ -18,7 +18,7 @@ class UpdateBuildCommand: Command {
     
     override var name: String { return "update-build" }
     
-    override var usage: [String] { return ["update-build [--repo=<repo>]"] }
+    override var usage: [String] { return ["[--repo=<repo>]"] }
 
     override var options: [String : String] { return ["--repo=<repo>": "The repository to operate on."] }
 

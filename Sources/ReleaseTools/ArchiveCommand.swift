@@ -50,7 +50,7 @@ class ArchiveCommand: Command {
     
     override var name: String { return "archive" }
 
-    override var usage: [String] { return ["archive [<scheme> [--set-default]]"] }
+    override var usage: [String] { return ["[<scheme> [--set-default]]"] }
 
     override var arguments: [String : String] { return [ "<scheme>": "name of the scheme to archive" ] }
     

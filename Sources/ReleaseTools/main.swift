@@ -19,7 +19,8 @@ let shell = Shell(commands: [
     ExportCommand(),
     AppcastCommand(),
     PublishCommand(),
-    UpdateBuildCommand()
+    UpdateBuildCommand(),
+    InstallCommand()
     ]
 )
 
