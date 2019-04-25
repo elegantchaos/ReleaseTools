@@ -1,7 +1,7 @@
 import XCTest
 import class Foundation.Bundle
 
-final class SketchXTests: XCTestCase {
+final class ReleaseToolTests: XCTestCase {
     func testExample() throws {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct
@@ -12,7 +12,7 @@ final class SketchXTests: XCTestCase {
             return
         }
 
-        let fooBinary = productsDirectory.appendingPathComponent("SketchX")
+        let fooBinary = productsDirectory.appendingPathComponent("ReleaseTools")
 
         let process = Process()
         process.executableURL = fooBinary

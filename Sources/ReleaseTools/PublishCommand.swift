@@ -5,7 +5,6 @@
 
 import Foundation
 import CommandShell
-import Runner
 
 extension Result {
     static let commitFailed = Result(600, "Failed to commit the appcast feed and updates.")
