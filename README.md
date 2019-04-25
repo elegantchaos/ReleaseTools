@@ -1,4 +1,4 @@
-__NB: `CommandShell` should be in a separatw repo, and will be soon.__
+__NB: `CommandShell` should be in a separate repo, and will be soon.__
 
 # Release Tools
 
