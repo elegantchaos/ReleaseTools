@@ -4,7 +4,7 @@ A fairly random suite of tools to perform various release-related tasks,
 
 Current tools:
 
-- appcast: rebuild the Sparkle appcasat file
+- appcast
 - archive:
 - compress
 - export
