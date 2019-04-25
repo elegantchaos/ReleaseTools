@@ -1,3 +1,5 @@
+### NB: __`CommandShell` should be in a separatw repo, and will be soon.__
+
 # Release Tools
 
 A fairly random suite of tools to perform various release-related tasks,
