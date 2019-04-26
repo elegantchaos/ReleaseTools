@@ -16,11 +16,15 @@ extension Result {
 
 class UpdateBuildCommand: Command {
     
-    override var name: String { return "update-build" }
-    
-    override var usage: [String] { return ["[--repo=<repo>]"] }
-
-    override var options: [String : String] { return ["--repo=<repo>": "The repository to operate on."] }
+    override var description: Command.Description {
+        return Description(
+            name: "update-build",
+            help: "Update BuildNumber.xcconfig to contain the latest build number.",
+            usage: ["[--repo=<repo>]"],
+            options: ["--repo=<repo>": "The repository to operate on."],
+            returns: [.gettingBuildFailed, .gettingCommitFailed, .writingConfigFailed, .updatingIndexFailed]
+        )
+    }
 
     override func run(shell: Shell) throws -> Result {
         let git = GitRunner()

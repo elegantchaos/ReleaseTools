@@ -12,11 +12,15 @@ extension Result {
 }
 
 class CompressCommand: Command {
-    override var name: String { return "compress" }
-
-    override var usage: [String] { return ["--to=<to> --latest=<latest>"] }
-
-    override var returns: [Result] { return [.infoUnreadable] }
+    override var description: Command.Description {
+        return Description(
+            name: "compress",
+            help: "Compress the output of the export command for distribution.",
+            usage: ["--to=<to> --latest=<latest>"],
+            options: ["--repo=<repo>": "The repository containing the appcast and updates."],
+            returns: [.infoUnreadable]
+        )
+    }
     
     override func run(shell: Shell) throws -> Result {
         guard let archive = XcodeArchive(url: URL(fileURLWithPath: ArchiveCommand.archivePath)) else {

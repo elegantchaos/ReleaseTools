@@ -14,11 +14,14 @@ extension Result {
 class ExportCommand: Command {
     static let exportPath = ".build/export"
     
-    override var name: String { return "export" }
-    
-    override var usage: [String] { return ["[<scheme> [--set-default]]"] }
-
-    override var returns: [Result] { return [.exportFailed] }
+    override var description: Command.Description {
+        return Description(
+            name: "export",
+            help: "Export an executable from the output of the archive command.",
+            usage: ["[<scheme> [--set-default]]"],
+            returns: [.exportFailed]
+        )
+    }
     
     override func run(shell: Shell) throws -> Result {
         let xcode = XcodeRunner()
@@ -27,7 +30,7 @@ class ExportCommand: Command {
         }
 
         guard let scheme = xcode.scheme(for: workspace, shell: shell) else {
-            return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(name) <scheme> --set-default.")
+            return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(description.name) <scheme> --set-default.")
         }
 
         if shell.arguments.flag("set-default") {

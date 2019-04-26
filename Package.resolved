@@ -11,15 +11,6 @@
         }
       },
       {
-        "package": "CommandShell",
-        "repositoryURL": "https://github.com/elegantchaos/CommandShell",
-        "state": {
-          "branch": null,
-          "revision": "857ab13cdbd1a76cbe811a8d4cc801adcee4b11c",
-          "version": "1.0.1"
-        }
-      },
-      {
         "package": "Docopt",
         "repositoryURL": "https://github.com/elegantchaos/docopt.swift",
         "state": {

@@ -15,11 +15,14 @@ extension Result {
 
 class AppcastCommand: Command {
     
-    override var name: String { return "appcast" }
-    
-    override var usage: [String] { return ["appcast --to=<to>"] }
-
-    override var returns: [Result] { return [.buildAppcastGeneratorFailed, .appcastGeneratorFailed] }
+    override var description: Command.Description {
+        return Description(
+            name: "appcast",
+            help: "Update the Sparkle appcast to include the zip created by the compress command.",
+            usage: ["appcast --to=<to>"],
+            returns: [.buildAppcastGeneratorFailed, .appcastGeneratorFailed]
+        )
+    }
     
     override func run(shell: Shell) throws -> Result {
         let xcode = XcodeRunner()

@@ -48,15 +48,16 @@ struct ArchiveInfo {
 class ArchiveCommand: Command {
     static let archivePath = ".build/archive.xcarchive"
     
-    override var name: String { return "archive" }
-
-    override var usage: [String] { return ["[<scheme> [--set-default]]"] }
-
-    override var arguments: [String : String] { return [ "<scheme>": "name of the scheme to archive" ] }
-    
-    override var options: [String : String] { return [ "--set-default": "set the specified scheme as the default one to use" ] }
-
-    override var returns: [Result] { return [.archiveFailed] }
+    override var description: Command.Description {
+        return Description(
+            name: "archive",
+            help: "Make an archive for uploading, distribution, etc.",
+            usage: ["[<scheme> [--set-default]]"],
+            arguments: [ "<scheme>": "name of the scheme to archive" ],
+            options: [ "--set-default": "set the specified scheme as the default one to use" ],
+            returns: [.archiveFailed]
+        )
+    }
     
     override func run(shell: Shell) throws -> Result {
         
@@ -66,7 +67,7 @@ class ArchiveCommand: Command {
         }
 
         guard let scheme = xcode.scheme(for: workspace, shell: shell) else {
-            return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(name) <scheme> --set-default.")
+            return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(description.name) <scheme> --set-default.")
         }
 
         if shell.arguments.flag("set-default") {

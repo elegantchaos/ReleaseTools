@@ -12,13 +12,15 @@ extension Result {
 }
 
 class PublishCommand: Command {
-    
-    override var name: String { return "publish" }
-    
-    override var usage: [String] { return ["--repo=<repo>"] }
-    
-    override var options: [String : String] { return ["--repo=<repo>": "The repository containing the appcast and updates."] }
-    
+    override var description: Command.Description {
+        return Description(
+            name: "publish",
+            help: "Commit and push any changes made to the appcast repo.",
+            usage: ["--repo=<repo>"],
+            options: ["--repo=<repo>": "The repository containing the appcast and updates."]
+        )
+    }
+
     override func run(shell: Shell) throws -> Result {
         let git = GitRunner()
         let appcastRepo = try shell.arguments.expectedOption("repo")
