@@ -20,7 +20,8 @@ let shell = Shell(commands: [
     AppcastCommand(),
     PublishCommand(),
     UpdateBuildCommand(),
-    InstallCommand()
+    InstallCommand(),
+    NotarizeCommand()
     ]
 )
 

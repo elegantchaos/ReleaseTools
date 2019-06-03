@@ -1,5 +1,5 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 03/06/2019.
+//  Created by Sam Deane on 17/04/2019.
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -8,14 +8,14 @@ import Foundation
 import CommandShell
 
 extension Result {
-//    static let missingWorkspace = Result(201, "The workspace was not specified, and could not be inferred.")
-//    static let noDefaultScheme = Result(202, "No default scheme set.")
+    static let missingWorkspace = Result(201, "The workspace was not specified, and could not be inferred.")
+    static let noDefaultScheme = Result(202, "No default scheme set.")
 }
 
 
-class XcodeRunner: Runner {
+class XcodeBuildRunner: Runner {
     init() {
-        super.init(for: URL(fileURLWithPath: "/usr/bin/xcrun"))
+        super.init(for: URL(fileURLWithPath: "/usr/bin/xcodebuild"))
     }
     
     func schemes(workspace: String) throws -> [String] {
@@ -41,11 +41,11 @@ class XcodeRunner: Runner {
         }
         return nil
     }
-    
+
     func defaultScheme(for workspace: String) -> String? {
         return UserDefaults.standard.string(forKey: "defaultScheme.\(workspace)")
     }
-    
+
     func setDefaultScheme(_ scheme: String, for workspace: String) {
         UserDefaults.standard.set(scheme, forKey: "defaultScheme.\(workspace)")
     }

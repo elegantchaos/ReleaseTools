@@ -24,7 +24,7 @@ class ExportCommand: Command {
     }
     
     override func run(shell: Shell) throws -> Result {
-        let xcode = XcodeRunner()
+        let xcode = XcodeBuildRunner()
         guard let workspace = xcode.defaultWorkspace else {
             return .missingWorkspace
         }
