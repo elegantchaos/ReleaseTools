@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/elegantchaos/Arguments.git",
         "state": {
           "branch": null,
-          "revision": "18fbecce70cdad8677aac45d73d80af6eee4e839",
-          "version": "1.0.8"
+          "revision": "e17c144eb00b6d9e500c34eb09de265add523de2",
+          "version": "1.1.0"
         }
       },
       {
@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/elegantchaos/CommandShell.git",
         "state": {
           "branch": null,
-          "revision": "54ba728b53d35c6e02fd04457e15bb19c45249a5",
-          "version": "1.0.5"
+          "revision": "bf8e8789b5021ed8b683081fb748f29444d50cf4",
+          "version": "1.1.0"
         }
       },
       {
@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/elegantchaos/docopt.swift.git",
         "state": {
           "branch": null,
-          "revision": "a236953ec13b4c2c54a4450110973d9ff9db7711",
-          "version": "0.6.10"
+          "revision": "fa71fca4b4e7411c70a21ef89256cd04a64c6dda",
+          "version": "0.6.11"
         }
       },
       {
@@ -33,8 +33,8 @@
         "repositoryURL": "https://github.com/elegantchaos/Logger.git",
         "state": {
           "branch": null,
-          "revision": "32a977f56b93e2fdd73d431f4ce95b4a1023ca9b",
-          "version": "1.3.5"
+          "revision": "65d89667f72e480aba8ed37c3d874a0c5349a005",
+          "version": "1.3.6"
         }
       },
       {
