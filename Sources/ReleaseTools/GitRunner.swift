@@ -7,7 +7,8 @@ import Runner
 import Foundation
 
 class GitRunner: Runner {
+    
     init() {
-        super.init(for: URL(fileURLWithPath: "/usr/local/bin/git"))
+        super.init(command: "git")
     }
 }

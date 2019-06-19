@@ -12,7 +12,7 @@ let package = Package(
         .executable(name: "rt", targets: ["ReleaseTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/elegantchaos/Runner.git", from: "1.0.2"),
+        .package(url: "https://github.com/elegantchaos/Runner.git", from: "1.0.3"),
         .package(url: "https://github.com/elegantchaos/CommandShell.git", from: "1.1.0"),
     ],
     targets: [

@@ -15,7 +15,7 @@ extension Result {
 
 class XcodeRunner: Runner {
     init() {
-        super.init(for: URL(fileURLWithPath: "/usr/bin/xcodebuild"))
+        super.init(command: "xcodebuild")
     }
     
     func schemes(workspace: String) throws -> [String] {
