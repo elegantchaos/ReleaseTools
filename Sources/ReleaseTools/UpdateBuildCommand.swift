@@ -20,18 +20,27 @@ class UpdateBuildCommand: Command {
         return Description(
             name: "update-build",
             help: "Update BuildNumber.xcconfig to contain the latest build number.",
-            usage: ["[--repo=<repo>]"],
-            options: ["--repo=<repo>": "The repository to operate on."],
+            usage: ["[--config=<config>]"],
+            options: ["--config=<config>": "The configuration file to update."],
             returns: [.gettingBuildFailed, .gettingCommitFailed, .writingConfigFailed, .updatingIndexFailed]
         )
     }
 
     override func run(shell: Shell) throws -> Result {
         let git = GitRunner()
-        if let repo = shell.arguments.option("repo") {
-            git.cwd = URL(fileURLWithPath: repo)
-            chdir(repo)
+
+        let configURL: URL
+        if let config = shell.arguments.option("config") {
+            configURL = URL(fileURLWithPath: config)
+        } else if let sourceRoot = ProcessInfo.processInfo.environment["SOURCE_ROOT"] {
+            configURL = URL(fileURLWithPath: sourceRoot).appendingPathComponent("Configs").appendingPathComponent("BuildNumber.xcconfig")
+        } else {
+            configURL = URL(fileURLWithPath: "Configs/BuildNumber.xcconfig")
         }
+        
+        let configRoot = configURL.deletingLastPathComponent()
+        git.cwd = configRoot
+        chdir(configRoot.path)
 
         var result = try git.sync(arguments: ["rev-list", "--count", "HEAD"])
         if result.status != 0 {
@@ -47,7 +56,7 @@ class UpdateBuildCommand: Command {
         
         let commit = result.stdout.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
         let new = "BUILD_NUMBER = \(build)\nBUILD_COMMIT = \(commit)"
-        let configURL = URL(fileURLWithPath: "Configs/BuildNumber.xcconfig")
+
         if let existing = try? String(contentsOf: configURL), existing == new {
             shell.log("Build number is \(build).")
         } else {
@@ -58,7 +67,7 @@ class UpdateBuildCommand: Command {
                 return .writingConfigFailed
             }
             
-            result = try git.sync(arguments: ["update-index", "--assume-unchanged", "Configs/BuildNumber.xcconfig"])
+            result = try git.sync(arguments: ["update-index", "--assume-unchanged", configURL.path])
             if result.status != 0 {
                 return Result.updatingIndexFailed.adding(runnerResult: result)
             }
