@@ -24,7 +24,7 @@ class CompressCommand: Command {
     
     override func run(shell: Shell) throws -> Result {
         guard let archive = XcodeArchive(url: URL(fileURLWithPath: ArchiveCommand.archivePath)) else {
-            return .infoUnreadable
+            return Result.infoUnreadable.adding(supplementary: ArchiveCommand.archivePath)
         }
 
         let exportedAppPath = URL(fileURLWithPath: ExportCommand.exportPath).appendingPathComponent(archive.name)
@@ -33,6 +33,7 @@ class CompressCommand: Command {
         let destination = URL(fileURLWithPath: archiveFolder).appendingPathComponent(archive.versionedZipName)
         
         shell.log("Compressing \(archive.name) to \(archiveFolder) as \(archive.versionedZipName).")
+        print("ditto " + ["-c", "-k", "--sequesterRsrc", "--keepParent", exportedAppPath.path, destination.path].joined(separator: " "))
         let result = try ditto.sync(arguments: ["-c", "-k", "--sequesterRsrc", "--keepParent", exportedAppPath.path, destination.path])
         if result.status != 0 {
             return Result.exportFailed.adding(supplementary: result.stderr)

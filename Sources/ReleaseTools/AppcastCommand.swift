@@ -19,7 +19,7 @@ class AppcastCommand: Command {
         return Description(
             name: "appcast",
             help: "Update the Sparkle appcast to include the zip created by the compress command.",
-            usage: ["appcast --to=<to>"],
+            usage: ["--to=<to>"],
             returns: [.buildAppcastGeneratorFailed, .appcastGeneratorFailed]
         )
     }
@@ -33,7 +33,8 @@ class AppcastCommand: Command {
         let keyChainPath = ("~/Library/Keychains/login.keychain" as NSString).expandingTildeInPath
         
         shell.log("Rebuilding appcast.")
-        let result = try xcode.sync(arguments: ["build", "-workspace", workspace, "-scheme", "generate_appcast", "BUILD_DIR=.build"])
+        let build = "\(FileManager.default.currentDirectoryPath)/.build"
+        let result = try xcode.sync(arguments: ["build", "-workspace", workspace, "-scheme", "generate_appcast", "BUILD_DIR=\(build)"], passthrough: true)
         if result.status != 0 {
             return Result.buildAppcastGeneratorFailed.adding(supplementary: result.stderr)
         }

@@ -52,9 +52,12 @@ class ArchiveCommand: Command {
         return Description(
             name: "archive",
             help: "Make an archive for uploading, distribution, etc.",
-            usage: ["[<scheme> [--set-default]]"],
+            usage: ["[<scheme> [--set-default] [--show-build]]"],
             arguments: [ "<scheme>": "name of the scheme to archive" ],
-            options: [ "--set-default": "set the specified scheme as the default one to use" ],
+            options: [
+                "--set-default": "set the specified scheme as the default one to use",
+                "--show-build" : "show build command and output"
+            ],
             returns: [.archiveFailed]
         )
     }
@@ -75,7 +78,13 @@ class ArchiveCommand: Command {
         }
         
         shell.log("Archiving scheme \(scheme).")
-        let result = try xcode.sync(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", ArchiveCommand.archivePath])
+
+        let showBuild = shell.arguments.flag("show-build")
+        if showBuild {
+            shell.log("xcodebuild -workspace \(workspace) -scheme \(scheme) archive -archivePath \(ArchiveCommand.archivePath)")
+        }
+        
+        let result = try xcode.sync(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", ArchiveCommand.archivePath], passthrough: showBuild)
         if result.status == 0 {
             return .ok
         } else {
