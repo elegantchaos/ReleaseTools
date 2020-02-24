@@ -50,3 +50,22 @@ The tool is currently built using swift package manager: `swift build`.
 You can build and run in a single line with `swift run ReleaseTools <command> <args>`.
 
 
+
+# Workflow Notes
+
+The workflow is broken down into separate steps, to make them easier to debug. 
+
+The full list, in the order that they run, is:
+
+- archive - to build the release version
+- updateBuild (implicitly during the build process)
+- (notarize) - to notarize the release 
+- export - to extract the notarized application
+- compress - to make the zip archive
+- appcast - to update the appcast xml to include the new zip
+- publish - to commit the new zip and appcast to the website
+
+When running `archive`, we currently rely on the scheme name being the same as the eventual output.
+
+The appcast command needs the Sparkle key. It reads this from the keychain, from a key named "<scheme> Sparkle Key".
+
