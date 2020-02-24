@@ -23,12 +23,12 @@ class CompressCommand: RTCommand {
             return Result.infoUnreadable.adding(supplementary: archiveURL.path)
         }
 
-        let exportedAppURL = exportURL.appendingPathComponent(archive.name)
+        let stapledAppURL = stapledURL.appendingPathComponent(archive.name)
         let ditto = DittoRunner(shell: shell)
         let archiveFolder = try shell.arguments.expectedOption("to")
         let destination = URL(fileURLWithPath: archiveFolder).appendingPathComponent(archive.versionedZipName)
         
-        let result = try ditto.zip(exportedAppURL, as: destination)
+        let result = try ditto.zip(stapledAppURL, as: destination)
         if result.status != 0 {
             return Result.exportFailed.adding(supplementary: result.stderr)
         }
