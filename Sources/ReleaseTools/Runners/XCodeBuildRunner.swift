@@ -7,7 +7,7 @@ import Runner
 import Foundation
 import CommandShell
 
-class XcodeRunner: Runner {
+class XCodeBuildRunner: Runner {
     let shell: Shell
     
     init(shell: Shell) {
@@ -28,7 +28,7 @@ class XcodeRunner: Runner {
     }
     
     func run(arguments: [String]) throws -> Runner.Result {
-        let showBuild = shell.arguments.flag("show-build")
+        let showBuild = shell.arguments.flag("show-output")
         if showBuild {
             shell.log("xcodebuild " + arguments.joined(separator: " "))
         }

@@ -51,11 +51,11 @@ class ArchiveCommand: RTCommand {
         return Description(
             name: "archive",
             help: "Make an archive for uploading, distribution, etc.",
-            usage: ["[<scheme> [--set-default] [--show-build]]"],
-            arguments: [ "<scheme>": "name of the scheme to archive" ],
+            usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(showOutputOption)]"],
             options: [
-                "--set-default": "set the specified scheme as the default one to use",
-                "--show-build" : "show build command and output"
+                schemeOption: schemeOptionHelp,
+                setDefaultOption: setDefaultOptionHelp,
+                showOutputOption : showOutputOptionHelp,
             ],
             returns: [.archiveFailed]
         )
@@ -77,7 +77,7 @@ class ArchiveCommand: RTCommand {
         
         shell.log("Archiving scheme \(scheme).")
 
-        let xcode = XcodeRunner(shell: shell)
+        let xcode = XCodeBuildRunner(shell: shell)
         let result = try xcode.run(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", archiveURL.path])
         if result.status == 0 {
             return .ok

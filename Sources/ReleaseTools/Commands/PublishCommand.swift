@@ -15,16 +15,15 @@ class PublishCommand: RTCommand {
     override var description: Command.Description {
         return Description(
             name: "publish",
-            help: "Commit and push any changes made to the appcast repo.",
-            usage: ["--repo=<repo>"],
-            options: ["--repo=<repo>": "The repository containing the appcast and updates."]
+            help: "Commit and push any changes made to the website repo.",
+            usage: ["[\(websiteOption)]"],
+            options: ["\(websiteOption)": websiteOptionHelp]
         )
     }
 
     override func run(shell: Shell) throws -> Result {
         let git = GitRunner()
-        let appcastRepo = try shell.arguments.expectedOption("repo")
-        git.cwd = URL(fileURLWithPath: appcastRepo)
+        git.cwd = websiteURL
 
         guard let archive = archive else {
             return .infoUnreadable

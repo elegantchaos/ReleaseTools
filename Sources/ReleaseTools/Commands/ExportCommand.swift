@@ -17,16 +17,18 @@ class ExportCommand: RTCommand {
         return Description(
             name: "export",
             help: "Export an executable from the output of the archive command.",
-            usage: ["[<scheme> [--set-default] [--show-build]]"],
+            usage: ["[\(schemeOption) [\(setDefaultOption)] [\(showOutputOption)]]"],
             options: [
-                "--show-build" : "show build command and output"
+                schemeOption: schemeOptionHelp,
+                setDefaultOption: setDefaultOptionHelp,
+                showOutputOption : showOutputOptionHelp,
             ],
             returns: [.exportFailed]
         )
     }
     
     override func run(shell: Shell) throws -> Result {
-        let xcode = XcodeRunner(shell: shell)
+        let xcode = XCodeBuildRunner(shell: shell)
         guard let workspace = defaultWorkspace else {
             return .missingWorkspace
         }

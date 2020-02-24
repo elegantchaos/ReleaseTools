@@ -31,9 +31,9 @@ rt archive
 rt export
 rt notarize
 rt wait
-rt compress --to=Dependencies/Website/updates --latest=Dependencies/Website/
-rt appcast --to=Dependencies/Website/
-rt publish --repo="Dependencies/Website/updates/"
+rt compress
+rt appcast
+rt publish
 ```
 
 More details of each command are given below:

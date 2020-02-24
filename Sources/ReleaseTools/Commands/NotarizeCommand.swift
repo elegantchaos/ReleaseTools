@@ -17,8 +17,11 @@ class NotarizeCommand: RTCommand {
         return Description(
             name: "notarize",
             help: "Notarize the compressed archive.",
-            usage: ["[--user=<user> [--set-default]]"],
-            options: ["--repo=<repo>": "The repository containing the appcast and updates."],
+            usage: ["[\(userOption) [\(setDefaultOption)]]"],
+            options: [
+                userOption: userOptionHelp,
+                setDefaultOption: setDefaultOptionHelp
+            ],
             returns: [.notarizingFailed, .savingNotarizationReceiptFailed]
         )
     }

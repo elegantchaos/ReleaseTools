@@ -22,16 +22,18 @@ class AppcastCommand: RTCommand {
         return Description(
             name: "appcast",
             help: "Update the Sparkle appcast to include the zip created by the compress command.",
-            usage: ["--to=<to> [--show-build]"],
+            usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(websiteOption)] [\(showOutputOption)]"],
             options: [
-                "--show-build" : "show build command and output"
+                schemeOption: schemeOptionHelp
+                showOutputOption : showOutputOptionHelp,
+                websiteOption : websiteOptionHelp
             ],
             returns: [.buildAppcastGeneratorFailed, .appcastGeneratorFailed, .keyGenerationFailed, .keyImportFailed, .generatedKeys]
         )
     }
     
     override func run(shell: Shell) throws -> Result {
-        let xcode = XcodeRunner(shell: shell)
+        let xcode = XCodeBuildRunner(shell: shell)
         guard let workspace = defaultWorkspace else {
             return .badArguments
         }
@@ -49,10 +51,9 @@ class AppcastCommand: RTCommand {
         
         let workspaceName = URL(fileURLWithPath: workspace).deletingPathExtension().lastPathComponent
         let keyName = "\(workspaceName) Sparkle Key"
-        let appcastPath = try shell.arguments.expectedOption("to")
         
         let generator = Runner(for: URL(fileURLWithPath: ".build/Release/generate_appcast"))
-        let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, appcastPath])
+        let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, websiteURL.path])
         if genResult.status != 0 {
             if !genResult.stdout.contains("Unable to load DSA private key") {
                 return Result.appcastGeneratorFailed.adding(runnerResult: genResult)
@@ -89,7 +90,7 @@ class AppcastCommand: RTCommand {
             return Result.generatedKeys.adding(runnerResult: genResult).adding(supplementary: "Open the keychain, rename the key `Imported Private Key` as `\(keyName)`, then try running this command again.")
         }
         
-        try? fm.removeItem(at: URL(fileURLWithPath: appcastPath).appendingPathComponent(".tmp"))
+        try? fm.removeItem(at: URL(fileURLWithPath: websiteURL.path).appendingPathComponent(".tmp"))
 
         return .ok
     }

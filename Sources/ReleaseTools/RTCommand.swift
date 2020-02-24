@@ -15,6 +15,26 @@ extension Result {
 }
 
 class RTCommand: Command {
+    let requestOption = "--request=<uuid>"
+    let requestOptionHelp = "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command."
+    
+    let showOutputOption = "--show-output"
+    let showOutputOptionHelp = "Show the external commands that we're executing, and the output from them."
+    
+    let schemeOption = "--scheme=<scheme>"
+    let schemeOptionHelp = "The scheme we're building."
+    
+    let setDefaultOption = "--set-default"
+    let setDefaultOptionHelp = "Remember the value that was specified for the scheme/user, and use it as the default in future."
+    
+    let userOption = "--user=<username>"
+    let userOptionHelp = "The App Store Connect user we're notarizing as."
+    
+    let updatesOption = "--updates=<path>"
+    let updatesOptionHelp = "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`."
+    
+    let websiteOption = "--website-<path>"
+    let websiteOptionHelp = "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`."
     
     let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     let archiveURL = URL(fileURLWithPath: ".build/archive.xcarchive")
@@ -24,6 +44,22 @@ class RTCommand: Command {
     var archive: XcodeArchive? { return XcodeArchive(url: archiveURL) }
     var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
     var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
+
+    var updatesURL: URL {
+        if let path = shell.arguments.option("updates") {
+            return URL(fileURLWithPath: path)
+        } else {
+            return URL(fileURLWithPath: "Dependencies/Website/updates")
+        }
+    }
+    
+    var websiteURL: URL {
+        if let path = shell.arguments.option("website") {
+            return URL(fileURLWithPath: path)
+        } else {
+            return URL(fileURLWithPath: "Dependencies/Website/")
+        }
+    }
 
     var defaultWorkspace: String? {
         let url = URL(fileURLWithPath: ".")
@@ -46,7 +82,7 @@ class RTCommand: Command {
     }
     
     func scheme(for workspace: String, shell: Shell) -> String? {
-        let scheme = shell.arguments.argument("scheme")
+        let scheme = shell.arguments.option("scheme")
         return scheme.isEmpty ? defaultScheme(for: workspace) : scheme
     }
 
@@ -65,4 +101,6 @@ class RTCommand: Command {
             return defaultUser(for: workspace)
         }
     }
+    
+    
 }

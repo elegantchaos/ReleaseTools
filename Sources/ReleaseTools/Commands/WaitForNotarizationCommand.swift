@@ -19,8 +19,12 @@ class WaitForNotarizationCommand: RTCommand {
         return Description(
             name: "wait",
             help: "Wait until notarization has completed.",
-            usage: ["[--user=<user> [--set-default]] [--request=<request-uuid>]"],
-            options: ["--repo=<repo>": "The repository containing the appcast and updates."],
+            usage: ["[\(userOption) [\(setDefaultOption)]] [\(requestOption)]"],
+            options: [
+                requestOption: requestOptionHelp,
+                setDefaultOption: setDefaultOptionHelp,
+                userOption: userOptionHelp,
+            ],
             returns: [.notarizingFailed, .fetchingNotarizationStatusFailed, .notarizationFailed, .exportingNotarizedAppFailed]
         )
     }

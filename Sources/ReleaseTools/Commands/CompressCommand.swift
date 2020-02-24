@@ -12,8 +12,11 @@ class CompressCommand: RTCommand {
         return Description(
             name: "compress",
             help: "Compress the output of the export command for distribution.",
-            usage: ["--to=<to> --latest=<latest>"],
-            options: ["--repo=<repo>": "The repository containing the appcast and updates."],
+            usage: ["[\(websiteOption)] [\(updatesOption)]"],
+            options: [
+                websiteOption: websiteOptionHelp,
+                updatesOption: updatesOptionHelp
+            ],
             returns: [.infoUnreadable]
         )
     }
@@ -25,17 +28,15 @@ class CompressCommand: RTCommand {
 
         let stapledAppURL = stapledURL.appendingPathComponent(archive.name)
         let ditto = DittoRunner(shell: shell)
-        let archiveFolder = try shell.arguments.expectedOption("to")
-        let destination = URL(fileURLWithPath: archiveFolder).appendingPathComponent(archive.versionedZipName)
+        let destination = updatesURL.appendingPathComponent(archive.versionedZipName)
         
         let result = try ditto.zip(stapledAppURL, as: destination)
         if result.status != 0 {
             return Result.exportFailed.adding(supplementary: result.stderr)
         }
         
-        let latestFolder = try shell.arguments.expectedOption("latest")
-        shell.log("Saving copy of archive to \(latestFolder) as \(archive.unversionedZipName).")
-        let latestZip = URL(fileURLWithPath: latestFolder).appendingPathComponent(archive.unversionedZipName)
+        shell.log("Saving copy of archive to \(websiteURL.path) as \(archive.unversionedZipName).")
+        let latestZip = websiteURL.appendingPathComponent(archive.unversionedZipName)
         try? FileManager.default.removeItem(at: latestZip)
         try FileManager.default.copyItem(at: destination, to: latestZip)
         
