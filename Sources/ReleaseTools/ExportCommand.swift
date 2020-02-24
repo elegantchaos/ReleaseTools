@@ -11,38 +11,39 @@ extension Result {
     static let exportFailed = Result(300, "Exporting failed.")
 }
 
-class ExportCommand: Command {
-    static let exportPath = ".build/export"
+class ExportCommand: RTCommand {
     
     override var description: Command.Description {
         return Description(
             name: "export",
             help: "Export an executable from the output of the archive command.",
-            usage: ["[<scheme> [--set-default]]"],
+            usage: ["[<scheme> [--set-default] [--show-build]]"],
+            options: [
+                "--show-build" : "show build command and output"
+            ],
             returns: [.exportFailed]
         )
     }
     
     override func run(shell: Shell) throws -> Result {
-        let xcode = XcodeRunner()
-        guard let workspace = xcode.defaultWorkspace else {
+        let xcode = XcodeRunner(shell: shell)
+        guard let workspace = defaultWorkspace else {
             return .missingWorkspace
         }
 
-        guard let scheme = xcode.scheme(for: workspace, shell: shell) else {
+        guard let scheme = scheme(for: workspace, shell: shell) else {
             return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(description.name) <scheme> --set-default.")
         }
 
         if shell.arguments.flag("set-default") {
-            xcode.setDefaultScheme(scheme, for: workspace)
+            setDefaultScheme(scheme, for: workspace)
         }
 
-        let exportPath = ExportCommand.exportPath
         let exportOptionsPath = "Sources/\(scheme)/Resources/Export Options.plist"
 
         shell.log("Exporting \(scheme).")
-        try? FileManager.default.removeItem(atPath: exportPath)
-        let result = try xcode.sync(arguments: ["-exportArchive", "-archivePath", ArchiveCommand.archivePath, "-exportPath", exportPath, "-exportOptionsPlist", exportOptionsPath, "-allowProvisioningUpdates"])
+        try? FileManager.default.removeItem(at: exportURL)
+        let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", archiveURL.path, "-exportPath", exportURL.path, "-exportOptionsPlist", exportOptionsPath, "-allowProvisioningUpdates"])
         if result.status == 0 {
             return .ok
         } else {

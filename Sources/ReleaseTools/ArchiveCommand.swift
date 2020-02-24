@@ -45,8 +45,7 @@ struct ArchiveInfo {
     
 }
 
-class ArchiveCommand: Command {
-    static let archivePath = ".build/archive.xcarchive"
+class ArchiveCommand: RTCommand {
     
     override var description: Command.Description {
         return Description(
@@ -64,27 +63,22 @@ class ArchiveCommand: Command {
     
     override func run(shell: Shell) throws -> Result {
         
-        let xcode = XcodeRunner()
-        guard let workspace = xcode.defaultWorkspace else {
+        guard let workspace = defaultWorkspace else {
             return .badArguments
         }
 
-        guard let scheme = xcode.scheme(for: workspace, shell: shell) else {
+        guard let scheme = scheme(for: workspace, shell: shell) else {
             return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(description.name) <scheme> --set-default.")
         }
 
         if shell.arguments.flag("set-default") {
-            xcode.setDefaultScheme(scheme, for: workspace)
+            setDefaultScheme(scheme, for: workspace)
         }
         
         shell.log("Archiving scheme \(scheme).")
 
-        let showBuild = shell.arguments.flag("show-build")
-        if showBuild {
-            shell.log("xcodebuild -workspace \(workspace) -scheme \(scheme) archive -archivePath \(ArchiveCommand.archivePath)")
-        }
-        
-        let result = try xcode.sync(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", ArchiveCommand.archivePath], passthrough: showBuild)
+        let xcode = XcodeRunner(shell: shell)
+        let result = try xcode.run(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", archiveURL.path])
         if result.status == 0 {
             return .ok
         } else {

@@ -7,14 +7,11 @@ import Runner
 import Foundation
 import CommandShell
 
-extension Result {
-    static let missingWorkspace = Result(201, "The workspace was not specified, and could not be inferred.")
-    static let noDefaultScheme = Result(202, "No default scheme set.")
-}
-
-
 class XcodeRunner: Runner {
-    init() {
+    let shell: Shell
+    
+    init(shell: Shell) {
+        self.shell = shell
         super.init(command: "xcodebuild")
     }
     
@@ -30,28 +27,12 @@ class XcodeRunner: Runner {
         }
     }
     
-    var defaultWorkspace: String? {
-        let url = URL(fileURLWithPath: ".")
-        if let contents = try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [], options: [.skipsPackageDescendants, .skipsSubdirectoryDescendants, .skipsHiddenFiles]) {
-            for item in contents {
-                if item.pathExtension == "xcworkspace" {
-                    return item.lastPathComponent
-                }
-            }
+    func run(arguments: [String]) throws -> Runner.Result {
+        let showBuild = shell.arguments.flag("show-build")
+        if showBuild {
+            shell.log("xcodebuild " + arguments.joined(separator: " "))
         }
-        return nil
-    }
-
-    func defaultScheme(for workspace: String) -> String? {
-        return UserDefaults.standard.string(forKey: "defaultScheme.\(workspace)")
-    }
-
-    func setDefaultScheme(_ scheme: String, for workspace: String) {
-        UserDefaults.standard.set(scheme, forKey: "defaultScheme.\(workspace)")
-    }
-    
-    func scheme(for workspace: String, shell: Shell) -> String? {
-        let scheme = shell.arguments.argument("scheme")
-        return scheme.isEmpty ? defaultScheme(for: workspace) : scheme
+        
+        return try sync(arguments: arguments, passthrough: showBuild)
     }
 }

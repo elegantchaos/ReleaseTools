@@ -11,7 +11,7 @@ extension Result {
     static let pushFailed = Result(601, "Failed to push the appcast feed and updates.")
 }
 
-class PublishCommand: Command {
+class PublishCommand: RTCommand {
     override var description: Command.Description {
         return Description(
             name: "publish",
@@ -26,7 +26,7 @@ class PublishCommand: Command {
         let appcastRepo = try shell.arguments.expectedOption("repo")
         git.cwd = URL(fileURLWithPath: appcastRepo)
 
-        guard let archive = XcodeArchive(url: URL(fileURLWithPath: ArchiveCommand.archivePath)) else {
+        guard let archive = archive else {
             return .infoUnreadable
         }
         

@@ -14,13 +14,15 @@ extension Result {
 }
 
 let shell = Shell(commands: [
+    AppcastCommand(),
     ArchiveCommand(),
     CompressCommand(),
     ExportCommand(),
-    AppcastCommand(),
+    InstallCommand(),
+    NotarizeCommand(),
     PublishCommand(),
     UpdateBuildCommand(),
-    InstallCommand()
+    WaitForNotarizationCommand()
     ]
 )
 

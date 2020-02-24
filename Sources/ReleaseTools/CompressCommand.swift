@@ -7,11 +7,7 @@ import Foundation
 import CommandShell
 import Runner
 
-extension Result {
-    static let infoUnreadable = Result(400, "Couldn't read archive info.plist.")
-}
-
-class CompressCommand: Command {
+class CompressCommand: RTCommand {
     override var description: Command.Description {
         return Description(
             name: "compress",
@@ -23,18 +19,16 @@ class CompressCommand: Command {
     }
     
     override func run(shell: Shell) throws -> Result {
-        guard let archive = XcodeArchive(url: URL(fileURLWithPath: ArchiveCommand.archivePath)) else {
-            return Result.infoUnreadable.adding(supplementary: ArchiveCommand.archivePath)
+        guard let archive = archive else {
+            return Result.infoUnreadable.adding(supplementary: archiveURL.path)
         }
 
-        let exportedAppPath = URL(fileURLWithPath: ExportCommand.exportPath).appendingPathComponent(archive.name)
-        let ditto = Runner(for: URL(fileURLWithPath: "/usr/bin/ditto"))
+        let exportedAppURL = exportURL.appendingPathComponent(archive.name)
+        let ditto = DittoRunner(shell: shell)
         let archiveFolder = try shell.arguments.expectedOption("to")
         let destination = URL(fileURLWithPath: archiveFolder).appendingPathComponent(archive.versionedZipName)
         
-        shell.log("Compressing \(archive.name) to \(archiveFolder) as \(archive.versionedZipName).")
-        print("ditto " + ["-c", "-k", "--sequesterRsrc", "--keepParent", exportedAppPath.path, destination.path].joined(separator: " "))
-        let result = try ditto.sync(arguments: ["-c", "-k", "--sequesterRsrc", "--keepParent", exportedAppPath.path, destination.path])
+        let result = try ditto.zip(exportedAppURL, as: destination)
         if result.status != 0 {
             return Result.exportFailed.adding(supplementary: result.stderr)
         }

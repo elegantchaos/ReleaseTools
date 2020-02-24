@@ -16,20 +16,23 @@ extension Result {
 }
 
 
-class AppcastCommand: Command {
+class AppcastCommand: RTCommand {
     
     override var description: Command.Description {
         return Description(
             name: "appcast",
             help: "Update the Sparkle appcast to include the zip created by the compress command.",
-            usage: ["--to=<to>"],
+            usage: ["--to=<to> [--show-build]"],
+            options: [
+                "--show-build" : "show build command and output"
+            ],
             returns: [.buildAppcastGeneratorFailed, .appcastGeneratorFailed, .keyGenerationFailed, .keyImportFailed, .generatedKeys]
         )
     }
     
     override func run(shell: Shell) throws -> Result {
-        let xcode = XcodeRunner()
-        guard let workspace = xcode.defaultWorkspace else {
+        let xcode = XcodeRunner(shell: shell)
+        guard let workspace = defaultWorkspace else {
             return .badArguments
         }
         
@@ -39,7 +42,7 @@ class AppcastCommand: Command {
         let fm = FileManager.default
         let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)
         let buildURL = rootURL.appendingPathComponent(".build")
-        let result = try xcode.sync(arguments: ["build", "-workspace", workspace, "-scheme", "generate_appcast", "BUILD_DIR=\(buildURL.path)"], passthrough: true)
+        let result = try xcode.run(arguments: ["build", "-workspace", workspace, "-scheme", "generate_appcast", "BUILD_DIR=\(buildURL.path)"])
         if result.status != 0 {
             return Result.buildAppcastGeneratorFailed.adding(supplementary: result.stderr)
         }
@@ -57,7 +60,7 @@ class AppcastCommand: Command {
             
             shell.log("Could not find Sparkle key - generating one.")
 
-            guard let scheme = xcode.scheme(for: workspace, shell: shell) else {
+            guard let scheme = scheme(for: workspace, shell: shell) else {
                 return Result.noDefaultScheme.adding(supplementary: "Set using the archive command.")
             }
 

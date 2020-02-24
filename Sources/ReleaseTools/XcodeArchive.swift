@@ -11,6 +11,7 @@ struct XcodeArchive {
     let name: String
     let shortName: String
     let lowername: String
+    let identifier: String
     
     init?(url: URL) {
         let infoURL = url.appendingPathComponent("Info.plist")
@@ -22,21 +23,23 @@ struct XcodeArchive {
             let appInfo = info["ApplicationProperties"] as? [String:Any],
             let appPath = appInfo["ApplicationPath"] as? String,
             let build = appInfo["CFBundleVersion"] as? String,
-            let version = appInfo["CFBundleShortVersionString"] as? String
+            let version = appInfo["CFBundleShortVersionString"] as? String,
+            let identifier = appInfo["CFBundleIdentifier"] as? String
             else {
                 return nil
         }
         
-        self.init(version: version, build: build, path: appPath)
+        self.init(version: version, build: build, path: appPath, identifier: identifier)
     }
     
-    init(version: String, build: String, path: String) {
+    init(version: String, build: String, path: String, identifier: String) {
         self.build = build
         self.version = version
         let url = URL(fileURLWithPath: path)
         self.name = url.lastPathComponent
         self.shortName = url.deletingPathExtension().lastPathComponent
         self.lowername = shortName.lowercased()
+        self.identifier = identifier
     }
     
     var versionedZipName: String {
