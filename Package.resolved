@@ -45,6 +45,15 @@
           "revision": "394f2a5a92ac6b81215a3eeaec5ee4c8227a4a47",
           "version": "1.0.5"
         }
+      },
+      {
+        "package": "XCTestExtensions",
+        "repositoryURL": "https://github.com/elegantchaos/XCTestExtensions.git",
+        "state": {
+          "branch": null,
+          "revision": "fb1df618de3ffd23f6979422bd5fde4216ebe453",
+          "version": "1.0.9"
+        }
       }
     ]
   },
