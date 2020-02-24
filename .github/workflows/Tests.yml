@@ -1,0 +1,61 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+    macOS:
+        name: macOS
+        runs-on: macOS-latest
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v1
+        - name: Swift Version
+          run: swift --version
+        - name: Make Logs Directory
+          run: mkdir logs
+        - name: Xcode Version
+          run: xcodebuild -version
+        - name: XC Pretty
+          run: sudo gem install xcpretty-travis-formatter
+        - name: Build (macOS/Debug)
+          run: set -o pipefail; xcodebuild clean build -workspace . -scheme ReleaseTools -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | tee logs/xcodebuild-macOS-build-debug.log | xcpretty
+        - name: Build (macOS/Release)
+          run: set -o pipefail; xcodebuild clean build -workspace . -scheme ReleaseTools -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | tee logs/xcodebuild-macOS-build-release.log | xcpretty
+        - name: Test (macOS/Debug)
+          run: |
+            GOTPACKAGE=$(xcodebuild -workspace . -list | (grep ReleaseTools-Package || true))
+            echo "*$GOTPACKAGE*"
+            if [[ $GOTPACKAGE != "" ]]
+            then
+                SCHEME="ReleaseTools-Package"
+            else
+                SCHEME="ReleaseTools"
+            fi
+            set -o pipefail
+            xcodebuild test -workspace . -scheme $SCHEME  -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO  | tee logs/xcodebuild-macOS-test-debug.log | xcpretty
+        - name: Test (macOS/Release)
+          run: |
+            GOTPACKAGE=$(xcodebuild -workspace . -list | (grep ReleaseTools-Package || true))
+            echo "*$GOTPACKAGE*"
+            if [[ $GOTPACKAGE != "" ]]
+            then
+                SCHEME="ReleaseTools-Package"
+            else
+                SCHEME="ReleaseTools"
+            fi
+            set -o pipefail
+            xcodebuild test -workspace . -scheme $SCHEME  -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ENABLE_TESTABILITY=YES | tee logs/xcodebuild-macOS-test-release.log | xcpretty
+        - name: Upload Logs
+          uses: actions/upload-artifact@v1
+          with:
+            name: logs
+            path: logs
+        - name: Slack Notification
+          uses: elegantchaos/slatify@master
+          if: always()
+          with:
+            type: ${{ job.status }}
+            job_name: 'macOS'
+            mention_if: 'failure'
+            url: ${{ secrets.SLACK_WEBHOOK }}
+

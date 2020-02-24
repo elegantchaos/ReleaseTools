@@ -24,7 +24,7 @@ class AppcastCommand: RTCommand {
             help: "Update the Sparkle appcast to include the zip created by the compress command.",
             usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(websiteOption)] [\(showOutputOption)]"],
             options: [
-                schemeOption: schemeOptionHelp
+                schemeOption: schemeOptionHelp,
                 showOutputOption : showOutputOptionHelp,
                 websiteOption : websiteOptionHelp
             ],

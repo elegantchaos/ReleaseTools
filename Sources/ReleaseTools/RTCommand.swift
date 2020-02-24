@@ -82,8 +82,7 @@ class RTCommand: Command {
     }
     
     func scheme(for workspace: String, shell: Shell) -> String? {
-        let scheme = shell.arguments.option("scheme")
-        return scheme.isEmpty ? defaultScheme(for: workspace) : scheme
+        return shell.arguments.option("scheme") ?? defaultScheme(for: workspace)
     }
 
     func defaultUser(for workspace: String) -> String? {
@@ -95,11 +94,7 @@ class RTCommand: Command {
     }
     
     func user(for workspace: String, shell: Shell) -> String? {
-        if let user = shell.arguments.option("user") {
-            return user
-        } else {
-            return defaultUser(for: workspace)
-        }
+        return shell.arguments.option("user") ?? defaultUser(for: workspace)
     }
     
     
