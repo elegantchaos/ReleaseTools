@@ -16,8 +16,8 @@ extension Result {
 class WaitForNotarizationCommand: RTCommand {
     override var description: Command.Description {
         return Description(
-            name: "status",
-            help: "Check the notarization status.",
+            name: "wait",
+            help: "Wait until notarization has completed.",
             usage: ["[--user=<user> [--set-default]] [--request=<request-uuid>]"],
             options: ["--repo=<repo>": "The repository containing the appcast and updates."],
             returns: [.notarizingFailed, .fetchingNotarizationStatusFailed]
@@ -27,7 +27,7 @@ class WaitForNotarizationCommand: RTCommand {
     func savedNotarizationReceipt() -> String? {
         let notarizingReceiptURL = exportURL.appendingPathComponent("receipt.xml")
         guard let data = try? Data(contentsOf: notarizingReceiptURL),
-            let receipt = try? JSONSerialization.jsonObject(with: data, options: []) as? [String:Any],
+            let receipt = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String:Any],
             let upload = receipt["notarization-upload"] as? [String:String] else { return nil }
         
         return upload["RequestUUID"]
@@ -51,6 +51,7 @@ class WaitForNotarizationCommand: RTCommand {
         }
         
         DispatchQueue.main.async {
+            shell.log("Requesting notarization status...")
             self.check(request: requestUUID, user: user)
         }
         
@@ -65,23 +66,30 @@ class WaitForNotarizationCommand: RTCommand {
                 shell.exit(result: Result.fetchingNotarizationStatusFailed.adding(runnerResult: result))
             }
 
+            shell.log("Received response.")
             if let data = result.stdout.data(using: .utf8),
-                let receipt = try? JSONSerialization.jsonObject(with: data, options: []) as? [String:Any],
-                let info = receipt["notarization-info"] as? [String:String],
-                let status = info["Status"] {
+                let receipt = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String:Any],
+                let info = receipt["notarization-info"] as? [String:Any],
+                let status = info["Status"] as? String {
+                shell.log("Status was \(status).")
                 if status == "success" {
                     shell.exit(result: .ok)
                 } else if status == "failed" {
-                    shell.exit(result: Result.notarizationFailed.adding(supplementary: info["Status Message"] ?? ""))
-                } else {
-                    let nextCheck = DispatchTime.now().advanced(by: .seconds(10))
-                    DispatchQueue.main.asyncAfter(deadline: nextCheck) {
-                        self.check(request: request, user: user)
-                    }
+                    let message = info["Status Message"] as? String
+                    shell.exit(result: Result.notarizationFailed.adding(supplementary: message ?? ""))
                 }
             }
         } catch {
             shell.exit(result: Result.fetchingNotarizationStatusFailed.adding(supplementary: "\(error)"))
         }
+
+        let delay = 10
+        let nextCheck = DispatchTime.now().advanced(by: .seconds(delay))
+        shell.log("Will retry in \(delay) seconds...")
+        DispatchQueue.main.asyncAfter(deadline: nextCheck) {
+            shell.log("Retrying fetch of notarization status...")
+            self.check(request: request, user: user)
+        }
+
     }
 }

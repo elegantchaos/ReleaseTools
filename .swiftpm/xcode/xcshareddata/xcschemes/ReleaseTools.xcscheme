@@ -60,7 +60,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
       useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/developer/Projects/Bookish"
+      customWorkingDirectory = "/Users/developer/Projects/ActionStatus"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
@@ -78,6 +78,14 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "update-build"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "notarize"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "wait"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
