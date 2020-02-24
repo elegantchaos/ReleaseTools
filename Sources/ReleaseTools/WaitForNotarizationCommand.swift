@@ -11,6 +11,7 @@ extension Result {
     static let fetchingNotarizationStatusFailed = Result(650, "Fetching notarization status failed.")
     static let loadingNotarizationReceiptFailed = Result(651, "Loading notarization receipt failed.")
     static let notarizationFailed = Result(652, "Notarization failed.")
+    static let exportingNotarizedAppFailed = Result(653, "Exporting notarized app failed.")
 }
 
 class WaitForNotarizationCommand: RTCommand {
@@ -20,7 +21,7 @@ class WaitForNotarizationCommand: RTCommand {
             help: "Wait until notarization has completed.",
             usage: ["[--user=<user> [--set-default]] [--request=<request-uuid>]"],
             options: ["--repo=<repo>": "The repository containing the appcast and updates."],
-            returns: [.notarizingFailed, .fetchingNotarizationStatusFailed]
+            returns: [.notarizingFailed, .fetchingNotarizationStatusFailed, .notarizationFailed, .exportingNotarizedAppFailed]
         )
     }
     
@@ -58,6 +59,32 @@ class WaitForNotarizationCommand: RTCommand {
         return .running
     }
     
+    func exportNotarized() {
+        shell.log("Stapling notarized app.")
+        
+        do {
+            let fm = FileManager.default
+            try? fm.createDirectory(at: stapledURL, withIntermediateDirectories: true, attributes: nil)
+            
+            if let archive = archive {
+                let exportedAppURL = exportURL.appendingPathComponent(archive.name)
+                let stapledAppURL = stapledURL.appendingPathComponent(archive.name)
+                try? fm.removeItem(at: stapledAppURL)
+                try? fm.copyItem(at: exportedAppURL, to: stapledAppURL)
+                let xcrun = XCRunRunner(shell: shell)
+                let result = try xcrun.run(arguments: ["stapler", "staple", stapledAppURL.path])
+                if result.status == 0 {
+                    shell.exit(result: .ok)
+                } else {
+                    shell.exit(result: Result.exportingNotarizedAppFailed.adding(runnerResult: result))
+                }
+            }
+        } catch {
+            shell.exit(result: Result.exportingNotarizedAppFailed.adding(supplementary: "\(error)"))
+        }
+        shell.exit(result: Result.exportingNotarizedAppFailed)
+    }
+    
     func check(request: String, user: String) {
         let xcrun = XCRunRunner(shell: shell)
         do {
@@ -73,7 +100,7 @@ class WaitForNotarizationCommand: RTCommand {
                 let status = info["Status"] as? String {
                 shell.log("Status was \(status).")
                 if status == "success" {
-                    shell.exit(result: .ok)
+                    exportNotarized()
                 } else if status == "failed" {
                     let message = info["Status Message"] as? String
                     shell.exit(result: Result.notarizationFailed.adding(supplementary: message ?? ""))

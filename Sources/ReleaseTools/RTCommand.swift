@@ -16,8 +16,10 @@ extension Result {
 
 class RTCommand: Command {
     
+    let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     let archiveURL = URL(fileURLWithPath: ".build/archive.xcarchive")
     let exportURL = URL(fileURLWithPath: ".build/export")
+    let stapledURL = URL(fileURLWithPath: ".build/stapled")
     
     var archive: XcodeArchive? { return XcodeArchive(url: archiveURL) }
     var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
