@@ -105,9 +105,29 @@ class WaitForNotarizationCommand: RTCommand {
                 shell.log("Status was \(status).")
                 if status == "success" {
                     exportNotarized()
-                } else if status == "failed" {
-                    let message = info["Status Message"] as? String
-                    shell.exit(result: Result.notarizationFailed.adding(supplementary: message ?? ""))
+                } else if status == "invalid" {
+                    let message = (info["Status Message"] as? String) ?? ""
+                    var output = "\(message).\n"
+                    if let logFile = info["LogFileURL"] as? String,
+                        let url = URL(string: logFile),
+                        let data = try? Data(contentsOf: url),
+                        let log = try? JSONSerialization.jsonObject(with: data, options: []) as? [String:Any] {
+                        let summary = (log["statusSummary"] as? String) ?? ""
+                        output.append("\(summary).\n")
+                        if let issues = log["issues"] as? [[String:Any]] {
+                            var count = 1
+                            for issue in issues {
+                                let message = issue["message"] as? String ?? ""
+                                let path = issue["path"] as? String ?? ""
+                                let name = URL(fileURLWithPath: path).lastPathComponent
+                                let severity = issue["severity"] as? String ?? ""
+                                output.append("\n#\(count) \(name) (\(severity)):\n\(message)\n\(path)\n")
+                                count += 1
+                            }
+                        }
+                    }
+                    
+                    shell.exit(result: Result.notarizationFailed.adding(supplementary: output))
                 }
             }
         } catch {

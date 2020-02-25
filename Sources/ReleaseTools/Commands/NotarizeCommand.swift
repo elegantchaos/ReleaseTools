@@ -17,9 +17,10 @@ class NotarizeCommand: RTCommand {
         return Description(
             name: "notarize",
             help: "Notarize the compressed archive.",
-            usage: ["[\(userOption) [\(setDefaultOption)]]"],
+            usage: ["[\(userOption) [\(setDefaultOption)]] [\(showOutputOption)]"],
             options: [
                 userOption: userOptionHelp,
+                showOutputOption: showOutputOptionHelp,
                 setDefaultOption: setDefaultOptionHelp
             ],
             returns: [.notarizingFailed, .savingNotarizationReceiptFailed]
@@ -43,6 +44,7 @@ class NotarizeCommand: RTCommand {
             setDefaultUser(user, for: workspace)
         }
 
+        shell.log("Creating archive for notarization.")
         let exportedAppPath = exportURL.appendingPathComponent(archive.name)
         let ditto = DittoRunner(shell: shell)
         
@@ -51,6 +53,7 @@ class NotarizeCommand: RTCommand {
             return Result.exportFailed.adding(runnerResult: zipResult)
         }
 
+        shell.log("Uploading archive to notarization service.")
         let xcrun = XCRunRunner(shell: shell)
         let result = try xcrun.run(arguments: ["altool", "--notarize-app", "--primary-bundle-id", archive.identifier, "--username", user, "--password", "@keychain:AC_PASSWORD", "--file", exportedZipURL.path, "--output-format", "xml"])
         if result.status != 0 {
@@ -59,7 +62,7 @@ class NotarizeCommand: RTCommand {
 
         shell.log("Requested notarization.")
         do {
-            try result.stdout.write(to: notarizingReceiptURL, atomically: true, encoding: .utf8)
+            try result.stderr.write(to: notarizingReceiptURL, atomically: true, encoding: .utf8)
         } catch {
             return Result.savingNotarizationReceiptFailed.adding(supplementary: "\(error)")
         }

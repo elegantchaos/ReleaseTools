@@ -12,7 +12,7 @@ class DittoRunner: Runner {
     
     init(shell: Shell) {
         self.shell = shell
-        super.init(command: "/usr/bin/ditto")
+        super.init(command: "ditto")
     }
     
     func run(arguments: [String]) throws -> Runner.Result {
