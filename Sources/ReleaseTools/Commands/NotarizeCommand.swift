@@ -62,7 +62,7 @@ class NotarizeCommand: RTCommand {
 
         shell.log("Requested notarization.")
         do {
-            try result.stderr.write(to: notarizingReceiptURL, atomically: true, encoding: .utf8)
+            try result.stdout.write(to: notarizingReceiptURL, atomically: true, encoding: .utf8)
         } catch {
             return Result.savingNotarizationReceiptFailed.adding(supplementary: "\(error)")
         }
