@@ -26,7 +26,7 @@ class AppcastCommand: RTCommand {
             options: [
                 schemeOption: schemeOptionHelp,
                 showOutputOption : showOutputOptionHelp,
-                websiteOption : websiteOptionHelp
+                updatesOption : updatesOptionHelp
             ],
             returns: [.buildAppcastGeneratorFailed, .appcastGeneratorFailed, .keyGenerationFailed, .keyImportFailed, .generatedKeys]
         )
@@ -56,7 +56,7 @@ class AppcastCommand: RTCommand {
         let keyName = "\(workspaceName) Sparkle Key"
         
         let generator = Runner(for: URL(fileURLWithPath: ".build/Release/generate_appcast"))
-        let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, websiteURL.path])
+        let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, updatesURL.path])
         if genResult.status != 0 {
             if !genResult.stdout.contains("Unable to load DSA private key") {
                 return Result.appcastGeneratorFailed.adding(runnerResult: genResult)
@@ -89,7 +89,7 @@ class AppcastCommand: RTCommand {
             return Result.generatedKeys.adding(runnerResult: genResult).adding(supplementary: "Open the keychain, rename the key `Imported Private Key` as `\(keyName)`, then try running this command again.")
         }
         
-        try? fm.removeItem(at: URL(fileURLWithPath: websiteURL.path).appendingPathComponent(".tmp"))
+        try? fm.removeItem(at: URL(fileURLWithPath: updatesURL.path).appendingPathComponent(".tmp"))
 
         return .ok
     }

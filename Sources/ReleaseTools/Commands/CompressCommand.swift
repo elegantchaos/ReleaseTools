@@ -14,16 +14,18 @@ class CompressCommand: RTCommand {
             help: "Compress the output of the export command for distribution.",
             usage: ["[\(websiteOption)] [\(updatesOption)]"],
             options: [
+                showOutputOption: showOutputOptionHelp,
+                updatesOption: updatesOptionHelp,
                 websiteOption: websiteOptionHelp,
-                updatesOption: updatesOptionHelp
             ],
             returns: [.infoUnreadable]
         )
     }
     
     override func run(shell: Shell) throws -> Result {
-        guard let archive = archive else {
-            return Result.infoUnreadable.adding(supplementary: archiveURL.path)
+        let gotRequirements = require([.archive])
+        guard gotRequirements == .ok else {
+            return gotRequirements
         }
 
         let stapledAppURL = stapledURL.appendingPathComponent(archive.name)

@@ -22,16 +22,22 @@ class PublishCommand: RTCommand {
     }
 
     override func run(shell: Shell) throws -> Result {
+        let gotRequirements = require([.archive])
+        guard gotRequirements == .ok else {
+            return gotRequirements
+        }
+
         let git = GitRunner()
         git.cwd = websiteURL
 
-        guard let archive = archive else {
-            return .infoUnreadable
-        }
-        
         shell.log("Committing updates.")
+        var result = try git.sync(arguments: ["add", updatesURL.path])
+        if result.status != 0 {
+            return Result.commitFailed.adding(runnerResult: result)
+        }
+
         let message = "v\(archive.version), build \(archive.build)"
-        let result = try git.sync(arguments: ["commit", "-a", "-m", message])
+        result = try git.sync(arguments: ["commit", "-a", "-m", message])
         if result.status != 0 {
             return Result.commitFailed.adding(runnerResult: result)
         }
