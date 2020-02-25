@@ -39,7 +39,7 @@ class WaitForNotarizationCommand: RTCommand {
     }
     
     override func run(shell: Shell) throws -> Result {
-        let gotRequirements = require([.workspace, .user])
+        let gotRequirements = require([.workspace, .user, .archive])
         guard gotRequirements == .ok else {
             return gotRequirements
         }
@@ -64,7 +64,6 @@ class WaitForNotarizationCommand: RTCommand {
             try? fm.createDirectory(at: stapledURL, withIntermediateDirectories: true, attributes: nil)
             
             if let archive = archive {
-                let exportedAppURL = exportURL.appendingPathComponent(archive.name)
                 let stapledAppURL = stapledURL.appendingPathComponent(archive.name)
                 try? fm.removeItem(at: stapledAppURL)
                 try? fm.copyItem(at: exportedAppURL, to: stapledAppURL)
