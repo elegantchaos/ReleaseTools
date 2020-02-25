@@ -27,20 +27,10 @@ class NotarizeCommand: RTCommand {
     }
     
     override func run(shell: Shell) throws -> Result {
-        guard let archive = archive else {
-            return Result.infoUnreadable.adding(supplementary: archiveURL.path)
-        }
-
-        guard let workspace = defaultWorkspace else {
-            return .badArguments
-        }
-
-        guard let user = user(for: workspace, shell: shell) else {
-            return Result.noDefaultUser.adding(supplementary: "Set using \(CommandLine.name) \(description.name) --user <user> --set-default.")
-        }
-
-        if shell.arguments.flag("set-default") {
-            setDefaultUser(user, for: workspace)
+        
+        let gotRequirements = require([.workspace, .user, .archive])
+        guard gotRequirements == .ok else {
+            return gotRequirements
         }
 
         shell.log("Creating archive for notarization.")

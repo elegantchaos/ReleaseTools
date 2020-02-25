@@ -39,16 +39,9 @@ class WaitForNotarizationCommand: RTCommand {
     }
     
     override func run(shell: Shell) throws -> Result {
-        guard let workspace = defaultWorkspace else {
-            return .badArguments
-        }
-
-        guard let user = user(for: workspace, shell: shell) else {
-            return Result.noDefaultUser.adding(supplementary: "Set using \(CommandLine.name) \(description.name) --user <user> --set-default.")
-        }
-
-        if shell.arguments.flag("set-default") {
-            setDefaultUser(user, for: workspace)
+        let gotRequirements = require([.workspace, .user])
+        guard gotRequirements == .ok else {
+            return gotRequirements
         }
 
         guard let requestUUID = shell.arguments.option("request") ?? savedNotarizationReceipt() else {
@@ -57,7 +50,7 @@ class WaitForNotarizationCommand: RTCommand {
         
         DispatchQueue.main.async {
             shell.log("Requesting notarization status...")
-            self.check(request: requestUUID, user: user)
+            self.check(request: requestUUID, user: self.user)
         }
         
         return .running

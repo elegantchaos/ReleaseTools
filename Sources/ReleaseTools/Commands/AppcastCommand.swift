@@ -33,10 +33,13 @@ class AppcastCommand: RTCommand {
     }
     
     override func run(shell: Shell) throws -> Result {
-        let xcode = XCodeBuildRunner(shell: shell)
-        guard let workspace = defaultWorkspace else {
-            return .badArguments
+        
+        let gotRequirements = require([.workspace, .scheme])
+        guard gotRequirements == .ok else {
+            return gotRequirements
         }
+
+        let xcode = XCodeBuildRunner(shell: shell)
         
         let keyChainPath = ("~/Library/Keychains/login.keychain" as NSString).expandingTildeInPath
         
@@ -60,10 +63,6 @@ class AppcastCommand: RTCommand {
             }
             
             shell.log("Could not find Sparkle key - generating one.")
-
-            guard let scheme = scheme(for: workspace, shell: shell) else {
-                return Result.noDefaultScheme.adding(supplementary: "Set using the archive command.")
-            }
 
             let keygen = Runner(for: URL(fileURLWithPath: "Dependencies/Sparkle/bin/generate_keys"))
             let keygenResult = try keygen.sync(arguments: [])

@@ -17,8 +17,9 @@ class ExportCommand: RTCommand {
         return Description(
             name: "export",
             help: "Export an executable from the output of the archive command.",
-            usage: ["[\(schemeOption) [\(setDefaultOption)] [\(showOutputOption)]]"],
+            usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(showOutputOption)] [\(platformOption)]"],
             options: [
+                platformOption: platformOptionHelp,
                 schemeOption: schemeOptionHelp,
                 setDefaultOption: setDefaultOptionHelp,
                 showOutputOption : showOutputOptionHelp,
@@ -29,23 +30,15 @@ class ExportCommand: RTCommand {
     
     override func run(shell: Shell) throws -> Result {
         let xcode = XCodeBuildRunner(shell: shell)
-        guard let workspace = defaultWorkspace else {
-            return .missingWorkspace
+        
+        let gotRequirements = require([.workspace, .scheme])
+        guard gotRequirements == .ok else {
+            return gotRequirements
         }
-
-        guard let scheme = scheme(for: workspace, shell: shell) else {
-            return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(description.name) <scheme> --set-default.")
-        }
-
-        if shell.arguments.flag("set-default") {
-            setDefaultScheme(scheme, for: workspace)
-        }
-
-        let exportOptionsPath = "Sources/\(scheme)/Resources/Export Options.plist"
 
         shell.log("Exporting \(scheme).")
         try? FileManager.default.removeItem(at: exportURL)
-        let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", archiveURL.path, "-exportPath", exportURL.path, "-exportOptionsPlist", exportOptionsPath, "-allowProvisioningUpdates"])
+        let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", archiveURL.path, "-exportPath", exportURL.path, "-exportOptionsPlist", exportOptionsURL.path, "-allowProvisioningUpdates"])
         if result.status == 0 {
             return .ok
         } else {

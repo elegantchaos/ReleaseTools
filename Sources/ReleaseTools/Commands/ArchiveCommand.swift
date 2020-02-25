@@ -51,8 +51,9 @@ class ArchiveCommand: RTCommand {
         return Description(
             name: "archive",
             help: "Make an archive for uploading, distribution, etc.",
-            usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(showOutputOption)]"],
+            usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(showOutputOption)] [\(platformOption)]"],
             options: [
+                platformOption: platformOptionHelp,
                 schemeOption: schemeOptionHelp,
                 setDefaultOption: setDefaultOptionHelp,
                 showOutputOption : showOutputOptionHelp,
@@ -63,22 +64,27 @@ class ArchiveCommand: RTCommand {
     
     override func run(shell: Shell) throws -> Result {
         
-        guard let workspace = defaultWorkspace else {
-            return .badArguments
-        }
-
-        guard let scheme = scheme(for: workspace, shell: shell) else {
-            return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(description.name) <scheme> --set-default.")
-        }
-
-        if shell.arguments.flag("set-default") {
-            setDefaultScheme(scheme, for: workspace)
+        let gotRequirements = require([.workspace, .scheme])
+        guard gotRequirements == .ok else {
+            return gotRequirements
         }
         
         shell.log("Archiving scheme \(scheme).")
 
         let xcode = XCodeBuildRunner(shell: shell)
-        let result = try xcode.run(arguments: ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", archiveURL.path])
+        var args = ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", archiveURL.path]
+        switch platform {
+            case "iOS":
+                args.append(contentsOf: ["-sdk", "iphoneos"])
+            case "tvOS":
+                args.append(contentsOf: ["-sdk", "appletvos"])
+            case "watchOS":
+                args.append(contentsOf: ["-sdk", "watchos"])
+            default:
+                break
+        }
+
+        let result = try xcode.run(arguments: args)
         if result.status == 0 {
             return .ok
         } else {

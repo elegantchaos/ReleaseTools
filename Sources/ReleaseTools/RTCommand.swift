@@ -6,6 +6,15 @@
 import Foundation
 import CommandShell
 
+extension URL {
+    func appendingPathComponents(_ components: [String]) -> URL {
+        var url = self
+        for component in components {
+            url.appendPathComponent(component)
+        }
+        return url
+    }
+}
 
 extension Result {
     static let infoUnreadable = Result(200, "Couldn't read archive info.plist.")
@@ -15,6 +24,9 @@ extension Result {
 }
 
 class RTCommand: Command {
+    let platformOption = "--platform=<platform>"
+    let platformOptionHelp = "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS."
+    
     let requestOption = "--request=<uuid>"
     let requestOptionHelp = "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command."
     
@@ -37,13 +49,25 @@ class RTCommand: Command {
     let websiteOptionHelp = "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`."
     
     let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-    let archiveURL = URL(fileURLWithPath: ".build/archive.xcarchive")
-    let exportURL = URL(fileURLWithPath: ".build/export")
-    let stapledURL = URL(fileURLWithPath: ".build/stapled")
     
-    var archive: XcodeArchive? { return XcodeArchive(url: archiveURL) }
     var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
     var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
+
+    var buildURL: URL {
+        return rootURL.appendingPathComponents([".build", platform])
+    }
+    
+    var archiveURL: URL {
+        return buildURL.appendingPathComponent("archive.xcarchive")
+    }
+
+    var exportURL: URL {
+        return buildURL.appendingPathComponent("export")
+    }
+    
+    var stapledURL: URL {
+        return buildURL.appendingPathComponent("stapled")
+    }
 
     var updatesURL: URL {
         if let path = shell.arguments.option("updates") {
@@ -60,7 +84,7 @@ class RTCommand: Command {
             return URL(fileURLWithPath: "Dependencies/Website/")
         }
     }
-
+    
     var defaultWorkspace: String? {
         let url = URL(fileURLWithPath: ".")
         if let contents = try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [], options: [.skipsPackageDescendants, .skipsSubdirectoryDescendants, .skipsHiddenFiles]) {
@@ -72,29 +96,92 @@ class RTCommand: Command {
         }
         return nil
     }
-
-    func defaultScheme(for workspace: String) -> String? {
-        return UserDefaults.standard.string(forKey: "defaultScheme.\(workspace)")
-    }
-
-    func setDefaultScheme(_ scheme: String, for workspace: String) {
-        UserDefaults.standard.set(scheme, forKey: "defaultScheme.\(workspace)")
+    
+    var exportOptionsURL: URL {
+        return rootURL.appendingPathComponents(["Sources", scheme, "Resources", "ExportOptions-\(platform).plist"])
     }
     
-    func scheme(for workspace: String, shell: Shell) -> String? {
-        return shell.arguments.option("scheme") ?? defaultScheme(for: workspace)
-    }
-
-    func defaultUser(for workspace: String) -> String? {
-        return UserDefaults.standard.string(forKey: "defaultUser.\(workspace)")
-    }
-
-    func setDefaultUser(_ scheme: String, for workspace: String) {
-        UserDefaults.standard.set(scheme, forKey: "defaultUser.\(workspace)")
+    enum Requirement {
+        case workspace
+        case scheme
+        case user
+        case archive
     }
     
-    func user(for workspace: String, shell: Shell) -> String? {
-        return shell.arguments.option("user") ?? defaultUser(for: workspace)
+    var workspace: String = ""
+    var scheme: String = ""
+    var platform: String = ""
+    var user: String = ""
+    var archive: XcodeArchive!
+    
+    func require(_ requirements: Set<Requirement>) -> Result {
+        // add some implied requirements
+        var expanded = requirements
+        if requirements.contains(.scheme) || requirements.contains(.user) {
+            expanded.insert(.workspace)
+        }
+
+        self.platform = shell.arguments.option("platform") ?? "macOS"
+
+        if expanded.contains(.workspace) {
+            if let workspace = defaultWorkspace {
+                self.workspace = workspace
+            } else {
+                return .badArguments
+            }
+        }
+
+        if expanded.contains(.scheme) {
+            if let scheme = scheme(for: workspace) {
+                self.scheme = scheme
+                if shell.arguments.flag("set-default") {
+                    setDefault(scheme, for: "scheme")
+                }
+            } else {
+                return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(description.name) --scheme=<scheme> --set-default.")
+            }
+        }
+        
+        if expanded.contains(.user) {
+            if let user = user(for: workspace) {
+                self.user = user
+                if shell.arguments.flag("set-default") {
+                    UserDefaults.standard.set(user, forKey: "defaultUser")
+                }
+            } else {
+                return Result.noDefaultUser.adding(supplementary: "Set using \(CommandLine.name) \(description.name) --user <user> --set-default.")
+            }
+        }
+
+        if expanded.contains(.archive) {
+            if let archive = XcodeArchive(url: archiveURL) {
+                self.archive = archive
+            } else {
+                return Result.infoUnreadable.adding(supplementary: archiveURL.path)
+            }
+        }
+        
+        return .ok
+    }
+    
+    func defaultKey(for key: String) -> String {
+        return "\(key).default.\(platform).\(workspace)"
+    }
+    
+    func getDefault(for key: String) -> String? {
+        return UserDefaults.standard.string(forKey: defaultKey(for: key))
+    }
+    
+    func setDefault(_ value: String, for key: String) {
+        UserDefaults.standard.set(value, forKey: defaultKey(for: key))
+    }
+    
+    func scheme(for workspace: String) -> String? {
+        return shell.arguments.option("scheme") ?? getDefault(for: "scheme")
+    }
+    
+    func user(for workspace: String) -> String? {
+        return shell.arguments.option("user") ?? UserDefaults.standard.string(forKey: "defaultUser")
     }
     
     
