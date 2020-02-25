@@ -27,12 +27,12 @@ A shell script to run them all together in the correct order might look somethin
 
 ```
 set -e
-rt archive
+rt archive --show-output
 rt export
 rt notarize
 rt wait
 rt compress
-rt appcast
+rt appcast --show-output
 rt publish
 ```
 
@@ -46,7 +46,10 @@ The scheme to build is either specified explicitly, or set previously using `--s
 
 The archive is placed into: `.build/archive.xcarchive`.
 
-(note: `updateBuild` runs implicitly during the archiving process, to update `BuildNumber.xcconfig` with the latest build number)
+*Note:* `updateBuild` runs implicitly during the archiving process, to update `BuildNumber.xcconfig` with the latest build number.
+
+*Note:* it is necessary to pass the `--show-output` flag to this command, because it needs to access the keychain. If you don't do this, the command will sometimes hang (I believe because it's waiting for you to enter a password to allow keychain access).
+
 
 ### export
 
@@ -90,11 +93,13 @@ If this option is not specified, we use the default layout, which is the equival
 
 The appcast is signed using a private DSA key which is expected to be in the keychain under the name `<scheme> Sparkle Key`.
 
-If this key isn't found, it is generated, using Sparkle's `generate_keys` script, and imported into the keychain. Currently I can't find a way to give the imported key the right label, so this has to be done manually using `Keychain Access`. 
+If this key isn't found, it is generated, using Sparkle's `generate_keys` script, and imported into the keychain. Currently I can't find a way to give the imported key the right label, so this has to be done manually using the `Keychain Access` app.  
 
 The public key is expected to be called `dsa_public.pem`, and be included in the `Resources/` folder of the app bundle.
 
 In order to be able to build/run the various Sparkle tools, the Sparkle project is expected to be present in the Xcode workspace.
+
+*Note:* it is necessary to pass the `--show-output` flag to this command, because it needs to access the keychain. If you don't do this, the command will sometimes hang (I believe because it's waiting for you to enter a password to allow keychain access).
 
 ### publish
 

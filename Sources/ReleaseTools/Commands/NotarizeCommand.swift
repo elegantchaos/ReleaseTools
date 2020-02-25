@@ -17,10 +17,9 @@ class NotarizeCommand: RTCommand {
         return Description(
             name: "notarize",
             help: "Notarize the compressed archive.",
-            usage: ["[\(userOption) [\(setDefaultOption)]] [\(showOutputOption)]"],
+            usage: ["[\(userOption) [\(setDefaultOption)]]"],
             options: [
                 userOption: userOptionHelp,
-                showOutputOption: showOutputOptionHelp,
                 setDefaultOption: setDefaultOptionHelp
             ],
             returns: [.notarizingFailed, .savingNotarizationReceiptFailed]
