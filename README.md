@@ -3,7 +3,10 @@
 
 A suite of tools to perform various release-related tasks.
 
-## UpdateBuild
+## Build Number
+
+Example: `rt update-build --config=Sources/Configs/BuildNumber.xcconfig`
+
 
 The `update-build` command is used to writ an `.xcconfig` file, the location of which is specified with the `--config=<path>` option.
 
@@ -14,6 +17,10 @@ The build number is a count of the commits (produced with `git rev-list --count 
 The commit value stored is the actual git commit at `HEAD`.
 
 This xcconfig file can be included in other files, and the variables can be substituted into `Info.plist` for runtime access, or used in other ways by build scripts.
+
+The way I typically use this command is to add a pre-build or pre-archive step to the scheme, to run it. Doing it from the scheme like this ensures that the xcconfig has been updated by the time any targets begin to build. 
+
+This is important since the targets will read their xcconfigs once at the beginning of the build process, and (unsurprisingly) won't notice if they are altered during the build.
 
 ## Release Toolchain
 
@@ -44,7 +51,7 @@ Run `xcodebuild archive` to archive the application for distribution.
 
 The scheme to build is either specified explicitly, or set previously using `--set-default`.
 
-The archive is placed into: `.build/archive.xcarchive`.
+The archive is placed into: `.build/<platform>/archive.xcarchive`.
 
 *Note:* `updateBuild` runs implicitly during the archiving process, to update `BuildNumber.xcconfig` with the latest build number.
 
@@ -59,13 +66,19 @@ Exports the application from the archive created with the `archive` command, and
 
 Takes the app exported with the `export` command, zips it up, and uploads it to Apple for notarization.
 
-If the upload succeeds, the Apple servers return an xml receipt containing a RequestUUID that we can use to check on the status later. This is stored in `.build/export/receipt.xml`.
+If the upload succeeds, the Apple servers return an xml receipt containing a RequestUUID that we can use to check on the status later. This is stored in `.build/<platform>/export/receipt.xml`.
+
+### upload
+
+Takes the ipa exported with the `export` command, and uploads it to Apple Connect for review.
+
+If the upload succeeds, the Apple servers return an xml receipt containing status message. This isn't of much use, but is stored in `.build/<platform>/export/receipt.xml`.
 
 ### wait
 
 Requests the notarization status for the app from the Apple servers.
 
-If the status is `success`, we copy the exported app from `.build/exported` into `.build/stapled`, and staple it with the notarization ticket.
+If the status is `success`, we copy the exported app from `.build/<platform>/exported` into `.build/<platform>/stapled`, and staple it with the notarization ticket.
 
 If the status is `failed`, we abort with an error.
 
@@ -75,7 +88,7 @@ This command will therefore not return until notarization has completed (or fail
 
 ### compress
 
-Compresses the app in `.build/stapled` into a zip archive suitable for inclusion in the `appcast`.
+Compresses the app in `.build/<platform>/stapled` into a zip archive suitable for inclusion in the `appcast`.
 
 This will have the name `<app>-v<version>-<build>.zip`, and will be copied into the location specified with the `--to=<path>` option.
 
