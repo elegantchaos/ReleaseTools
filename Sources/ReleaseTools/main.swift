@@ -22,7 +22,8 @@ let shell = Shell(commands: [
     NotarizeCommand(),
     PublishCommand(),
     UpdateBuildCommand(),
-    WaitForNotarizationCommand()
+    UploadCommand(),
+    WaitForNotarizationCommand(),
     ]
 )
 

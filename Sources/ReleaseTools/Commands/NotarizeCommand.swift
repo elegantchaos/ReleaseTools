@@ -34,10 +34,9 @@ class NotarizeCommand: RTCommand {
         }
 
         shell.log("Creating archive for notarization.")
-        let exportedAppPath = exportURL.appendingPathComponent(archive.name)
         let ditto = DittoRunner(shell: shell)
         
-        let zipResult = try ditto.zip(exportedAppPath, as: exportedZipURL)
+        let zipResult = try ditto.zip(exportedAppURL, as: exportedZipURL)
         if zipResult.status != 0 {
             return Result.exportFailed.adding(runnerResult: zipResult)
         }

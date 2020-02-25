@@ -51,7 +51,13 @@ class RTCommand: Command {
     let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     
     var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
+    
+    var exportedAppURL: URL { return exportURL.appendingPathComponent(archive.name) }
+    var exportedIPAURL: URL { return exportURL.appendingPathComponent(scheme).appendingPathExtension("ipa") }
+
     var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
+
+    var uploadingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
 
     var buildURL: URL {
         return rootURL.appendingPathComponents([".build", platform])
