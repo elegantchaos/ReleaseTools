@@ -19,32 +19,6 @@ extension Result {
     static let archiveFailed = Result(100, "Archiving failed.")
 }
 
-struct ArchiveInfo {
-    let build: String
-    let version: String
-    let name: String
-    let shortName: String
-    let lowername: String
-    
-    init(version: String, build: String, path: String) {
-        self.build = build
-        self.version = version
-        let url = URL(fileURLWithPath: path)
-        self.name = url.lastPathComponent
-        self.shortName = url.deletingLastPathComponent().lastPathComponent
-        self.lowername = shortName.lowercased()
-    }
-    
-    var archiveName: String {
-        return "\(lowername)-\(version)-\(build).zip"
-    }
-    
-    var unversionedArchiveName: String {
-        return "\(lowername).zip"
-    }
-    
-}
-
 class ArchiveCommand: RTCommand {
     
     override var description: Command.Description {
