@@ -126,7 +126,7 @@ class WaitForNotarizationCommand: RTCommand {
             shell.exit(result: Result.fetchingNotarizationStatusFailed.adding(supplementary: "\(error)"))
         }
 
-        let delay = 10
+        let delay = 30
         let nextCheck = DispatchTime.now().advanced(by: .seconds(delay))
         shell.log("Will retry in \(delay) seconds...")
         DispatchQueue.main.asyncAfter(deadline: nextCheck) {
