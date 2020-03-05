@@ -31,7 +31,7 @@ class ExportCommand: RTCommand {
     override func run(shell: Shell) throws -> Result {
         let xcode = XCodeBuildRunner(shell: shell)
         
-        let gotRequirements = require([.workspace, .scheme])
+        let gotRequirements = require([.package, .workspace, .scheme])
         guard gotRequirements == .ok else {
             return gotRequirements
         }
