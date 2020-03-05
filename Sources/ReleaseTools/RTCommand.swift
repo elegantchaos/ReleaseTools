@@ -104,16 +104,18 @@ class RTCommand: Command {
     }
     
     var exportOptionsURL: URL {
-        return rootURL.appendingPathComponents(["Sources", scheme, "Resources", "ExportOptions-\(platform).plist"])
+        return rootURL.appendingPathComponents(["Sources", package, "Resources", "ExportOptions-\(platform).plist"])
     }
     
     enum Requirement {
+        case package
         case workspace
         case scheme
         case user
         case archive
     }
     
+    var package: String = ""
     var workspace: String = ""
     var scheme: String = ""
     var platform: String = ""
@@ -129,6 +131,10 @@ class RTCommand: Command {
 
         self.platform = shell.arguments.option("platform") ?? "macOS"
 
+        if expanded.contains(.package) {
+            package = rootURL.lastPathComponent
+        }
+        
         if expanded.contains(.workspace) {
             if let workspace = defaultWorkspace {
                 self.workspace = workspace
