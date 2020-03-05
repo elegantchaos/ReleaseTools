@@ -129,3 +129,25 @@ The tool is currently built using swift package manager: `swift build`.
 You can build and run in a single line with `swift run ReleaseTools <command> <args>`.
 
 
+## Naming Conventions
+
+To cut down on the amount of configuration that you have to do, `rt` relies on naming conventions and defaults for a lot of things.
+
+We expect a standard project layout. If your project is called `Foo`, the layout would be: 
+
+```
+Foo/
+    Foo.xcworkspace
+    Foo.xcodeproj
+    Sources/
+        Foo/
+            Resources/
+```
+        
+From this we derive some other values:
+        
+- *package*: this is expected to be the same name as the containing folder, so if your project is in a folder `~/Projects/foo`, the package will be `foo`.
+- *workspace*: this is expected to be the same name as the package, so if your package is `foo`, the workspace will be `foo.xcworkspace`.
+- *platform*: this is either supplied as `--platform=macOS|iOS|tvOS|watchOS` or defaults to `macOS`
+- *scheme*: this is supplied as `--scheme=<name>`; a default can be saved by including `--set-default`. A different default can be set for each platform.
+- *export options*: these are expected to be in `Sources/<package>/Resources/ExportOptions-<platform>.plist`.
