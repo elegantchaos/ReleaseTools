@@ -4,45 +4,35 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Arguments
-import CommandShell
+import ArgumentParser
 import Foundation
 
-extension Result {
-    static let exportFailed = Result(300, "Exporting failed.")
+enum ExportError: Error {
+    case exportFailed(_ output: String)
+    
+    public var description: String {
+        switch self {
+            case .exportFailed(let output): return "Exporting failed.\n\(output)"
+        }
+    }
 }
 
-class ExportCommand: RTCommand {
-    
-    override var description: Command.Description {
-        return Description(
-            name: "export",
-            help: "Export an executable from the output of the archive command.",
-            usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(showOutputOption)] [\(platformOption)]"],
-            options: [
-                platformOption: platformOptionHelp,
-                schemeOption: schemeOptionHelp,
-                setDefaultOption: setDefaultOptionHelp,
-                showOutputOption : showOutputOptionHelp,
-            ],
-            returns: [.exportFailed]
-        )
-    }
-    
-    override func run(shell: Shell) throws -> Result {
+struct ExportCommand: ParsableCommand {
+    static var configuration = CommandConfiguration(
+        abstract: "Export an executable from the output of the archive command."
+    )
+
+    @OptionGroup var options: StandardOptions
+
+    func run() throws {
+        let parsed = try StandardOptionParser([.package, .workspace, .scheme], options: options, name: "export")
         let xcode = XCodeBuildRunner(shell: shell)
         
-        let gotRequirements = require([.package, .workspace, .scheme])
-        guard gotRequirements == .ok else {
-            return gotRequirements
-        }
-
-        shell.log("Exporting \(scheme).")
-        try? FileManager.default.removeItem(at: exportURL)
-        let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", archiveURL.path, "-exportPath", exportURL.path, "-exportOptionsPlist", exportOptionsURL.path, "-allowProvisioningUpdates"])
-        if result.status == 0 {
-            return .ok
-        } else {
-            return Result.exportFailed.adding(supplementary: result.stderr)
+        shell.log("Exporting \(parsed.scheme).")
+        try? FileManager.default.removeItem(at: parsed.exportURL)
+        let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", parsed.archiveURL.path, "-exportPath", exportURL.path, "-exportOptionsPlist", parsed.exportOptionsURL.path, "-allowProvisioningUpdates"])
+        if result.status != 0 {
+            throw ExportError.exportFailed(result.stderr)
         }
     }
 }

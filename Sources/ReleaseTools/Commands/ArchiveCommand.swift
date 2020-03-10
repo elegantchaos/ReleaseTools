@@ -30,8 +30,7 @@ struct ArchiveCommand: ParsableCommand {
         abstract: "Make an archive for uploading, distribution, etc."
     )
 
-    @OptionGroup
-    var options: StandardOptions
+    @OptionGroup var options: StandardOptions
 
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")

@@ -4,13 +4,24 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import CommandShell
+import ArgumentParser
 import Foundation
 
-extension Result {
-    static let couldntWriteStub = Result(800, "Couldn't write rt stub to \(InstallCommand.stubPath.path).")
+enum InstallError: Error {
+    case couldntWriteStub
+    
+    public var description: String {
+        switch self {
+            case .couldntWriteStub: return "Couldn't write rt stub to \(InstallCommand.stubPath.path)."
+        }
+    }
 }
 
-class InstallCommand: Command {
+struct InstallCommand: ParsableCommand {
+    static var configuration = CommandConfiguration(
+        abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
+    )
+    
     static let stub = """
                         #!/bin/sh
 
@@ -26,18 +37,13 @@ class InstallCommand: Command {
                         """
     
     static let stubPath = URL(fileURLWithPath: "/usr/local/bin/rt")
-    
-    override var description: Command.Description {
-        return Description(name: "install", help: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily.", usage: [""])
-    }
 
-    override func run(shell: Shell) throws -> Result {
+    func run() throws {
         do {
             shell.log("Installing stub to \(InstallCommand.stubPath.path).")
             try InstallCommand.stub.write(to: InstallCommand.stubPath, atomically: true, encoding: .utf8)
-            return .ok
         } catch {
-            return .couldntWriteStub
+            throw InstallError.couldntWriteStub
         }
     }
 }
