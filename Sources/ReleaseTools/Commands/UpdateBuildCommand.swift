@@ -4,33 +4,37 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
-import CommandShell
+import ArgumentParser
+import Runner
 
+enum UpdateBuildError: Error {
+    case gettingBuildFailed(_ result: Runner.Result)
+    case gettingCommitFailed(_ result: Runner.Result)
+    case writingConfigFailed
+    case updatingIndexFailed(_ result: Runner.Result)
 
-extension Result {
-    static let gettingBuildFailed = Result(700, "Failed to get the build number from git.")
-    static let gettingCommitFailed = Result(701, "Failed to get the commit from git.")
-    static let writingConfigFailed = Result(702, "Failed to write the config file.")
-    static let updatingIndexFailed = Result(703, "Failed to tell git to ignore the config file.")
+    public var description: String {
+        switch self {
+            case .gettingBuildFailed(let result): return "Failed to get the build number from git.\n\(result)"
+            case .gettingCommitFailed(let result): return "Failed to get the commit from git.\n\(result)"
+            case .writingConfigFailed: return "Failed to write the config file."
+            case .updatingIndexFailed(let result): return "Failed to tell git to ignore the config file.\n\(result)"
+        }
+    }
 }
 
-class UpdateBuildCommand: Command {
-    
-    override var description: Command.Description {
-        return Description(
-            name: "update-build",
-            help: "Update BuildNumber.xcconfig to contain the latest build number.",
-            usage: ["[--config=<config>]"],
-            options: ["--config=<config>": "The configuration file to update."],
-            returns: [.gettingBuildFailed, .gettingCommitFailed, .writingConfigFailed, .updatingIndexFailed]
-        )
-    }
+struct UpdateBuildCommand: ParsableCommand {
+    static var configuration = CommandConfiguration(
+        abstract: "Update BuildNumber.xcconfig to contain the latest build number."
+    )
 
-    override func run(shell: Shell) throws -> Result {
+    @Option(help: "The configuration file to update.") var config: String?
+    
+    func run() throws {
         let git = GitRunner()
 
         let configURL: URL
-        if let config = shell.arguments.option("config") {
+        if let config = config {
             configURL = URL(fileURLWithPath: config)
         } else if let sourceRoot = ProcessInfo.processInfo.environment["SOURCE_ROOT"] {
             configURL = URL(fileURLWithPath: sourceRoot).appendingPathComponent("Configs").appendingPathComponent("BuildNumber.xcconfig")
@@ -44,14 +48,14 @@ class UpdateBuildCommand: Command {
 
         var result = try git.sync(arguments: ["rev-list", "--count", "HEAD"])
         if result.status != 0 {
-            return Result.gettingBuildFailed.adding(runnerResult: result)
+            throw UpdateBuildError.gettingBuildFailed(result)
         }
         
         let build = result.stdout.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
         result = try git.sync(arguments: ["rev-list", "--max-count", "1", "HEAD"])
         if result.status != 0 {
-            return Result.gettingCommitFailed.adding(runnerResult: result)
+            throw UpdateBuildError.gettingCommitFailed(result)
         }
         
         let commit = result.stdout.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
@@ -64,17 +68,15 @@ class UpdateBuildCommand: Command {
             do {
               try new.write(to: configURL, atomically: true, encoding: .utf8)
             } catch {
-                return .writingConfigFailed
+                throw UpdateBuildError.writingConfigFailed
             }
             
             result = try git.sync(arguments: ["update-index", "--assume-unchanged", configURL.path])
             if result.status != 0 {
-                return Result.updatingIndexFailed.adding(runnerResult: result)
+                throw UpdateBuildError.updatingIndexFailed(result)
             }
 
         }
-        
-        return .ok
     }
   
 }
