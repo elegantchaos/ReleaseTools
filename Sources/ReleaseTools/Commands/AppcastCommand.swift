@@ -41,11 +41,11 @@ struct AppcastCommand: ParsableCommand {
     @OptionGroup
     var options: StandardOptions
     
-    @Option(help: "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`.")
-    var website: String?
-
-    @Option(help: "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`.")
-    var updates: String?
+//    @Option(help: "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`.")
+//    var website: String?
+//
+//    @Option(help: "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`.")
+//    var updates: String?
 
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")

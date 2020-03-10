@@ -4,7 +4,7 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
-import CommandShell
+import ArgumentParser
 
 struct WorkspaceSpec: Decodable {
     let name: String
@@ -15,39 +15,32 @@ struct SchemesSpec: Decodable {
     let workspace: WorkspaceSpec
 }
 
-extension Result {
-    static let archiveFailed = Result(100, "Archiving failed.")
+enum ArchiveError: Error {
+    case archiveFailed(_ output: String)
+    
+    public var description: String {
+        switch self {
+            case .archiveFailed(let output): return "Archiving failed.\n\(output)"
+        }
+    }
 }
 
-class ArchiveCommand: RTCommand {
-    
-    override var description: Command.Description {
-        return Description(
-            name: "archive",
-            help: "Make an archive for uploading, distribution, etc.",
-            usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(showOutputOption)] [\(platformOption)]"],
-            options: [
-                platformOption: platformOptionHelp,
-                schemeOption: schemeOptionHelp,
-                setDefaultOption: setDefaultOptionHelp,
-                showOutputOption : showOutputOptionHelp,
-            ],
-            returns: [.archiveFailed]
-        )
-    }
-    
-    override func run(shell: Shell) throws -> Result {
+struct ArchiveCommand: ParsableCommand {
+    static var configuration = CommandConfiguration(
+        abstract: "Make an archive for uploading, distribution, etc."
+    )
+
+    @OptionGroup
+    var options: StandardOptions
+
+    func run() throws {
+        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
         
-        let gotRequirements = require([.workspace, .scheme])
-        guard gotRequirements == .ok else {
-            return gotRequirements
-        }
-        
-        shell.log("Archiving scheme \(scheme).")
+        shell.log("Archiving scheme \(parsed.scheme).")
 
         let xcode = XCodeBuildRunner(shell: shell)
-        var args = ["-workspace", workspace, "-scheme", scheme, "archive", "-archivePath", archiveURL.path]
-        switch platform {
+        var args = ["-workspace", parsed.workspace, "-scheme", parsed.scheme, "archive", "-archivePath", parsed.archiveURL.path]
+        switch parsed.platform {
             case "iOS":
                 args.append(contentsOf: ["-sdk", "iphoneos"])
             case "tvOS":
@@ -59,10 +52,8 @@ class ArchiveCommand: RTCommand {
         }
 
         let result = try xcode.run(arguments: args)
-        if result.status == 0 {
-            return .ok
-        } else {
-            return Result.archiveFailed.adding(supplementary: result.stderr)
+        if result.status != 0 {
+            throw ArchiveError.archiveFailed(result.stderr)
         }
     }
 }

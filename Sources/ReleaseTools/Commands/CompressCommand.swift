@@ -4,44 +4,45 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
-import CommandShell
+import ArgumentParser
 import Runner
 
-class CompressCommand: RTCommand {
-    override var description: Command.Description {
-        return Description(
-            name: "compress",
-            help: "Compress the output of the export command for distribution.",
-            usage: ["[\(websiteOption)] [\(updatesOption)]"],
-            options: [
-                showOutputOption: showOutputOptionHelp,
-                updatesOption: updatesOptionHelp,
-                websiteOption: websiteOptionHelp,
-            ],
-            returns: [.infoUnreadable]
-        )
-    }
-    
-    override func run(shell: Shell) throws -> Result {
-        let gotRequirements = require([.archive])
-        guard gotRequirements == .ok else {
-            return gotRequirements
-        }
 
-        let stapledAppURL = stapledURL.appendingPathComponent(archive.name)
+enum CompressError: Error {
+    case compressFailed(_ output: String)
+    
+    public var description: String {
+        switch self {
+            case .compressFailed(let output): return "Compressing failed.\n\(output)"
+        }
+    }
+}
+
+struct CompressCommand: ParsableCommand {
+    static var configuration = CommandConfiguration(
+        abstract: "Compress the output of the export command for distribution."
+    )
+    
+    @OptionGroup var options: StandardOptions
+
+    @Option(help: "test")
+    var test: String?
+    
+    func run() throws {
+        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
+
+        let stapledAppURL = parsed.stapledURL.appendingPathComponent(parsed.archive.name)
         let ditto = DittoRunner(shell: shell)
-        let destination = updatesURL.appendingPathComponent(archive.versionedZipName)
+        let destination = parsed.updatesURL.appendingPathComponent(parsed.archive.versionedZipName)
         
         let result = try ditto.zip(stapledAppURL, as: destination)
         if result.status != 0 {
-            return Result.exportFailed.adding(supplementary: result.stderr)
+            throw CompressError.compressFailed(result.stderr)
         }
         
-        shell.log("Saving copy of archive to \(websiteURL.path) as \(archive.unversionedZipName).")
-        let latestZip = websiteURL.appendingPathComponent(archive.unversionedZipName)
+        shell.log("Saving copy of archive to \(parsed.websiteURL.path) as \(parsed.archive.unversionedZipName).")
+        let latestZip = parsed.websiteURL.appendingPathComponent(parsed.archive.unversionedZipName)
         try? FileManager.default.removeItem(at: latestZip)
         try FileManager.default.copyItem(at: destination, to: latestZip)
-        
-        return .ok
     }
 }
