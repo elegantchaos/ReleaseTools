@@ -14,11 +14,12 @@ let package = Package(
         .package(url: "https://github.com/elegantchaos/Runner.git", from: "1.0.5"),
         .package(url: "https://github.com/elegantchaos/CommandShell.git", from: "1.1.3"),
         .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.0.9"),
+        .package(url: "https://github.com/elegantchaos/URLExtensions.git", from: "1.0.1"),
     ],
     targets: [
         .target(
             name: "ReleaseTools",
-            dependencies: ["CommandShell", "Runner"]),
+            dependencies: ["CommandShell", "Runner", "URLExtensions"]),
         .testTarget(
             name: "ReleaseToolsTests",
             dependencies: ["ReleaseTools", "XCTestExtensions"]),

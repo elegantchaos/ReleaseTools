@@ -5,16 +5,7 @@
 
 import Foundation
 import CommandShell
-
-extension URL {
-    func appendingPathComponents(_ components: [String]) -> URL {
-        var url = self
-        for component in components {
-            url.appendPathComponent(component)
-        }
-        return url
-    }
-}
+import URLExtensions
 
 extension Result {
     static let infoUnreadable = Result(200, "Couldn't read archive info.plist.")
