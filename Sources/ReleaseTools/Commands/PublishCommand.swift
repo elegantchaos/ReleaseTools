@@ -4,50 +4,50 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
-import CommandShell
+import ArgumentParser
+import Runner
 
-extension Result {
-    static let commitFailed = Result(600, "Failed to commit the appcast feed and updates.")
-    static let pushFailed = Result(601, "Failed to push the appcast feed and updates.")
+enum PublishError: Error {
+    case commitFailed(_ result: Runner.Result)
+    case pushFailed(_ result: Runner.Result)
+    
+    public var description: String {
+        switch self {
+            case . commitFailed(let result): return "Failed to commit the appcast feed and updates.\n\(result)"
+            case .pushFailed(let result): return "Failed to push the appcast feed and updates.\n\(result)"
+        }
+    }
 }
 
-class PublishCommand: RTCommand {
-    override var description: Command.Description {
-        return Description(
-            name: "publish",
-            help: "Commit and push any changes made to the website repo.",
-            usage: ["[\(websiteOption)]"],
-            options: ["\(websiteOption)": websiteOptionHelp]
-        )
-    }
+struct PublishCommand: ParsableCommand {
+    static var configuration = CommandConfiguration(
+        abstract: "Commit and push any changes made to the website repo."
+    )
 
-    override func run(shell: Shell) throws -> Result {
-        let gotRequirements = require([.archive])
-        guard gotRequirements == .ok else {
-            return gotRequirements
-        }
+    @OptionGroup var options: StandardOptions
+
+    func run() throws {
+        let parsed = try StandardOptionParser([.archive], options: options, name: "publish")
 
         let git = GitRunner()
-        git.cwd = websiteURL
+        git.cwd = parsed.websiteURL
 
         shell.log("Committing updates.")
-        var result = try git.sync(arguments: ["add", updatesURL.path])
+        var result = try git.sync(arguments: ["add", parsed.updatesURL.path])
         if result.status != 0 {
-            return Result.commitFailed.adding(runnerResult: result)
+            throw PublishError.commitFailed(result)
         }
 
-        let message = "v\(archive.version), build \(archive.build)"
+        let message = "v\(parsed.archive.version), build \(parsed.archive.build)"
         result = try git.sync(arguments: ["commit", "-a", "-m", message])
         if result.status != 0 {
-            return Result.commitFailed.adding(runnerResult: result)
+            throw PublishError.commitFailed(result)
         }
         
         shell.log("Pushing updates.")
         let pushResult = try git.sync(arguments: ["push"])
         if pushResult.status != 0 {
-            return Result.pushFailed.adding(runnerResult: pushResult)
+            throw PublishError.pushFailed(result)
         }
-
-        return .ok
     }
 }
