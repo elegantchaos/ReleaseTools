@@ -4,33 +4,49 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
-import CommandShell
+import ArgumentParser
 import Runner
 
-extension Result {
-    static let fetchingNotarizationStatusFailed = Result(650, "Fetching notarization status failed.")
-    static let loadingNotarizationReceiptFailed = Result(651, "Loading notarization receipt failed.")
-    static let notarizationFailed = Result(652, "Notarization failed.")
-    static let exportingNotarizedAppFailed = Result(653, "Exporting notarized app failed.")
+enum WaitForNotarizationError: Error {
+    case fetchingNotarizationStatusFailed
+    case loadingNotarizationReceiptFailed
+    case notarizationFailed
+    case exportingNotarizedAppFailed
+
+    public var description: String {
+        switch self {
+            case .fetchingNotarizationStatusFailed: return "Fetching notarization status failed."
+            case .loadingNotarizationReceiptFailed: return "Loading notarization receipt failed."
+            case .notarizationFailed: return "Notarization failed."
+            case .exportingNotarizedAppFailed: return "Exporting notarized app failed."
+        }
+    }
 }
 
-class WaitForNotarizationCommand: RTCommand {
-    override var description: Command.Description {
-        return Description(
-            name: "wait",
-            help: "Wait until notarization has completed.",
-            usage: ["[\(userOption) [\(setDefaultOption)]] [\(requestOption)]"],
-            options: [
-                requestOption: requestOptionHelp,
-                setDefaultOption: setDefaultOptionHelp,
-                userOption: userOptionHelp,
-            ],
-            returns: [.notarizingFailed, .fetchingNotarizationStatusFailed, .notarizationFailed, .exportingNotarizedAppFailed]
-        )
-    }
+struct WaitForNotarizationCommand: ParsableCommand {
+    static var configuration = CommandConfiguration(
+        abstract: "Wait until notarization has completed."
+    )
+
+    @Option(help: "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command.") var request: String?
     
-    func savedNotarizationReceipt() -> String? {
-        let notarizingReceiptURL = exportURL.appendingPathComponent("receipt.xml")
+    @OptionGroup var options: StandardOptions
+
+    func run() throws {
+        let parsed = try StandardOptionParser([.workspace, .user, .archive], options: options, name: "wait")
+
+        guard let requestUUID = request ?? savedNotarizationReceipt(parsed: parsed) else {
+            throw WaitForNotarizationError.loadingNotarizationReceiptFailed
+        }
+        
+        DispatchQueue.main.async {
+            self.shell.log("Requesting notarization status...")
+            self.check(request: requestUUID, user: parsed.user)
+        }
+    }
+
+    func savedNotarizationReceipt(parsed: StandardOptionParser) -> String? {
+        let notarizingReceiptURL = parsed.exportURL.appendingPathComponent("receipt.xml")
         guard let data = try? Data(contentsOf: notarizingReceiptURL),
             let receipt = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String:Any],
             let upload = receipt["notarization-upload"] as? [String:String] else { return nil }
@@ -38,35 +54,18 @@ class WaitForNotarizationCommand: RTCommand {
         return upload["RequestUUID"]
     }
     
-    override func run(shell: Shell) throws -> Result {
-        let gotRequirements = require([.workspace, .user, .archive])
-        guard gotRequirements == .ok else {
-            return gotRequirements
-        }
 
-        guard let requestUUID = shell.arguments.option("request") ?? savedNotarizationReceipt() else {
-            return Result.loadingNotarizationReceiptFailed
-        }
-        
-        DispatchQueue.main.async {
-            shell.log("Requesting notarization status...")
-            self.check(request: requestUUID, user: self.user)
-        }
-        
-        return .running
-    }
-    
-    func exportNotarized() {
+    func exportNotarized(parsed: StandardOptionParser) {
         shell.log("Stapling notarized app.")
         
         do {
             let fm = FileManager.default
-            try? fm.createDirectory(at: stapledURL, withIntermediateDirectories: true, attributes: nil)
+            try? fm.createDirectory(at: parsed.stapledURL, withIntermediateDirectories: true, attributes: nil)
             
-            if let archive = archive {
-                let stapledAppURL = stapledURL.appendingPathComponent(archive.name)
+            if let archive = parsed.archive {
+                let stapledAppURL = parsed.stapledURL.appendingPathComponent(archive.name)
                 try? fm.removeItem(at: stapledAppURL)
-                try? fm.copyItem(at: exportedAppURL, to: stapledAppURL)
+                try? fm.copyItem(at: parsed.exportedAppURL, to: stapledAppURL)
                 let xcrun = XCRunRunner(shell: shell)
                 let result = try xcrun.run(arguments: ["stapler", "staple", stapledAppURL.path])
                 if result.status == 0 {

@@ -30,6 +30,28 @@ struct StandardOptions: ParsableArguments {
     
     @Option(help: "The App Store Connect user we're notarizing as.")
     var user: String?
+
+    @Option(help: "updates help")
+    var updates: String?
+
+    @Option(help: "website help")
+    var website: String?
+    
+    var updatesURL: URL {
+        if let path = updates {
+            return URL(fileURLWithPath: path)
+        } else {
+            return URL(fileURLWithPath: "Dependencies/Website/updates")
+        }
+    }
+    
+    var websiteURL: URL {
+        if let path = website {
+            return URL(fileURLWithPath: path)
+        } else {
+            return URL(fileURLWithPath: "Dependencies/Website/")
+        }
+    }
 }
 
 struct StandardOptionParser {
@@ -73,22 +95,6 @@ struct StandardOptionParser {
     
     var stapledURL: URL {
         return buildURL.appendingPathComponent("stapled")
-    }
-    
-    var updatesURL: URL {
-        if let path = shell.arguments.option("updates") {
-            return URL(fileURLWithPath: path)
-        } else {
-            return URL(fileURLWithPath: "Dependencies/Website/updates")
-        }
-    }
-    
-    var websiteURL: URL {
-        if let path = shell.arguments.option("website") {
-            return URL(fileURLWithPath: path)
-        } else {
-            return URL(fileURLWithPath: "Dependencies/Website/")
-        }
     }
     
     var defaultWorkspace: String? {
@@ -175,15 +181,4 @@ struct StandardOptionParser {
     }
 
 
-}
-
-class RTCommand: Command {
-    let requestOption = "--request=<uuid>"
-    let requestOptionHelp = "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command."
-    
-    
-    
-
-    
-    
 }
