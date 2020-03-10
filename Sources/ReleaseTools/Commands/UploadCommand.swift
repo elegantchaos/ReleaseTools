@@ -4,51 +4,45 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
-import CommandShell
+import ArgumentParser
 import Runner
 
-extension Result {
-    static let uploadingFailed = Result(620, "Uploading failed.")
-    static let savingUploadReceiptFailed = Result(621, "Saving upload receipt failed.")
+
+enum UploadError: Error {
+    case uploadingFailed(_ result: Runner.Result)
+    case savingUploadReceiptFailed(_ error: Error)
+    
+    public var description: String {
+        switch self {
+            case .uploadingFailed(let result): return "Uploading failed.\n\(result)"
+            case .savingUploadReceiptFailed(let error): return "Saving upload receipt failed.\n\(error)"
+        }
+    }
 }
 
-class UploadCommand: RTCommand {
+struct UploadCommand: ParsableCommand {
     
-    override var description: Command.Description {
-        return Description(
-            name: "upload",
-            help: "Upload the archived app to Apple Connect portal for processing.",
-            usage: ["[\(userOption) [\(setDefaultOption)]] [\(platformOption)]"],
-            options: [
-                platformOption: platformOptionHelp,
-                userOption: userOptionHelp,
-                setDefaultOption: setDefaultOptionHelp
-            ],
-            returns: [.uploadingFailed, .savingUploadReceiptFailed]
-        )
-    }
+    static var configuration = CommandConfiguration(
+        abstract: "Upload the archived app to Apple Connect portal for processing."
+    )
     
-    override func run(shell: Shell) throws -> Result {
-        
-        let gotRequirements = require([.workspace, .user, .archive, .scheme])
-        guard gotRequirements == .ok else {
-            return gotRequirements
-        }
+    @OptionGroup var options: StandardOptions
+    
+    func run() throws {
+        let parsed = try StandardOptionParser([.workspace, .user, .archive, .scheme], options: options, name: "upload")
         
         shell.log("Uploading archive to Apple Connect.")
         let xcrun = XCRunRunner(shell: shell)
-        let result = try xcrun.run(arguments: ["altool", "--upload-app", "--username", user, "--password", "@keychain:AC_PASSWORD", "--file", exportedIPAURL.path, "--output-format", "xml"])
+        let result = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml"])
         if result.status != 0 {
-            return Result.uploadingFailed.adding(runnerResult: result)
+            throw UploadError.uploadingFailed(result)
         }
         
         shell.log("Finished uploading.")
         do {
-            try result.stdout.write(to: uploadingReceiptURL, atomically: true, encoding: .utf8)
+            try result.stdout.write(to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
         } catch {
-            return Result.savingUploadReceiptFailed.adding(supplementary: "\(error)")
+            throw UploadError.savingUploadReceiptFailed(error)
         }
-        
-        return .ok
     }
 }
