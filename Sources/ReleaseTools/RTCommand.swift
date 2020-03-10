@@ -6,6 +6,7 @@
 import Foundation
 import CommandShell
 import URLExtensions
+import ArgumentParser
 
 extension Result {
     static let infoUnreadable = Result(200, "Couldn't read archive info.plist.")
@@ -14,30 +15,38 @@ extension Result {
     static let noDefaultScheme = Result(203, "No default scheme set.")
 }
 
-class RTCommand: Command {
-    let platformOption = "--platform=<platform>"
-    let platformOptionHelp = "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS."
+struct StandardOptions: ParsableArguments {
+    @Flag(help: "Remember the value that was specified for the scheme/user, and use it as the default in future.")
+    var setDefault: Bool
     
-    let requestOption = "--request=<uuid>"
-    let requestOptionHelp = "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command."
+    @Flag(help: "Show the external commands that we're executing, and the output from them.")
+    var showOutput: Bool
     
-    let showOutputOption = "--show-output"
-    let showOutputOptionHelp = "Show the external commands that we're executing, and the output from them."
+    @Option(help: "The scheme we're building.")
+    var scheme: String?
     
-    let schemeOption = "--scheme=<scheme>"
-    let schemeOptionHelp = "The scheme we're building."
+    @Option(help: "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS.")
+    var platform: String?
     
-    let setDefaultOption = "--set-default"
-    let setDefaultOptionHelp = "Remember the value that was specified for the scheme/user, and use it as the default in future."
+    @Option(help: "The App Store Connect user we're notarizing as.")
+    var user: String?
+}
+
+struct StandardOptionParser {
+    enum Requirement {
+        case package
+        case workspace
+        case scheme
+        case user
+        case archive
+    }
     
-    let userOption = "--user=<username>"
-    let userOptionHelp = "The App Store Connect user we're notarizing as."
-    
-    let updatesOption = "--updates=<path>"
-    let updatesOptionHelp = "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`."
-    
-    let websiteOption = "--website-<path>"
-    let websiteOptionHelp = "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`."
+    var platform: String = ""
+    var scheme: String = ""
+    var user: String = ""
+    var package: String = ""
+    var workspace: String = ""
+    var archive: XcodeArchive!
     
     let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     
@@ -45,11 +54,11 @@ class RTCommand: Command {
     
     var exportedAppURL: URL { return exportURL.appendingPathComponent(archive.name) }
     var exportedIPAURL: URL { return exportURL.appendingPathComponent(scheme).appendingPathExtension("ipa") }
-
+    
     var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
-
+    
     var uploadingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
-
+    
     var buildURL: URL {
         return rootURL.appendingPathComponents([".build", platform])
     }
@@ -57,7 +66,7 @@ class RTCommand: Command {
     var archiveURL: URL {
         return buildURL.appendingPathComponent("archive.xcarchive")
     }
-
+    
     var exportURL: URL {
         return buildURL.appendingPathComponent("export")
     }
@@ -65,7 +74,7 @@ class RTCommand: Command {
     var stapledURL: URL {
         return buildURL.appendingPathComponent("stapled")
     }
-
+    
     var updatesURL: URL {
         if let path = shell.arguments.option("updates") {
             return URL(fileURLWithPath: path)
@@ -98,30 +107,15 @@ class RTCommand: Command {
         return rootURL.appendingPathComponents(["Sources", package, "Resources", "ExportOptions-\(platform).plist"])
     }
     
-    enum Requirement {
-        case package
-        case workspace
-        case scheme
-        case user
-        case archive
-    }
-    
-    var package: String = ""
-    var workspace: String = ""
-    var scheme: String = ""
-    var platform: String = ""
-    var user: String = ""
-    var archive: XcodeArchive!
-    
-    func require(_ requirements: Set<Requirement>) -> Result {
+    init(_ requirements: Set<Requirement>, options: StandardOptions, name: String) throws {
         // add some implied requirements
         var expanded = requirements
         if requirements.contains(.scheme) || requirements.contains(.user) {
             expanded.insert(.workspace)
         }
-
-        self.platform = shell.arguments.option("platform") ?? "macOS"
-
+        
+        self.platform = options.platform ?? "macOS"
+        
         if expanded.contains(.package) {
             package = rootURL.lastPathComponent
         }
@@ -130,47 +124,48 @@ class RTCommand: Command {
             if let workspace = defaultWorkspace {
                 self.workspace = workspace
             } else {
-                return .badArguments
+                throw ValidationError("Couldn't extract workspace.")
             }
         }
-
+        
         if expanded.contains(.scheme) {
-            if let scheme = scheme(for: workspace) {
+            if let scheme = options.scheme ?? getDefault(for: "scheme") {
                 self.scheme = scheme
-                if shell.arguments.flag("set-default") {
+                if options.setDefault {
                     setDefault(scheme, for: "scheme")
                 }
             } else {
-                return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(description.name) --scheme=<scheme> --set-default.")
+                throw ValidationError("No default scheme.")
+//                return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(name) --scheme=<scheme> --set-default.")
             }
         }
         
         if expanded.contains(.user) {
-            if let user = user(for: workspace) {
+            if let user = options.user ?? getDefault(for: "user") {
                 self.user = user
-                if shell.arguments.flag("set-default") {
+                if options.setDefault {
                     UserDefaults.standard.set(user, forKey: "defaultUser")
                 }
             } else {
-                return Result.noDefaultUser.adding(supplementary: "Set using \(CommandLine.name) \(description.name) --user <user> --set-default.")
+                throw ValidationError("No default user.")
+//                return Result.noDefaultUser.adding(supplementary: "Set using \(CommandLine.name) \(name) --user <user> --set-default.")
             }
         }
-
+        
         if expanded.contains(.archive) {
             if let archive = XcodeArchive(url: archiveURL) {
                 self.archive = archive
             } else {
-                return Result.infoUnreadable.adding(supplementary: archiveURL.path)
+                throw ValidationError("Info unreadable.")
+//                return Result.infoUnreadable.adding(supplementary: archiveURL.path)
             }
         }
-        
-        return .ok
     }
     
     func defaultKey(for key: String) -> String {
         return "\(key).default.\(platform).\(workspace)"
     }
-    
+
     func getDefault(for key: String) -> String? {
         return UserDefaults.standard.string(forKey: defaultKey(for: key))
     }
@@ -178,14 +173,17 @@ class RTCommand: Command {
     func setDefault(_ value: String, for key: String) {
         UserDefaults.standard.set(value, forKey: defaultKey(for: key))
     }
+
+
+}
+
+class RTCommand: Command {
+    let requestOption = "--request=<uuid>"
+    let requestOptionHelp = "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command."
     
-    func scheme(for workspace: String) -> String? {
-        return shell.arguments.option("scheme") ?? getDefault(for: "scheme")
-    }
     
-    func user(for workspace: String) -> String? {
-        return shell.arguments.option("user") ?? UserDefaults.standard.string(forKey: "defaultUser")
-    }
+    
+
     
     
 }

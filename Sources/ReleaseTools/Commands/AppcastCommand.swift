@@ -6,38 +6,49 @@
 import Foundation
 import CommandShell
 import Runner
+import ArgumentParser
 
-extension Result {
-    static let buildAppcastGeneratorFailed = Result(500, "Failed to build the generate_appcast tool.")
-    static let appcastGeneratorFailed = Result(501, "Failed to generate the appcast.")
-    static let keyGenerationFailed = Result(502, "Failed to generate appcast keys.")
-    static let keyImportFailed = Result(503, "Failed to import appcast keys.")
-    static let generatedKeys = Result(505, "The appcast private key was missing, so we've generated one.")
+enum AppcastError: Error, CustomStringConvertible {
+    case buildAppcastGeneratorFailed(_ result: Runner.Result)
+    case appcastGeneratorFailed(_ result: Runner.Result)
+    case keyGenerationFailed(_ result: Runner.Result)
+    case keyImportFailed(_ result: Runner.Result)
+    case generatedKeys(_ name: String)
+
+    public var description: String {
+        switch self {
+            case .buildAppcastGeneratorFailed: return "Failed to build the generate_appcast tool."
+            case .appcastGeneratorFailed: return "Failed to generate the appcast."
+            case .keyGenerationFailed: return "Failed to generate appcast keys."
+            case .keyImportFailed: return "Failed to import appcast keys."
+            case .generatedKeys(let name): return """
+                The appcast private key was missing, so we've generated one.
+                Open the keychain, rename the key `Imported Private Key` as `\(name)`, then try running this command again.
+                """
+        }
+    }
 }
 
 
-class AppcastCommand: RTCommand {
-    
-    override var description: Command.Description {
-        return Description(
-            name: "appcast",
-            help: "Update the Sparkle appcast to include the zip created by the compress command.",
-            usage: ["[\(schemeOption) [\(setDefaultOption)]] [\(websiteOption)] [\(showOutputOption)]"],
-            options: [
-                schemeOption: schemeOptionHelp,
-                showOutputOption : showOutputOptionHelp,
-                updatesOption : updatesOptionHelp
-            ],
-            returns: [.buildAppcastGeneratorFailed, .appcastGeneratorFailed, .keyGenerationFailed, .keyImportFailed, .generatedKeys]
-        )
+struct AppcastCommand: ParsableCommand {
+    init() {
     }
     
-    override func run(shell: Shell) throws -> Result {
-        
-        let gotRequirements = require([.workspace, .scheme])
-        guard gotRequirements == .ok else {
-            return gotRequirements
-        }
+    static var configuration = CommandConfiguration(
+        abstract: "Update the Sparkle appcast to include the zip created by the compress command."
+    )
+
+    @OptionGroup
+    var options: StandardOptions
+    
+    @Option(help: "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`.")
+    var website: String?
+
+    @Option(help: "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`.")
+    var updates: String?
+
+    func run() throws {
+        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
 
         let xcode = XCodeBuildRunner(shell: shell)
         
@@ -47,19 +58,19 @@ class AppcastCommand: RTCommand {
         let fm = FileManager.default
         let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)
         let buildURL = rootURL.appendingPathComponent(".build")
-        let result = try xcode.run(arguments: ["build", "-workspace", workspace, "-scheme", "generate_appcast", "BUILD_DIR=\(buildURL.path)"])
+        let result = try xcode.run(arguments: ["build", "-workspace", parsed.workspace, "-scheme", "generate_appcast", "BUILD_DIR=\(buildURL.path)"])
         if result.status != 0 {
             return Result.buildAppcastGeneratorFailed.adding(supplementary: result.stderr)
         }
         
-        let workspaceName = URL(fileURLWithPath: workspace).deletingPathExtension().lastPathComponent
+        let workspaceName = URL(fileURLWithPath: parsed.workspace).deletingPathExtension().lastPathComponent
         let keyName = "\(workspaceName) Sparkle Key"
         
         let generator = Runner(for: URL(fileURLWithPath: ".build/Release/generate_appcast"))
-        let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, updatesURL.path])
+        let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, parsed.updatesURL.path])
         if genResult.status != 0 {
             if !genResult.stdout.contains("Unable to load DSA private key") {
-                return Result.appcastGeneratorFailed.adding(runnerResult: genResult)
+                throw AppcastError.appcastGeneratorFailed(genResult)
             }
             
             shell.log("Could not find Sparkle key - generating one.")
@@ -67,30 +78,28 @@ class AppcastCommand: RTCommand {
             let keygen = Runner(for: URL(fileURLWithPath: "Dependencies/Sparkle/bin/generate_keys"))
             let keygenResult = try keygen.sync(arguments: [])
             if keygenResult.status != 0 {
-                return Result.keyGenerationFailed.adding(runnerResult: keygenResult)
+                throw AppcastError.keyGenerationFailed(keygenResult)
             }
 
             shell.log("Importing Key.")
 
             let security = Runner(for: URL(fileURLWithPath: "/usr/bin/security"))
-            let importResult = try security.sync(arguments: ["import", "dsa_priv.pem", "-a", "labl", "\(scheme) Sparkle Key"])
+            let importResult = try security.sync(arguments: ["import", "dsa_priv.pem", "-a", "labl", "\(parsed.scheme) Sparkle Key"])
             if importResult.status != 0 {
-                return Result.keyImportFailed.adding(runnerResult: importResult)
+                throw AppcastError.keyImportFailed(importResult)
             }
             
             shell.log("Moving Public Key.")
 
-            try? fm.moveItem(at: rootURL.appendingPathComponent("dsa_pub.pem"), to: rootURL.appendingPathComponent("Sources").appendingPathComponent(scheme).appendingPathComponent("Resources").appendingPathComponent("dsa_pub.pem"))
+            try? fm.moveItem(at: rootURL.appendingPathComponent("dsa_pub.pem"), to: rootURL.appendingPathComponent("Sources").appendingPathComponent(parsed.scheme).appendingPathComponent("Resources").appendingPathComponent("dsa_pub.pem"))
 
             shell.log("Deleting Private Key.")
 
             try? fm.removeItem(at: rootURL.appendingPathComponent("dsa_priv.pem"))
             
-            return Result.generatedKeys.adding(runnerResult: genResult).adding(supplementary: "Open the keychain, rename the key `Imported Private Key` as `\(keyName)`, then try running this command again.")
+            throw AppcastError.generatedKeys(keyName)
         }
         
-        try? fm.removeItem(at: URL(fileURLWithPath: updatesURL.path).appendingPathComponent(".tmp"))
-
-        return .ok
+        try? fm.removeItem(at: URL(fileURLWithPath: parsed.updatesURL.path).appendingPathComponent(".tmp"))
     }
 }
