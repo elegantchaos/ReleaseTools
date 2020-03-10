@@ -30,10 +30,10 @@ struct PublishCommand: ParsableCommand {
         let parsed = try StandardOptionParser([.archive], options: options, name: "publish")
 
         let git = GitRunner()
-        git.cwd = parsed.websiteURL
+        git.cwd = options.websiteURL
 
         shell.log("Committing updates.")
-        var result = try git.sync(arguments: ["add", parsed.updatesURL.path])
+        var result = try git.sync(arguments: ["add", options.updatesURL.path])
         if result.status != 0 {
             throw PublishError.commitFailed(result)
         }

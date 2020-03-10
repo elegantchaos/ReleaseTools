@@ -30,7 +30,7 @@ struct ExportCommand: ParsableCommand {
         
         shell.log("Exporting \(parsed.scheme).")
         try? FileManager.default.removeItem(at: parsed.exportURL)
-        let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", parsed.archiveURL.path, "-exportPath", exportURL.path, "-exportOptionsPlist", parsed.exportOptionsURL.path, "-allowProvisioningUpdates"])
+        let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", parsed.archiveURL.path, "-exportPath", parsed.exportURL.path, "-exportOptionsPlist", parsed.exportOptionsURL.path, "-allowProvisioningUpdates"])
         if result.status != 0 {
             throw ExportError.exportFailed(result.stderr)
         }

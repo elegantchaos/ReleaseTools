@@ -7,7 +7,6 @@ import Foundation
 import ArgumentParser
 import Runner
 
-
 enum CompressError: Error {
     case compressFailed(_ output: String)
     
@@ -24,24 +23,21 @@ struct CompressCommand: ParsableCommand {
     )
     
     @OptionGroup var options: StandardOptions
-
-    @Option(help: "test")
-    var test: String?
     
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
 
         let stapledAppURL = parsed.stapledURL.appendingPathComponent(parsed.archive.name)
         let ditto = DittoRunner(shell: shell)
-        let destination = parsed.updatesURL.appendingPathComponent(parsed.archive.versionedZipName)
+        let destination = options.updatesURL.appendingPathComponent(parsed.archive.versionedZipName)
         
         let result = try ditto.zip(stapledAppURL, as: destination)
         if result.status != 0 {
             throw CompressError.compressFailed(result.stderr)
         }
         
-        shell.log("Saving copy of archive to \(parsed.websiteURL.path) as \(parsed.archive.unversionedZipName).")
-        let latestZip = parsed.websiteURL.appendingPathComponent(parsed.archive.unversionedZipName)
+        shell.log("Saving copy of archive to \(options.websiteURL.path) as \(parsed.archive.unversionedZipName).")
+        let latestZip = options.websiteURL.appendingPathComponent(parsed.archive.unversionedZipName)
         try? FileManager.default.removeItem(at: latestZip)
         try FileManager.default.copyItem(at: destination, to: latestZip)
     }
