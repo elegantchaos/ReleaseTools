@@ -9,7 +9,7 @@ import Runner
 import ArgumentParser
 
 enum AppcastError: Error, CustomStringConvertible {
-    case buildAppcastGeneratorFailed(_ result: Runner.Result)
+    case buildAppcastGeneratorFailed(_ output: String)
     case appcastGeneratorFailed(_ result: Runner.Result)
     case keyGenerationFailed(_ result: Runner.Result)
     case keyImportFailed(_ result: Runner.Result)
@@ -17,10 +17,10 @@ enum AppcastError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-            case .buildAppcastGeneratorFailed: return "Failed to build the generate_appcast tool."
-            case .appcastGeneratorFailed: return "Failed to generate the appcast."
-            case .keyGenerationFailed: return "Failed to generate appcast keys."
-            case .keyImportFailed: return "Failed to import appcast keys."
+            case .buildAppcastGeneratorFailed(let output): return "Failed to build the generate_appcast tool.\n\(output)"
+            case .appcastGeneratorFailed(let result): return "Failed to generate the appcast.\n\(result)"
+            case .keyGenerationFailed(let result): return "Failed to generate appcast keys.\n\(result)"
+            case .keyImportFailed(let result): return "Failed to import appcast keys.\n\(result)"
             case .generatedKeys(let name): return """
                 The appcast private key was missing, so we've generated one.
                 Open the keychain, rename the key `Imported Private Key` as `\(name)`, then try running this command again.
@@ -60,7 +60,7 @@ struct AppcastCommand: ParsableCommand {
         let buildURL = rootURL.appendingPathComponent(".build")
         let result = try xcode.run(arguments: ["build", "-workspace", parsed.workspace, "-scheme", "generate_appcast", "BUILD_DIR=\(buildURL.path)"])
         if result.status != 0 {
-            return Result.buildAppcastGeneratorFailed.adding(supplementary: result.stderr)
+            throw AppcastError.buildAppcastGeneratorFailed(result.stderr)
         }
         
         let workspaceName = URL(fileURLWithPath: parsed.workspace).deletingPathExtension().lastPathComponent
