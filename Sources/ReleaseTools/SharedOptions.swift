@@ -6,11 +6,6 @@
 import ArgumentParser
 import Foundation
 
-struct SetDefaultOption: ParsableArguments {
-    @Flag(help: "Remember the value that was specified for the scheme/user, and use it as the default in future.")
-    var setDefault: Bool
-}
-
 struct SchemeOption: ParsableArguments {
     @Option(help: "The scheme we're building.")
     var scheme: String?

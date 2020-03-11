@@ -29,19 +29,17 @@ struct UploadCommand: ParsableCommand {
 
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var user: UserOption
-    @OptionGroup() var setDefault: SetDefaultOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser(
-            [.archive],
+        let parsed = try OptionParser(
+            requires: [.archive],
             options: options,
             command: Self.configuration,
             scheme: scheme,
             user: user,
-            platform: platform,
-            setDefaultArgument: setDefault
+            platform: platform
         )
         
         parsed.log("Uploading archive to Apple Connect.")

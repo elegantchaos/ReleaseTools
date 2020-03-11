@@ -7,8 +7,8 @@ import Runner
 import Foundation
 
 class DittoRunner: Runner {
-    let parsed: StandardOptionParser
-    init(parsed: StandardOptionParser) {
+    let parsed: OptionParser
+    init(parsed: OptionParser) {
         self.parsed = parsed
         super.init(command: "ditto")
     }

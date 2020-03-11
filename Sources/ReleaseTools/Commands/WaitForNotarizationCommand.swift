@@ -39,18 +39,16 @@ struct WaitForNotarizationCommand: ParsableCommand {
     @Option(help: "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command.") var request: String?
     
     @OptionGroup() var user: UserOption
-    @OptionGroup() var setDefault: SetDefaultOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser(
-            [.archive],
+        let parsed = try OptionParser(
+            requires: [.archive],
             options: options,
             command: Self.configuration,
             user: user,
-            platform: platform,
-            setDefaultArgument: setDefault
+            platform: platform
         )
 
         guard let requestUUID = request ?? savedNotarizationReceipt(parsed: parsed) else {
@@ -65,7 +63,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
         try parsed.wait()
     }
 
-    func savedNotarizationReceipt(parsed: StandardOptionParser) -> String? {
+    func savedNotarizationReceipt(parsed: OptionParser) -> String? {
         let notarizingReceiptURL = parsed.exportURL.appendingPathComponent("receipt.xml")
         guard let data = try? Data(contentsOf: notarizingReceiptURL),
             let receipt = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String:Any],
@@ -75,7 +73,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
     }
     
 
-    func exportNotarized(parsed: StandardOptionParser) {
+    func exportNotarized(parsed: OptionParser) {
         parsed.log("Stapling notarized app.")
         
         do {
@@ -101,7 +99,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
         }
     }
     
-    func check(request: String, parsed: StandardOptionParser) {
+    func check(request: String, parsed: OptionParser) {
         let xcrun = XCRunRunner(parsed: parsed)
         do {
             let result = try xcrun.run(arguments: ["altool", "--notarization-info", request, "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--output-format", "xml"])

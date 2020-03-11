@@ -9,5 +9,4 @@ final class ReleaseToolTests: XCTestCase {
         XCTAssertEqual(result.status, 2)
         XCTAssertTrue(result.stdout.contains("Usage:\n"))
     }
-
 }

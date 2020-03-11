@@ -42,7 +42,11 @@ struct InstallCommand: ParsableCommand {
 
     func run() throws {
         do {
-            let parsed = try StandardOptionParser([], options: options, command: Self.configuration)
+            let parsed = try OptionParser(
+                options: options,
+                command: Self.configuration
+            )
+            
             parsed.log("Installing stub to \(InstallCommand.stubPath.path).")
             try InstallCommand.stub.write(to: InstallCommand.stubPath, atomically: true, encoding: .utf8)
         } catch {

@@ -33,7 +33,11 @@ struct UpdateBuildCommand: ParsableCommand {
     @OptionGroup() var options: CommonOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser([], options: options, command: Self.configuration)
+        let parsed = try OptionParser(
+            options: options,
+            command: Self.configuration
+        )
+
         let git = GitRunner()
 
         let configURL: URL

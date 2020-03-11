@@ -7,9 +7,9 @@ import Runner
 import Foundation
 
 class XCodeBuildRunner: Runner {
-    let parsed: StandardOptionParser
+    let parsed: OptionParser
     
-    init(parsed: StandardOptionParser) {
+    init(parsed: OptionParser) {
         self.parsed = parsed
         super.init(command: "xcodebuild")
     }

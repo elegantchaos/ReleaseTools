@@ -30,7 +30,11 @@ struct PublishCommand: ParsableCommand {
     @OptionGroup() var options: CommonOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser([.archive], options: options, command: Self.configuration)
+        let parsed = try OptionParser(
+            requires: [.archive],
+            options: options,
+            command: Self.configuration
+        )
 
         let git = GitRunner()
         git.cwd = website.websiteURL

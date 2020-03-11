@@ -32,17 +32,15 @@ struct NotarizeCommand: ParsableCommand {
     )
 
     @OptionGroup() var scheme: SchemeOption
-    @OptionGroup() var setDefault: SetDefaultOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser(
+        let parsed = try OptionParser(
             options: options,
             command: Self.configuration,
             scheme: scheme,
-            platform: platform,
-            setDefaultArgument: setDefault
+            platform: platform
         )
 
         parsed.log("Creating archive for notarization.")
