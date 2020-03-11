@@ -39,7 +39,8 @@ struct WaitForNotarizationCommand: ParsableCommand {
     @Option(help: "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command.") var request: String?
     
     @OptionGroup() var user: UserOption
-    @OptionGroup() var setDefault: SetDefaultArgument
+    @OptionGroup() var setDefault: SetDefaultOption
+    @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
@@ -48,6 +49,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
             options: options,
             command: Self.configuration,
             user: user,
+            platform: platform,
             setDefaultArgument: setDefault
         )
 

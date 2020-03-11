@@ -32,7 +32,8 @@ struct NotarizeCommand: ParsableCommand {
     )
 
     @OptionGroup() var scheme: SchemeOption
-    @OptionGroup() var setDefault: SetDefaultArgument
+    @OptionGroup() var setDefault: SetDefaultOption
+    @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
@@ -40,6 +41,7 @@ struct NotarizeCommand: ParsableCommand {
             options: options,
             command: Self.configuration,
             scheme: scheme,
+            platform: platform,
             setDefaultArgument: setDefault
         )
 

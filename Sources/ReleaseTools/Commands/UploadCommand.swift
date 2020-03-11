@@ -29,7 +29,8 @@ struct UploadCommand: ParsableCommand {
 
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var user: UserOption
-    @OptionGroup() var setDefault: SetDefaultArgument
+    @OptionGroup() var setDefault: SetDefaultOption
+    @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
@@ -39,7 +40,9 @@ struct UploadCommand: ParsableCommand {
             command: Self.configuration,
             scheme: scheme,
             user: user,
-            setDefaultArgument: setDefault)
+            platform: platform,
+            setDefaultArgument: setDefault
+        )
         
         parsed.log("Uploading archive to Apple Connect.")
         let xcrun = XCRunRunner(parsed: parsed)

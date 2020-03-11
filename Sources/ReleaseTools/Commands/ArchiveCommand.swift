@@ -32,14 +32,16 @@ struct ArchiveCommand: ParsableCommand {
     )
 
     @OptionGroup() var scheme: SchemeOption
+    @OptionGroup() var setDefault: SetDefaultOption
+    @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: StandardOptions
-    @OptionGroup() var setDefault: SetDefaultArgument
 
     func run() throws {
         let parsed = try StandardOptionParser(
             options: options,
             command: Self.configuration,
             scheme: scheme,
+            platform: platform,
             setDefaultArgument: setDefault)
         
         parsed.log("Archiving scheme \(parsed.scheme).")

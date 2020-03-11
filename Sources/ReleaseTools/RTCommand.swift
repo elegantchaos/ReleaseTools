@@ -24,7 +24,7 @@ enum ParserError: Error, CustomStringConvertible {
     }
 }
 
-struct SetDefaultArgument: ParsableArguments {
+struct SetDefaultOption: ParsableArguments {
     @Flag(help: "Remember the value that was specified for the scheme/user, and use it as the default in future.")
     var setDefault: Bool
 }
@@ -39,6 +39,11 @@ struct UserOption: ParsableArguments {
     var user: String?
 }
 
+struct PlatformOption: ParsableArguments {
+    @Option(help: "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS.")
+    var platform: String?
+}
+
 struct StandardOptions: ParsableArguments {
     
     @Flag(help: "Show the external commands that we're executing, and the output from them.")
@@ -46,11 +51,6 @@ struct StandardOptions: ParsableArguments {
 
     @Flag(help: "Show extra logging.")
     var verbose: Bool
-
-    
-    @Option(help: "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS.")
-    var platform: String?
-    
 
     @Option(help: "updates help")
     var updates: String?
@@ -77,8 +77,6 @@ struct StandardOptions: ParsableArguments {
 
 class StandardOptionParser {
     enum Requirement {
-        case package
-        case workspace
         case archive
     }
     
@@ -142,25 +140,19 @@ class StandardOptionParser {
          command: CommandConfiguration,
          scheme: SchemeOption? = nil,
          user: UserOption? = nil,
-         setDefaultArgument: SetDefaultArgument? = nil
+         platform: PlatformOption? = nil,
+         setDefaultArgument: SetDefaultOption? = nil
     ) throws {
-        // add some implied requirements
-        var expanded = requirements
-        
+
+        showOutput = options.showOutput
+        verbose = options.verbose
+        package = rootURL.lastPathComponent
+        if let platform = platform {
+            self.platform = platform.platform ?? "macOS"
+        }
+
+        // if we've specified the scheme or user, we also need the workspace
         if scheme != nil || user != nil {
-            expanded.insert(.workspace)
-        }
-        
-        self.showOutput = options.showOutput
-        self.verbose = options.verbose
-        
-        self.platform = options.platform ?? "macOS"
-        
-        if expanded.contains(.package) {
-            package = rootURL.lastPathComponent
-        }
-        
-        if expanded.contains(.workspace) {
             if let workspace = defaultWorkspace {
                 self.workspace = workspace
             } else {
@@ -190,7 +182,7 @@ class StandardOptionParser {
             }
         }
         
-        if expanded.contains(.archive) {
+        if requirements.contains(.archive) {
             if let archive = XcodeArchive(url: archiveURL) {
                 self.archive = archive
             } else {
