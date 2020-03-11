@@ -65,6 +65,7 @@ class OptionParser {
     var exportURL: URL { return buildURL.appendingPathComponent("export") }
     var stapledURL: URL { return buildURL.appendingPathComponent("stapled") }
     var exportOptionsURL: URL { return rootURL.appendingPathComponents(["Sources", package, "Resources", "ExportOptions-\(platform).plist"]) }
+    var versionTag: String { return "v\(archive.version)-\(platform)" }
 
     var defaultWorkspace: String? {
         let url = URL(fileURLWithPath: ".")
@@ -129,7 +130,7 @@ class OptionParser {
         }
     }
     
-    func defaultKey(for key: String) -> String {
+    func defaultKey(for key: String, platform: String) -> String {
         if platform.isEmpty {
             return "\(key).default.\(workspace)"
         } else {
@@ -139,17 +140,22 @@ class OptionParser {
     
 
     func getDefault(for key: String) -> String? {
-        let key = defaultKey(for: key)
-        return UserDefaults.standard.string(forKey: key)
+        // try platform specific key first, if the platform has been specified
+        if !platform.isEmpty, let value = UserDefaults.standard.string(forKey: defaultKey(for: key, platform: platform)) {
+            return value
+        }
+
+        // fall back on general key
+        return UserDefaults.standard.string(forKey: defaultKey(for: key, platform: ""))
     }
     
     func setDefault(_ value: String, for key: String) {
-        let key = defaultKey(for: key)
+        let key = defaultKey(for: key, platform: platform)
         UserDefaults.standard.set(value, forKey: key)
     }
 
     func clearDefault(for key: String) {
-        let key = defaultKey(for: key)
+        let key = defaultKey(for: key, platform: platform)
         UserDefaults.standard.set(nil, forKey: key)
     }
 

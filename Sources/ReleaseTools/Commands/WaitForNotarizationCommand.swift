@@ -64,12 +64,10 @@ struct WaitForNotarizationCommand: ParsableCommand {
 
         parsed.log("Tagging.")
         let git = GitRunner()
-        let tag = "\(parsed.archive.version)-\(platform)"
-        let tagResult = try git.sync(arguments: ["tag", tag, "-m", "Uploaded with \(CommandLine.name)"])
+        let tagResult = try git.sync(arguments: ["tag", parsed.versionTag, "-m", "Uploaded with \(CommandLine.name)"])
         if tagResult.status != 0 {
             throw GeneralError.taggingFailed(tagResult)
         }
-
     }
 
     func savedNotarizationReceipt(parsed: OptionParser) -> String? {
