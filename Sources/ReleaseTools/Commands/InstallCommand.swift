@@ -3,7 +3,6 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import CommandShell
 import ArgumentParser
 import Foundation
 
@@ -22,7 +21,7 @@ struct InstallCommand: ParsableCommand {
         abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
     )
     
-    @OptionGroup var options: StandardOptions
+    @OptionGroup() var options: StandardOptions
 
     static let stub = """
                         #!/bin/sh

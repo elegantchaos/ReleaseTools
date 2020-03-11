@@ -26,7 +26,7 @@ struct UploadCommand: ParsableCommand {
         abstract: "Upload the archived app to Apple Connect portal for processing."
     )
     
-    @OptionGroup var options: StandardOptions
+    @OptionGroup() var options: StandardOptions
     
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .user, .archive, .scheme], options: options, name: "upload")

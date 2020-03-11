@@ -4,15 +4,24 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
-import CommandShell
 import URLExtensions
 import ArgumentParser
 
-extension Result {
-    static let infoUnreadable = Result(200, "Couldn't read archive info.plist.")
-    static let missingWorkspace = Result(201, "The workspace was not specified, and could not be inferred.")
-    static let noDefaultUser = Result(202, "No default user set.")
-    static let noDefaultScheme = Result(203, "No default scheme set.")
+
+enum ParserError: Error, CustomStringConvertible {
+    case infoUnreadable(_ path: String)
+    case missingWorkspace
+    case noDefaultUser(_ command: String, _ name: String)
+    case noDefaultScheme(_ command: String, _ name: String)
+
+    public var description: String {
+        switch self {
+            case .infoUnreadable(let path): return "Couldn't read archive info.plist.\n\(path)"
+            case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
+            case .noDefaultUser(let command, let name): return "No default user set. Set using \(command) \(name) --user <user> --set-default."
+            case .noDefaultScheme(let command, let name): return "No default scheme set. Set using \(command) \(name) --scheme=<scheme> --set-default."
+        }
+    }
 }
 
 struct StandardOptions: ParsableArguments {
@@ -141,7 +150,7 @@ class StandardOptionParser {
             if let workspace = defaultWorkspace {
                 self.workspace = workspace
             } else {
-                throw ValidationError("Couldn't extract workspace.")
+                throw ParserError.missingWorkspace
             }
         }
         
@@ -152,8 +161,7 @@ class StandardOptionParser {
                     setDefault(scheme, for: "scheme")
                 }
             } else {
-                throw ValidationError("No default scheme.")
-//                return Result.noDefaultScheme.adding(supplementary: "Set using \(CommandLine.name) \(name) --scheme=<scheme> --set-default.")
+                throw ParserError.noDefaultScheme("rt", name) // TODO: get command name from somewhere
             }
         }
         
@@ -164,8 +172,7 @@ class StandardOptionParser {
                     UserDefaults.standard.set(user, forKey: "defaultUser")
                 }
             } else {
-                throw ValidationError("No default user.")
-//                return Result.noDefaultUser.adding(supplementary: "Set using \(CommandLine.name) \(name) --user <user> --set-default.")
+                throw ParserError.noDefaultUser("rt", name)
             }
         }
         
@@ -173,8 +180,7 @@ class StandardOptionParser {
             if let archive = XcodeArchive(url: archiveURL) {
                 self.archive = archive
             } else {
-                throw ValidationError("Info unreadable.")
-//                return Result.infoUnreadable.adding(supplementary: archiveURL.path)
+                throw ParserError.infoUnreadable(archiveURL.path)
             }
         }
     }

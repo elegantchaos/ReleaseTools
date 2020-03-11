@@ -37,7 +37,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
 
     @Option(help: "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command.") var request: String?
     
-    @OptionGroup var options: StandardOptions
+    @OptionGroup() var options: StandardOptions
 
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .user, .archive], options: options, name: "wait")

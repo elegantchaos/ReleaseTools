@@ -29,7 +29,7 @@ struct UpdateBuildCommand: ParsableCommand {
     )
 
     @Option(help: "The configuration file to update.") var config: String?
-    @OptionGroup var options: StandardOptions
+    @OptionGroup() var options: StandardOptions
 
     func run() throws {
         let parsed = try StandardOptionParser([], options: options, name: "export")

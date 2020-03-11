@@ -22,7 +22,7 @@ struct ExportCommand: ParsableCommand {
         abstract: "Export an executable from the output of the archive command."
     )
 
-    @OptionGroup var options: StandardOptions
+    @OptionGroup() var options: StandardOptions
 
     func run() throws {
         let parsed = try StandardOptionParser([.package, .workspace, .scheme], options: options, name: "export")

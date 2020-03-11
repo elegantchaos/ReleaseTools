@@ -22,7 +22,7 @@ struct CompressCommand: ParsableCommand {
         abstract: "Compress the output of the export command for distribution."
     )
     
-    @OptionGroup var options: StandardOptions
+    @OptionGroup() var options: StandardOptions
     
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")

@@ -30,7 +30,7 @@ struct NotarizeCommand: ParsableCommand {
         abstract: "Notarize the compressed archive."
     )
 
-    @OptionGroup var options: StandardOptions
+    @OptionGroup() var options: StandardOptions
     
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "notarize")

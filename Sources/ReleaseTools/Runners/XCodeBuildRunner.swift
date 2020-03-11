@@ -5,7 +5,6 @@
 
 import Runner
 import Foundation
-import CommandShell
 
 class XCodeBuildRunner: Runner {
     let parsed: StandardOptionParser

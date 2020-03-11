@@ -24,7 +24,7 @@ struct PublishCommand: ParsableCommand {
         abstract: "Commit and push any changes made to the website repo."
     )
 
-    @OptionGroup var options: StandardOptions
+    @OptionGroup() var options: StandardOptions
 
     func run() throws {
         let parsed = try StandardOptionParser([.archive], options: options, name: "publish")
