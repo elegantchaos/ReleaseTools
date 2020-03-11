@@ -153,7 +153,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
         }
 
         let delay = 30
-        let nextCheck = DispatchTime.now().advanced(by: .seconds(delay))
+        let nextCheck = DispatchTime.now() + .seconds(delay)
         parsed.log("Will retry in \(delay) seconds...")
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: nextCheck) {
             parsed.log("Retrying fetch of notarization status...")
