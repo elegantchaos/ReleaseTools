@@ -39,7 +39,7 @@ struct AppcastCommand: ParsableCommand {
     @OptionGroup() var setDefault: SetDefaultOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var updates: UpdatesOption
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var options: CommonOptions
 
     func run() throws {
         let parsed = try StandardOptionParser(

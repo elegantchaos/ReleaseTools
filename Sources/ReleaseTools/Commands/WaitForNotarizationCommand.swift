@@ -41,7 +41,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
     @OptionGroup() var user: UserOption
     @OptionGroup() var setDefault: SetDefaultOption
     @OptionGroup() var platform: PlatformOption
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var options: CommonOptions
 
     func run() throws {
         let parsed = try StandardOptionParser(

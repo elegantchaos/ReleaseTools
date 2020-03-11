@@ -27,7 +27,7 @@ struct PublishCommand: ParsableCommand {
 
     @OptionGroup() var website: WebsiteOption
     @OptionGroup() var updates: UpdatesOption
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var options: CommonOptions
 
     func run() throws {
         let parsed = try StandardOptionParser([.archive], options: options, command: Self.configuration)

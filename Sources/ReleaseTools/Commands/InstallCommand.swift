@@ -22,7 +22,7 @@ struct InstallCommand: ParsableCommand {
         abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
     )
     
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var options: CommonOptions
 
     static let stub = """
                         #!/bin/sh

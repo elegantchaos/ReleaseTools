@@ -28,7 +28,7 @@ struct CompressCommand: ParsableCommand {
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var website: WebsiteOption
     @OptionGroup() var updates: UpdatesOption
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var options: CommonOptions
 
     func run() throws {
         let parsed = try StandardOptionParser(
