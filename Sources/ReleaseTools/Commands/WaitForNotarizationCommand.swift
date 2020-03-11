@@ -55,7 +55,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
             throw WaitForNotarizationError.loadingNotarizationReceiptFailed
         }
         
-        DispatchQueue.main.async {
+        DispatchQueue.global(qos: .userInitiated).async {
             parsed.log("Requesting notarization status...")
             self.check(request: requestUUID, parsed: parsed)
         }
@@ -122,6 +122,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
                 parsed.log("Status was \(status).")
                 if status == "success" {
                     exportNotarized(parsed: parsed)
+                    return
                 } else if status == "invalid" {
                     let message = (info["Status Message"] as? String) ?? ""
                     var output = "\(message).\n"
@@ -154,7 +155,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
         let delay = 30
         let nextCheck = DispatchTime.now().advanced(by: .seconds(delay))
         parsed.log("Will retry in \(delay) seconds...")
-        DispatchQueue.main.asyncAfter(deadline: nextCheck) {
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: nextCheck) {
             parsed.log("Retrying fetch of notarization status...")
             self.check(request: request, parsed: parsed)
         }
