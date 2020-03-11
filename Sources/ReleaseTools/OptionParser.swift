@@ -6,20 +6,23 @@
 import Foundation
 import URLExtensions
 import ArgumentParser
+import Runner
 
-
-enum ParserError: Error, CustomStringConvertible {
+enum GeneralError: Error, CustomStringConvertible {
     case infoUnreadable(_ path: String)
     case missingWorkspace
     case noDefaultUser
     case noDefaultScheme(_ platform: String)
+    case taggingFailed(_ result: Runner.Result)
 
     public var description: String {
         switch self {
             case .infoUnreadable(let path): return "Couldn't read archive info.plist.\n\(path)"
             
             case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
-            
+
+            case .taggingFailed(let result): return "Tagging failed.\n\(result)"
+
             case .noDefaultUser: return """
                 No user specified.
                 Either supply a value with --user <user>, or set a default value using \(CommandLine.name) set user <user>."
@@ -97,7 +100,7 @@ class OptionParser {
             if let workspace = defaultWorkspace {
                 self.workspace = workspace
             } else {
-                throw ParserError.missingWorkspace
+                throw GeneralError.missingWorkspace
             }
         }
         
@@ -105,7 +108,7 @@ class OptionParser {
             if let scheme = scheme?.scheme ?? getDefault(for: "scheme") {
                 self.scheme = scheme
             } else {
-                throw ParserError.noDefaultScheme(self.platform)
+                throw GeneralError.noDefaultScheme(self.platform)
             }
         }
         
@@ -113,7 +116,7 @@ class OptionParser {
             if let user = user?.user ?? getDefault(for: "user") {
                 self.user = user
             } else {
-                throw ParserError.noDefaultUser
+                throw GeneralError.noDefaultUser
             }
         }
         
@@ -121,7 +124,7 @@ class OptionParser {
             if let archive = XcodeArchive(url: archiveURL) {
                 self.archive = archive
             } else {
-                throw ParserError.infoUnreadable(archiveURL.path)
+                throw GeneralError.infoUnreadable(archiveURL.path)
             }
         }
     }

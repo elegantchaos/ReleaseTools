@@ -44,16 +44,24 @@ struct UploadCommand: ParsableCommand {
         
         parsed.log("Uploading archive to Apple Connect.")
         let xcrun = XCRunRunner(parsed: parsed)
-        let result = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml"])
-        if result.status != 0 {
-            throw UploadError.uploadingFailed(result)
+        let uploadResult = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml"])
+        if uploadResult.status != 0 {
+            throw UploadError.uploadingFailed(uploadResult)
         }
         
         parsed.log("Finished uploading.")
         do {
-            try result.stdout.write(to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
+            try uploadResult.stdout.write(to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
         } catch {
             throw UploadError.savingUploadReceiptFailed(error)
+        }
+        
+        parsed.log("Tagging.")
+        let git = GitRunner()
+        let tag = "\(parsed.archive.version)-\(platform)"
+        let tagResult = try git.sync(arguments: ["tag", tag, "-m", "Uploaded with \(CommandLine.name)"])
+        if tagResult.status != 0 {
+            throw GeneralError.taggingFailed(tagResult)
         }
     }
 }
