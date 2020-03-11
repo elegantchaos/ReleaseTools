@@ -26,10 +26,10 @@ enum UpdateBuildError: Error {
 struct UpdateBuildCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "update-build",
-        abstract: "Update BuildNumber.xcconfig to contain the latest build number."
+        abstract: "Update an .xcconfig file to contain the latest build number."
     )
 
-    @Option(help: "The configuration file to update.") var config: String?
+    @Option(help: "The .xcconfig file to update.") var config: String?
     @OptionGroup() var options: CommonOptions
 
     func run() throws {

@@ -48,6 +48,16 @@ struct Command: ParsableCommand {
             ],
             defaultSubcommand: nil
     )
+    
+    @Flag(help: "Show the version.") var version: Bool
+
+    func run() throws {
+        if version {
+            print("1.0")
+        } else {
+            throw CleanExit.helpRequest(self)
+        }
+    }
 }
 
 Command.main()
