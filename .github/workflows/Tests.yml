@@ -8,12 +8,14 @@ jobs:
         runs-on: macOS-latest
         env:
             snapshot: swift-5.2-DEVELOPMENT-SNAPSHOT-2020-03-09-a
-            swift-path: /Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin
+            swiftpath: /Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin
         steps:
         - name: Checkout
           uses: actions/checkout@v1
         - name: Swift Version
-          run: swift --version
+          run: |
+            echo $swiftpath
+            swift --version
         - name: Make Logs Directory
           run: mkdir logs
         - name: Xcode Version
@@ -22,19 +24,19 @@ jobs:
           run: sudo gem install xcpretty-travis-formatter
         - name: Install Nightly 5.2 Toolchain
           run: |
+            echo $swiftpath
             wget --quiet https://swift.org/builds/swift-5.2-branch/xcode/$snapshot/$snapshot-osx.pkg
             sudo installer -pkg $snapshot-osx.pkg -target /
             export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"
             swift --version
-            echo $swift-path
         - name: Build (macOS/Debug)
-          run: export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"; swift build -v -c debug
+          run: export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"; swift build -c debug
         - name: Build (macOS/Release)
-          run: export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"; swift build -v -c release
+          run: export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"; swift build -c release
         - name: Test (macOS/Debug)
-          run: export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"; swift test -v -c debug
+          run: export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"; swift test -c debug
         - name: Test (macOS/Release)
-          run: export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"; swift test -v -c release -Xswiftc -enable-testing
+          run: export PATH="/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin:$PATH"; swift test -c release -Xswiftc -enable-testing
         - name: Upload Logs
           uses: actions/upload-artifact@v1
           with:
