@@ -32,14 +32,18 @@ struct NotarizeCommand: ParsableCommand {
     )
 
     @OptionGroup() var scheme: SchemeOption
+    @OptionGroup() var user: UserOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
 
     func run() throws {
+
         let parsed = try OptionParser(
+            requires: [.archive],
             options: options,
             command: Self.configuration,
             scheme: scheme,
+            user: user,
             platform: platform
         )
 
