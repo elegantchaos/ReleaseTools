@@ -25,7 +25,7 @@ enum UpdateBuildError: Error {
 
 struct UpdateBuildCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
-        commandName: "update",
+        commandName: "update-build",
         abstract: "Update BuildNumber.xcconfig to contain the latest build number."
     )
 

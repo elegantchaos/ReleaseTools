@@ -41,6 +41,7 @@ struct Command: ParsableCommand {
                 NotarizeCommand.self,
                 PublishCommand.self,
                 SetCommand.self,
+                UnsetCommand.self,
                 UpdateBuildCommand.self,
                 UploadCommand.self,
                 WaitForNotarizationCommand.self,

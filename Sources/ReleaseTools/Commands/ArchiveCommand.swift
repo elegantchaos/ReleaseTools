@@ -43,6 +43,8 @@ struct ArchiveCommand: ParsableCommand {
             platform: platform
         )
         
+        parsed.showOutput = true // TEMPORARY OVERRIDE THE OPTION BECAUSE WE HANG WITHOUT IT
+        
         parsed.log("Archiving scheme \(parsed.scheme).")
 
         let xcode = XCodeBuildRunner(parsed: parsed)

@@ -6,14 +6,13 @@
 import Foundation
 import ArgumentParser
 
-struct SetCommand: ParsableCommand {
+struct UnsetCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
-        commandName: "set",
-        abstract: "Set an option for use by other commands."
+        commandName: "unset",
+        abstract: "Clear an option that was stored for use by other commands using \(CommandLine.name) set."
     )
 
     @Argument() var key: String
-    @Argument() var value: String
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var common: CommonOptions
     
@@ -26,6 +25,6 @@ struct SetCommand: ParsableCommand {
             setDefaultPlatform: false
         )
         
-        parsed.setDefault(value, for: key)
+        parsed.clearDefault(for: key)
     }
 }

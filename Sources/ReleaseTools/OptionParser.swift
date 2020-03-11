@@ -12,14 +12,23 @@ enum ParserError: Error, CustomStringConvertible {
     case infoUnreadable(_ path: String)
     case missingWorkspace
     case noDefaultUser
-    case noDefaultScheme
+    case noDefaultScheme(_ platform: String)
 
     public var description: String {
         switch self {
             case .infoUnreadable(let path): return "Couldn't read archive info.plist.\n\(path)"
+            
             case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
-            case .noDefaultUser: return "No default user set. Set using \(CommandLine.name) set user <user>."
-            case .noDefaultScheme: return "No default scheme set. Set using \(CommandLine.name) set scheme <scheme> [--platform <platform>]."
+            
+            case .noDefaultUser: return """
+                No user specified.
+                Either supply a value with --user <user>, or set a default value using \(CommandLine.name) set user <user>."
+                """
+            
+            case .noDefaultScheme(let platform): return """
+                No scheme specified for \(platform).
+                Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
+                """
         }
     }
 }
@@ -96,7 +105,7 @@ class OptionParser {
             if let scheme = scheme?.scheme ?? getDefault(for: "scheme") {
                 self.scheme = scheme
             } else {
-                throw ParserError.noDefaultScheme
+                throw ParserError.noDefaultScheme(self.platform)
             }
         }
         
@@ -128,14 +137,17 @@ class OptionParser {
 
     func getDefault(for key: String) -> String? {
         let key = defaultKey(for: key)
-        print("key:\(key)")
         return UserDefaults.standard.string(forKey: key)
     }
     
     func setDefault(_ value: String, for key: String) {
         let key = defaultKey(for: key)
-        print("key:\(key)")
         UserDefaults.standard.set(value, forKey: key)
+    }
+
+    func clearDefault(for key: String) {
+        let key = defaultKey(for: key)
+        UserDefaults.standard.set(nil, forKey: key)
     }
 
     func log(_ message: String) {
