@@ -8,9 +8,6 @@ jobs:
         runs-on: macOS-latest
         env:
             branch: swift-5.2-branch
-            snapshot: swift-5.2-DEVELOPMENT-SNAPSHOT-2020-03-10-a
-            pre: /Library/Developer/Toolchains/
-            post: .xctoolchain/usr/bin
         steps:
         - name: Checkout
           uses: actions/checkout@v1
@@ -22,9 +19,14 @@ jobs:
           run: sudo gem install xcpretty-travis-formatter
         - name: Install Nightly 5.2 Toolchain
           run: |
-            wget --quiet https://swift.org/builds/$branch/xcode/$snapshot/$snapshot-osx.pkg
-            sudo installer -pkg $snapshot-osx.pkg -target /
-            ln -s "$pre$snapshot$post" swift-latest
+            curl https://swift.org/builds/$branch/xcode/latest-build.yml > build.yml
+            grep "download:" < build.yml > filtered.yml
+            sed -e 's/-osx.pkg//g' filtered.yml > stripped.yml
+            sed -e 's/:[^:\/\/]/YML="/g;s/$/"/g;s/ *=/=/g' stripped.yml > snapshot.sh
+            source snapshot.sh
+            wget --quiet https://swift.org/builds/$branch/xcode/$downloadYML/$downloadYML-osx.pkg
+            sudo installer -pkg $downloadYML-osx.pkg -target /
+            ln -s "/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin" swift-latest
             export PATH="swift-latest:$PATH"
             swift --version
         - name: Build (macOS/Debug)
