@@ -8,17 +8,24 @@ import ArgumentParser
 import Runner
 
 enum WaitForNotarizationError: Error {
-    case fetchingNotarizationStatusFailed
+    case fetchingNotarizationStatusFailed(_ result: Runner.Result)
+    case fetchingNotarizationStatusThrew(_ error: Error)
     case loadingNotarizationReceiptFailed
-    case notarizationFailed
-    case exportingNotarizedAppFailed
+    case notarizationFailed(_ output: String)
+    case exportingNotarizedAppFailed(_ result: Runner.Result)
+    case exportingNotarizedAppThrew(_ error: Error)
+    case missingArchive
+
 
     public var description: String {
         switch self {
-            case .fetchingNotarizationStatusFailed: return "Fetching notarization status failed."
+            case .fetchingNotarizationStatusFailed(let result): return "Fetching notarization status failed.\n\(result)"
+            case .fetchingNotarizationStatusThrew(let error): return "Fetching notarization status failed.\n\(error)"
             case .loadingNotarizationReceiptFailed: return "Loading notarization receipt failed."
-            case .notarizationFailed: return "Notarization failed."
-            case .exportingNotarizedAppFailed: return "Exporting notarized app failed."
+            case .notarizationFailed(let output): return "Notarization failed.\n\(output)"
+            case .exportingNotarizedAppFailed(let result): return "Exporting notarized app failed.\n\(result)"
+            case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
+            case .missingArchive: return "Exporting notarized app couldn't find archive."
         }
     }
 }
@@ -40,9 +47,11 @@ struct WaitForNotarizationCommand: ParsableCommand {
         }
         
         DispatchQueue.main.async {
-            self.shell.log("Requesting notarization status...")
-            self.check(request: requestUUID, user: parsed.user)
+            parsed.log("Requesting notarization status...")
+            self.check(request: requestUUID, parsed: parsed)
         }
+        
+        try parsed.wait()
     }
 
     func savedNotarizationReceipt(parsed: StandardOptionParser) -> String? {
@@ -56,7 +65,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
     
 
     func exportNotarized(parsed: StandardOptionParser) {
-        shell.log("Stapling notarized app.")
+        parsed.log("Stapling notarized app.")
         
         do {
             let fm = FileManager.default
@@ -66,36 +75,37 @@ struct WaitForNotarizationCommand: ParsableCommand {
                 let stapledAppURL = parsed.stapledURL.appendingPathComponent(archive.name)
                 try? fm.removeItem(at: stapledAppURL)
                 try? fm.copyItem(at: parsed.exportedAppURL, to: stapledAppURL)
-                let xcrun = XCRunRunner(shell: shell)
+                let xcrun = XCRunRunner(parsed: parsed)
                 let result = try xcrun.run(arguments: ["stapler", "staple", stapledAppURL.path])
                 if result.status == 0 {
-                    shell.exit(result: .ok)
+                    parsed.done()
                 } else {
-                    shell.exit(result: Result.exportingNotarizedAppFailed.adding(runnerResult: result))
+                    parsed.fail(WaitForNotarizationError.exportingNotarizedAppFailed(result))
                 }
+            } else {
+                parsed.fail(WaitForNotarizationError.missingArchive)
             }
         } catch {
-            shell.exit(result: Result.exportingNotarizedAppFailed.adding(supplementary: "\(error)"))
+            parsed.fail(WaitForNotarizationError.exportingNotarizedAppThrew(error))
         }
-        shell.exit(result: Result.exportingNotarizedAppFailed)
     }
     
-    func check(request: String, user: String) {
-        let xcrun = XCRunRunner(shell: shell)
+    func check(request: String, parsed: StandardOptionParser) {
+        let xcrun = XCRunRunner(parsed: parsed)
         do {
-            let result = try xcrun.run(arguments: ["altool", "--notarization-info", request, "--username", user, "--password", "@keychain:AC_PASSWORD", "--output-format", "xml"])
+            let result = try xcrun.run(arguments: ["altool", "--notarization-info", request, "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--output-format", "xml"])
             if result.status != 0 {
-                shell.exit(result: Result.fetchingNotarizationStatusFailed.adding(runnerResult: result))
+                parsed.fail(WaitForNotarizationError.fetchingNotarizationStatusFailed(result))
             }
 
-            shell.log("Received response.")
+            parsed.log("Received response.")
             if let data = result.stdout.data(using: .utf8),
                 let receipt = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String:Any],
                 let info = receipt["notarization-info"] as? [String:Any],
                 let status = info["Status"] as? String {
-                shell.log("Status was \(status).")
+                parsed.log("Status was \(status).")
                 if status == "success" {
-                    exportNotarized()
+                    exportNotarized(parsed: parsed)
                 } else if status == "invalid" {
                     let message = (info["Status Message"] as? String) ?? ""
                     var output = "\(message).\n"
@@ -118,19 +128,19 @@ struct WaitForNotarizationCommand: ParsableCommand {
                         }
                     }
                     
-                    shell.exit(result: Result.notarizationFailed.adding(supplementary: output))
+                    parsed.fail(WaitForNotarizationError.notarizationFailed(output))
                 }
             }
         } catch {
-            shell.exit(result: Result.fetchingNotarizationStatusFailed.adding(supplementary: "\(error)"))
+            parsed.fail(WaitForNotarizationError.fetchingNotarizationStatusThrew(error))
         }
 
         let delay = 30
         let nextCheck = DispatchTime.now().advanced(by: .seconds(delay))
-        shell.log("Will retry in \(delay) seconds...")
+        parsed.log("Will retry in \(delay) seconds...")
         DispatchQueue.main.asyncAfter(deadline: nextCheck) {
-            shell.log("Retrying fetch of notarization status...")
-            self.check(request: request, user: user)
+            parsed.log("Retrying fetch of notarization status...")
+            self.check(request: request, parsed: parsed)
         }
 
     }

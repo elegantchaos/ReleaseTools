@@ -29,8 +29,10 @@ struct UpdateBuildCommand: ParsableCommand {
     )
 
     @Option(help: "The configuration file to update.") var config: String?
-    
+    @OptionGroup var options: StandardOptions
+
     func run() throws {
+        let parsed = try StandardOptionParser([], options: options, name: "export")
         let git = GitRunner()
 
         let configURL: URL
@@ -62,9 +64,9 @@ struct UpdateBuildCommand: ParsableCommand {
         let new = "BUILD_NUMBER = \(build)\nBUILD_COMMIT = \(commit)"
 
         if let existing = try? String(contentsOf: configURL), existing == new {
-            shell.log("Build number is \(build).")
+            parsed.log("Build number is \(build).")
         } else {
-            shell.log("Updating build number to \(build).")
+            parsed.log("Updating build number to \(build).")
             do {
               try new.write(to: configURL, atomically: true, encoding: .utf8)
             } catch {

@@ -26,9 +26,9 @@ struct ExportCommand: ParsableCommand {
 
     func run() throws {
         let parsed = try StandardOptionParser([.package, .workspace, .scheme], options: options, name: "export")
-        let xcode = XCodeBuildRunner(shell: shell)
+        let xcode = XCodeBuildRunner(parsed: parsed)
         
-        shell.log("Exporting \(parsed.scheme).")
+        parsed.log("Exporting \(parsed.scheme).")
         try? FileManager.default.removeItem(at: parsed.exportURL)
         let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", parsed.archiveURL.path, "-exportPath", parsed.exportURL.path, "-exportOptionsPlist", parsed.exportOptionsURL.path, "-allowProvisioningUpdates"])
         if result.status != 0 {

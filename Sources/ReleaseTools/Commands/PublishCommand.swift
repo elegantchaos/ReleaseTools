@@ -32,7 +32,7 @@ struct PublishCommand: ParsableCommand {
         let git = GitRunner()
         git.cwd = options.websiteURL
 
-        shell.log("Committing updates.")
+        parsed.log("Committing updates.")
         var result = try git.sync(arguments: ["add", options.updatesURL.path])
         if result.status != 0 {
             throw PublishError.commitFailed(result)
@@ -44,7 +44,7 @@ struct PublishCommand: ParsableCommand {
             throw PublishError.commitFailed(result)
         }
         
-        shell.log("Pushing updates.")
+        parsed.log("Pushing updates.")
         let pushResult = try git.sync(arguments: ["push"])
         if pushResult.status != 0 {
             throw PublishError.pushFailed(result)

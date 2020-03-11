@@ -35,22 +35,22 @@ struct NotarizeCommand: ParsableCommand {
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "notarize")
 
-        shell.log("Creating archive for notarization.")
-        let ditto = DittoRunner(shell: shell)
+        parsed.log("Creating archive for notarization.")
+        let ditto = DittoRunner(parsed: parsed)
         
         let zipResult = try ditto.zip(parsed.exportedAppURL, as: parsed.exportedZipURL)
         if zipResult.status != 0 {
             throw NotarizeError.compressingFailed(zipResult)
         }
 
-        shell.log("Uploading archive to notarization service.")
-        let xcrun = XCRunRunner(shell: shell)
+        parsed.log("Uploading archive to notarization service.")
+        let xcrun = XCRunRunner(parsed: parsed)
         let result = try xcrun.run(arguments: ["altool", "--notarize-app", "--primary-bundle-id", parsed.archive.identifier, "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedZipURL.path, "--output-format", "xml"])
         if result.status != 0 {
             throw NotarizeError.notarizingFailed(result)
         }
 
-        shell.log("Requested notarization.")
+        parsed.log("Requested notarization.")
         do {
             try result.stdout.write(to: parsed.notarizingReceiptURL, atomically: true, encoding: .utf8)
         } catch {

@@ -21,7 +21,10 @@ struct StandardOptions: ParsableArguments {
     
     @Flag(help: "Show the external commands that we're executing, and the output from them.")
     var showOutput: Bool
-    
+
+    @Flag(help: "Show extra logging.")
+    var verbose: Bool
+
     @Option(help: "The scheme we're building.")
     var scheme: String?
     
@@ -54,7 +57,7 @@ struct StandardOptions: ParsableArguments {
     }
 }
 
-struct StandardOptionParser {
+class StandardOptionParser {
     enum Requirement {
         case package
         case workspace
@@ -63,6 +66,11 @@ struct StandardOptionParser {
         case archive
     }
     
+    var showOutput: Bool
+    var verbose: Bool
+    var semaphore: DispatchSemaphore? = nil
+    var error: Error? = nil
+
     var platform: String = ""
     var scheme: String = ""
     var user: String = ""
@@ -119,6 +127,9 @@ struct StandardOptionParser {
         if requirements.contains(.scheme) || requirements.contains(.user) {
             expanded.insert(.workspace)
         }
+        
+        self.showOutput = options.showOutput
+        self.verbose = options.verbose
         
         self.platform = options.platform ?? "macOS"
         
@@ -180,5 +191,29 @@ struct StandardOptionParser {
         UserDefaults.standard.set(value, forKey: defaultKey(for: key))
     }
 
+    func log(_ message: String) {
+        print(message)
+    }
 
+    func verbose(_ message: String) {
+        print(message)
+    }
+    
+    func wait() throws {
+        semaphore = DispatchSemaphore(value: 0)
+        semaphore?.wait()
+        
+        if let error = error {
+            throw error
+        }
+    }
+    
+    func done() {
+        semaphore?.signal()
+    }
+    
+    func fail(_ error: Error) {
+        self.error = error
+        semaphore?.signal()
+    }
 }

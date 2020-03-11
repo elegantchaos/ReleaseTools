@@ -7,20 +7,18 @@ import Foundation
 import ArgumentParser
 import Runner
 
-struct Shell {
+class Shell {
+    var semaphore: DispatchSemaphore? = nil
+    var error: Error? = nil
+    var showOutput: Bool = false
+    
     func log(_ message: String) {
         print(message)
     }
+    
 }
 
 let sharedShell = Shell()
-
-extension ParsableCommand {
-    
-    var shell: Shell {
-        return sharedShell
-    }
-}
 
 extension Runner.Result: CustomStringConvertible {
     public var description: String {

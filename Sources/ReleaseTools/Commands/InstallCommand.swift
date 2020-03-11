@@ -22,6 +22,8 @@ struct InstallCommand: ParsableCommand {
         abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
     )
     
+    @OptionGroup var options: StandardOptions
+
     static let stub = """
                         #!/bin/sh
 
@@ -40,7 +42,8 @@ struct InstallCommand: ParsableCommand {
 
     func run() throws {
         do {
-            shell.log("Installing stub to \(InstallCommand.stubPath.path).")
+            let parsed = try StandardOptionParser([], options: options, name: "export")
+            parsed.log("Installing stub to \(InstallCommand.stubPath.path).")
             try InstallCommand.stub.write(to: InstallCommand.stubPath, atomically: true, encoding: .utf8)
         } catch {
             throw InstallError.couldntWriteStub

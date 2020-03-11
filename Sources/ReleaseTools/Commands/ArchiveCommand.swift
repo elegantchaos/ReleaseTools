@@ -35,9 +35,9 @@ struct ArchiveCommand: ParsableCommand {
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
         
-        shell.log("Archiving scheme \(parsed.scheme).")
+        parsed.log("Archiving scheme \(parsed.scheme).")
 
-        let xcode = XCodeBuildRunner(shell: shell)
+        let xcode = XCodeBuildRunner(parsed: parsed)
         var args = ["-workspace", parsed.workspace, "-scheme", parsed.scheme, "archive", "-archivePath", parsed.archiveURL.path]
         switch parsed.platform {
             case "iOS":

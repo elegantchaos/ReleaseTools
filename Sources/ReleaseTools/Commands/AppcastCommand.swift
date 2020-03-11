@@ -31,9 +31,6 @@ enum AppcastError: Error, CustomStringConvertible {
 
 
 struct AppcastCommand: ParsableCommand {
-    init() {
-    }
-    
     static var configuration = CommandConfiguration(
         abstract: "Update the Sparkle appcast to include the zip created by the compress command."
     )
@@ -50,11 +47,11 @@ struct AppcastCommand: ParsableCommand {
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
 
-        let xcode = XCodeBuildRunner(shell: shell)
+        let xcode = XCodeBuildRunner(parsed: parsed)
         
         let keyChainPath = ("~/Library/Keychains/login.keychain" as NSString).expandingTildeInPath
         
-        shell.log("Rebuilding appcast.")
+        parsed.log("Rebuilding appcast.")
         let fm = FileManager.default
         let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)
         let buildURL = rootURL.appendingPathComponent(".build")
@@ -73,7 +70,7 @@ struct AppcastCommand: ParsableCommand {
                 throw AppcastError.appcastGeneratorFailed(genResult)
             }
             
-            shell.log("Could not find Sparkle key - generating one.")
+            parsed.log("Could not find Sparkle key - generating one.")
 
             let keygen = Runner(for: URL(fileURLWithPath: "Dependencies/Sparkle/bin/generate_keys"))
             let keygenResult = try keygen.sync(arguments: [])
@@ -81,7 +78,7 @@ struct AppcastCommand: ParsableCommand {
                 throw AppcastError.keyGenerationFailed(keygenResult)
             }
 
-            shell.log("Importing Key.")
+            parsed.log("Importing Key.")
 
             let security = Runner(for: URL(fileURLWithPath: "/usr/bin/security"))
             let importResult = try security.sync(arguments: ["import", "dsa_priv.pem", "-a", "labl", "\(parsed.scheme) Sparkle Key"])
@@ -89,11 +86,11 @@ struct AppcastCommand: ParsableCommand {
                 throw AppcastError.keyImportFailed(importResult)
             }
             
-            shell.log("Moving Public Key.")
+            parsed.log("Moving Public Key.")
 
             try? fm.moveItem(at: rootURL.appendingPathComponent("dsa_pub.pem"), to: rootURL.appendingPathComponent("Sources").appendingPathComponent(parsed.scheme).appendingPathComponent("Resources").appendingPathComponent("dsa_pub.pem"))
 
-            shell.log("Deleting Private Key.")
+            parsed.log("Deleting Private Key.")
 
             try? fm.removeItem(at: rootURL.appendingPathComponent("dsa_priv.pem"))
             

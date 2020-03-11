@@ -8,10 +8,10 @@ import Foundation
 import CommandShell
 
 class XCodeBuildRunner: Runner {
-    let shell: Shell
+    let parsed: StandardOptionParser
     
-    init(shell: Shell) {
-        self.shell = shell
+    init(parsed: StandardOptionParser) {
+        self.parsed = parsed
         super.init(command: "xcodebuild")
     }
     
@@ -28,11 +28,10 @@ class XCodeBuildRunner: Runner {
     }
     
     func run(arguments: [String]) throws -> Runner.Result {
-        let showBuild = shell.arguments.flag("show-output")
-        if showBuild {
-            shell.log("xcodebuild " + arguments.joined(separator: " "))
+        if parsed.showOutput {
+            parsed.log("xcodebuild " + arguments.joined(separator: " "))
         }
         
-        return try sync(arguments: arguments, passthrough: showBuild)
+        return try sync(arguments: arguments, passthrough: parsed.showOutput)
     }
 }

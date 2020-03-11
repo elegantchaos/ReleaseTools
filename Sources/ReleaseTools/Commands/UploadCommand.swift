@@ -31,14 +31,14 @@ struct UploadCommand: ParsableCommand {
     func run() throws {
         let parsed = try StandardOptionParser([.workspace, .user, .archive, .scheme], options: options, name: "upload")
         
-        shell.log("Uploading archive to Apple Connect.")
-        let xcrun = XCRunRunner(shell: shell)
+        parsed.log("Uploading archive to Apple Connect.")
+        let xcrun = XCRunRunner(parsed: parsed)
         let result = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml"])
         if result.status != 0 {
             throw UploadError.uploadingFailed(result)
         }
         
-        shell.log("Finished uploading.")
+        parsed.log("Finished uploading.")
         do {
             try result.stdout.write(to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
         } catch {

@@ -3,23 +3,21 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import CommandShell
 import Runner
 
 class XCRunRunner: Runner {
-    let shell: Shell
+    let parsed: StandardOptionParser
     
-    init(shell: Shell) {
-        self.shell = shell
+    init(parsed: StandardOptionParser) {
+        self.parsed = parsed
         super.init(command: "xcrun")
     }
     
     func run(arguments: [String]) throws -> Runner.Result {
-        let showBuild = shell.arguments.flag("show-output")
-        if showBuild {
-            shell.log("xcrun " + arguments.joined(separator: " "))
+        if parsed.showOutput {
+            parsed.log("xcrun " + arguments.joined(separator: " "))
         }
         
-        return try sync(arguments: arguments, passthrough: showBuild)
+        return try sync(arguments: arguments, passthrough: parsed.showOutput)
     }
 }

@@ -28,7 +28,7 @@ struct CompressCommand: ParsableCommand {
         let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
 
         let stapledAppURL = parsed.stapledURL.appendingPathComponent(parsed.archive.name)
-        let ditto = DittoRunner(shell: shell)
+        let ditto = DittoRunner(parsed: parsed)
         let destination = options.updatesURL.appendingPathComponent(parsed.archive.versionedZipName)
         
         let result = try ditto.zip(stapledAppURL, as: destination)
@@ -36,7 +36,7 @@ struct CompressCommand: ParsableCommand {
             throw CompressError.compressFailed(result.stderr)
         }
         
-        shell.log("Saving copy of archive to \(options.websiteURL.path) as \(parsed.archive.unversionedZipName).")
+        parsed.log("Saving copy of archive to \(options.websiteURL.path) as \(parsed.archive.unversionedZipName).")
         let latestZip = options.websiteURL.appendingPathComponent(parsed.archive.unversionedZipName)
         try? FileManager.default.removeItem(at: latestZip)
         try FileManager.default.copyItem(at: destination, to: latestZip)
