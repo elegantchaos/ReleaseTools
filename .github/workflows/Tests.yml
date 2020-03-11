@@ -6,8 +6,6 @@ jobs:
     macOS:
         name: macOS
         runs-on: macOS-latest
-        env:
-            branch: swift-5.2-branch
         steps:
         - name: Checkout
           uses: actions/checkout@v1
@@ -17,16 +15,18 @@ jobs:
           run: xcodebuild -version
         - name: XC Pretty
           run: sudo gem install xcpretty-travis-formatter
-        - name: Install Nightly 5.2 Toolchain
+        - name: Install Nightly Toolchain
           run: |
-            curl https://swift.org/builds/$branch/xcode/latest-build.yml > build.yml
-            grep "download:" < build.yml > filtered.yml
+            branch="swift-5.2-branch"
+            wget --quiet https://swift.org/builds/$branch/xcode/latest-build.yml
+            grep "download:" < latest-build.yml > filtered.yml
             sed -e 's/-osx.pkg//g' filtered.yml > stripped.yml
             sed -e 's/:[^:\/\/]/YML="/g;s/$/"/g;s/ *=/=/g' stripped.yml > snapshot.sh
             source snapshot.sh
+            echo "Installing Toolchain: $downloadYML"
             wget --quiet https://swift.org/builds/$branch/xcode/$downloadYML/$downloadYML-osx.pkg
             sudo installer -pkg $downloadYML-osx.pkg -target /
-            ln -s "/Library/Developer/Toolchains/$snapshot.xctoolchain/usr/bin" swift-latest
+            ln -s "/Library/Developer/Toolchains/$downloadYML.xctoolchain/usr/bin" swift-latest
             export PATH="swift-latest:$PATH"
             swift --version
         - name: Build (macOS/Debug)
