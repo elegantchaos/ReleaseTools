@@ -26,6 +26,7 @@ struct PublishCommand: ParsableCommand {
     )
 
     @OptionGroup() var website: WebsiteOption
+    @OptionGroup() var updates: UpdatesOption
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
@@ -35,7 +36,7 @@ struct PublishCommand: ParsableCommand {
         git.cwd = website.websiteURL
 
         parsed.log("Committing updates.")
-        var result = try git.sync(arguments: ["add", options.updatesURL.path])
+        var result = try git.sync(arguments: ["add", updates.path])
         if result.status != 0 {
             throw PublishError.commitFailed(result)
         }

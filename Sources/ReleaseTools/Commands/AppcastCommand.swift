@@ -38,6 +38,7 @@ struct AppcastCommand: ParsableCommand {
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var setDefault: SetDefaultOption
     @OptionGroup() var platform: PlatformOption
+    @OptionGroup() var updates: UpdatesOption
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
@@ -66,7 +67,7 @@ struct AppcastCommand: ParsableCommand {
         let keyName = "\(workspaceName) Sparkle Key"
         
         let generator = Runner(for: URL(fileURLWithPath: ".build/Release/generate_appcast"))
-        let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, options.updatesURL.path])
+        let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, updates.path])
         if genResult.status != 0 {
             if !genResult.stdout.contains("Unable to load DSA private key") {
                 throw AppcastError.appcastGeneratorFailed(genResult)
@@ -99,6 +100,6 @@ struct AppcastCommand: ParsableCommand {
             throw AppcastError.generatedKeys(keyName)
         }
         
-        try? fm.removeItem(at: URL(fileURLWithPath: options.updatesURL.path).appendingPathComponent(".tmp"))
+        try? fm.removeItem(at: updates.url.appendingPathComponent(".tmp"))
     }
 }

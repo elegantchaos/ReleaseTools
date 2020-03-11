@@ -27,6 +27,7 @@ struct CompressCommand: ParsableCommand {
     @OptionGroup() var setDefault: SetDefaultOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var website: WebsiteOption
+    @OptionGroup() var updates: UpdatesOption
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
@@ -40,7 +41,7 @@ struct CompressCommand: ParsableCommand {
 
         let stapledAppURL = parsed.stapledURL.appendingPathComponent(parsed.archive.name)
         let ditto = DittoRunner(parsed: parsed)
-        let destination = options.updatesURL.appendingPathComponent(parsed.archive.versionedZipName)
+        let destination = updates.url.appendingPathComponent(parsed.archive.versionedZipName)
         
         let result = try ditto.zip(stapledAppURL, as: destination)
         if result.status != 0 {

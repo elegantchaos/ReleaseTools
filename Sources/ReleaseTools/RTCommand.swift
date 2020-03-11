@@ -57,7 +57,22 @@ struct WebsiteOption: ParsableArguments {
     }
 }
 
-//     let updatesOptionHelp = "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`."
+struct UpdatesOption: ParsableArguments {
+    @Option(help: "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`.")
+    var updates: String?
+
+    var url: URL {
+        if let path = updates {
+            return URL(fileURLWithPath: path)
+        } else {
+            return URL(fileURLWithPath: "Dependencies/Website/updates")
+        }
+    }
+    
+    var path: String {
+        return url.path
+    }
+}
 
 
 struct StandardOptions: ParsableArguments {
@@ -68,17 +83,6 @@ struct StandardOptions: ParsableArguments {
     @Flag(help: "Show extra logging.")
     var verbose: Bool
 
-    @Option(help: "updates help")
-    var updates: String?
-
-    
-    var updatesURL: URL {
-        if let path = updates {
-            return URL(fileURLWithPath: path)
-        } else {
-            return URL(fileURLWithPath: "Dependencies/Website/updates")
-        }
-    }
     
 }
 
