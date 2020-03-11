@@ -17,10 +17,17 @@ jobs:
           run: xcodebuild -version
         - name: XC Pretty
           run: sudo gem install xcpretty-travis-formatter
+        - name: Install Nightly 5.2 Toolchain
+           run: |
+             wget --quiet https://swift.org/builds/swift-5.2-branch/xcode/swift-5.2-DEVELOPMENT-SNAPSHOT-2020-03-09-a/swift-5.2-DEVELOPMENT-SNAPSHOT-2020-03-09-a-osx.pkg
+             ls
+             sudo installer -pkg swift-5.2-DEVELOPMENT-SNAPSHOT-2020-03-09-a-osx.pkg -target /
+             export PATH="/Library/Developer/Toolchains/swift-5.2-DEVELOPMENT-SNAPSHOT-2020-03-09-a.xctoolchain/usr/bin:$PATH"
+             swift --version
         - name: Build (macOS/Debug)
-          run: set -o pipefail; xcodebuild clean build -workspace . -scheme ReleaseTools -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | tee logs/xcodebuild-macOS-build-debug.log | xcpretty
+          run: set -o pipefail; export TOOLCHAINS=swift; xcodebuild clean build -workspace . -scheme ReleaseTools -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | tee logs/xcodebuild-macOS-build-debug.log | xcpretty
         - name: Build (macOS/Release)
-          run: set -o pipefail; xcodebuild clean build -workspace . -scheme ReleaseTools -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | tee logs/xcodebuild-macOS-build-release.log | xcpretty
+          run: set -o pipefail; export TOOLCHAINS=swift; xcodebuild clean build -workspace . -scheme ReleaseTools -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | tee logs/xcodebuild-macOS-build-release.log | xcpretty
         - name: Test (macOS/Debug)
           run: |
             GOTPACKAGE=$(xcodebuild -workspace . -list | (grep ReleaseTools-Package || true))
@@ -32,7 +39,7 @@ jobs:
                 SCHEME="ReleaseTools"
             fi
             set -o pipefail
-            xcodebuild test -workspace . -scheme $SCHEME  -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO  | tee logs/xcodebuild-macOS-test-debug.log | xcpretty
+            export TOOLCHAINS=swift; xcodebuild test -workspace . -scheme $SCHEME  -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO  | tee logs/xcodebuild-macOS-test-debug.log | xcpretty
         - name: Test (macOS/Release)
           run: |
             GOTPACKAGE=$(xcodebuild -workspace . -list | (grep ReleaseTools-Package || true))
@@ -44,7 +51,7 @@ jobs:
                 SCHEME="ReleaseTools"
             fi
             set -o pipefail
-            xcodebuild test -workspace . -scheme $SCHEME  -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ENABLE_TESTABILITY=YES | tee logs/xcodebuild-macOS-test-release.log | xcpretty
+            export TOOLCHAINS=swift; xcodebuild test -workspace . -scheme $SCHEME  -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ENABLE_TESTABILITY=YES | tee logs/xcodebuild-macOS-test-release.log | xcpretty
         - name: Upload Logs
           uses: actions/upload-artifact@v1
           with:
