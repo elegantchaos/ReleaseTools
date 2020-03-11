@@ -31,11 +31,17 @@ struct NotarizeCommand: ParsableCommand {
         abstract: "Notarize the compressed archive."
     )
 
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var setDefault: SetDefaultArgument
+    @OptionGroup() var options: StandardOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
+        let parsed = try StandardOptionParser(
+            options: options,
+            command: Self.configuration,
+            scheme: scheme,
+            setDefaultArgument: setDefault
+        )
 
         parsed.log("Creating archive for notarization.")
         let ditto = DittoRunner(parsed: parsed)

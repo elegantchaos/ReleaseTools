@@ -38,11 +38,18 @@ struct WaitForNotarizationCommand: ParsableCommand {
 
     @Option(help: "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command.") var request: String?
     
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var user: UserOption
     @OptionGroup() var setDefault: SetDefaultArgument
+    @OptionGroup() var options: StandardOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .user, .archive], options: options, command: Self.configuration, setDefaultArgument: setDefault)
+        let parsed = try StandardOptionParser(
+            [.archive],
+            options: options,
+            command: Self.configuration,
+            user: user,
+            setDefaultArgument: setDefault
+        )
 
         guard let requestUUID = request ?? savedNotarizationReceipt(parsed: parsed) else {
             throw WaitForNotarizationError.loadingNotarizationReceiptFailed

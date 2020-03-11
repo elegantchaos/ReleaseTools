@@ -29,6 +29,16 @@ struct SetDefaultArgument: ParsableArguments {
     var setDefault: Bool
 }
 
+struct SchemeOption: ParsableArguments {
+    @Option(help: "The scheme we're building.")
+    var scheme: String?
+}
+
+struct UserOption: ParsableArguments {
+    @Option(help: "The App Store Connect user we're notarizing as.")
+    var user: String?
+}
+
 struct StandardOptions: ParsableArguments {
     
     @Flag(help: "Show the external commands that we're executing, and the output from them.")
@@ -37,14 +47,10 @@ struct StandardOptions: ParsableArguments {
     @Flag(help: "Show extra logging.")
     var verbose: Bool
 
-    @Option(help: "The scheme we're building.")
-    var scheme: String?
     
     @Option(help: "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS.")
     var platform: String?
     
-    @Option(help: "The App Store Connect user we're notarizing as.")
-    var user: String?
 
     @Option(help: "updates help")
     var updates: String?
@@ -73,8 +79,6 @@ class StandardOptionParser {
     enum Requirement {
         case package
         case workspace
-        case scheme
-        case user
         case archive
     }
     
@@ -133,10 +137,17 @@ class StandardOptionParser {
         return rootURL.appendingPathComponents(["Sources", package, "Resources", "ExportOptions-\(platform).plist"])
     }
     
-    init(_ requirements: Set<Requirement>, options: StandardOptions, command: CommandConfiguration, setDefaultArgument: SetDefaultArgument? = nil) throws {
+    init(_ requirements: Set<Requirement> = [],
+         options: StandardOptions,
+         command: CommandConfiguration,
+         scheme: SchemeOption? = nil,
+         user: UserOption? = nil,
+         setDefaultArgument: SetDefaultArgument? = nil
+    ) throws {
         // add some implied requirements
         var expanded = requirements
-        if requirements.contains(.scheme) || requirements.contains(.user) {
+        
+        if scheme != nil || user != nil {
             expanded.insert(.workspace)
         }
         
@@ -157,8 +168,8 @@ class StandardOptionParser {
             }
         }
         
-        if expanded.contains(.scheme) {
-            if let scheme = options.scheme ?? getDefault(for: "scheme") {
+        if scheme != nil {
+            if let scheme = scheme?.scheme ?? getDefault(for: "scheme") {
                 self.scheme = scheme
                 if setDefaultArgument?.setDefault ?? false {
                     setDefault(scheme, for: "scheme")
@@ -168,8 +179,8 @@ class StandardOptionParser {
             }
         }
         
-        if expanded.contains(.user) {
-            if let user = options.user ?? getDefault(for: "user") {
+        if user != nil {
+            if let user = user?.user ?? getDefault(for: "user") {
                 self.user = user
                 if setDefaultArgument?.setDefault ?? false {
                     UserDefaults.standard.set(user, forKey: "defaultUser")

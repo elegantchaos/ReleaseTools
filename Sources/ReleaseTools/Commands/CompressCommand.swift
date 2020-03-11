@@ -22,12 +22,18 @@ struct CompressCommand: ParsableCommand {
         commandName: "compress",
         abstract: "Compress the output of the export command for distribution."
     )
-    
-    @OptionGroup() var options: StandardOptions
+
+    @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var setDefault: SetDefaultArgument
+    @OptionGroup() var options: StandardOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
+        let parsed = try StandardOptionParser(
+            options: options,
+            command: Self.configuration,
+            scheme: scheme,
+            setDefaultArgument: setDefault
+        )
 
         let stapledAppURL = parsed.stapledURL.appendingPathComponent(parsed.archive.name)
         let ditto = DittoRunner(parsed: parsed)

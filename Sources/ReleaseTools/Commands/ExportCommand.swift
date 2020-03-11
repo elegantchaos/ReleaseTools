@@ -22,11 +22,19 @@ struct ExportCommand: ParsableCommand {
         abstract: "Export an executable from the output of the archive command."
     )
 
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var setDefault: SetDefaultArgument
+    @OptionGroup() var options: StandardOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser([.package, .workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
+        let parsed = try StandardOptionParser(
+            [.package],
+            options: options,
+            command: Self.configuration,
+            scheme: scheme,
+            setDefaultArgument: setDefault
+        )
+        
         let xcode = XCodeBuildRunner(parsed: parsed)
         
         parsed.log("Exporting \(parsed.scheme).")

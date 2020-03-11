@@ -31,11 +31,16 @@ struct ArchiveCommand: ParsableCommand {
         abstract: "Make an archive for uploading, distribution, etc."
     )
 
+    @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var options: StandardOptions
     @OptionGroup() var setDefault: SetDefaultArgument
 
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
+        let parsed = try StandardOptionParser(
+            options: options,
+            command: Self.configuration,
+            scheme: scheme,
+            setDefaultArgument: setDefault)
         
         parsed.log("Archiving scheme \(parsed.scheme).")
 

@@ -35,11 +35,17 @@ struct AppcastCommand: ParsableCommand {
         abstract: "Update the Sparkle appcast to include the zip created by the compress command."
     )
 
-    @OptionGroup() var options: StandardOptions
+    @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var setDefault: SetDefaultArgument
-    
+    @OptionGroup() var options: StandardOptions
+
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
+        let parsed = try StandardOptionParser(
+            options: options,
+            command: Self.configuration,
+            scheme: scheme,
+            setDefaultArgument: setDefault
+        )
 
         let xcode = XCodeBuildRunner(parsed: parsed)
         
