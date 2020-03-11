@@ -26,6 +26,7 @@ struct CompressCommand: ParsableCommand {
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var setDefault: SetDefaultOption
     @OptionGroup() var platform: PlatformOption
+    @OptionGroup() var website: WebsiteOption
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
@@ -46,8 +47,8 @@ struct CompressCommand: ParsableCommand {
             throw CompressError.compressFailed(result.stderr)
         }
         
-        parsed.log("Saving copy of archive to \(options.websiteURL.path) as \(parsed.archive.unversionedZipName).")
-        let latestZip = options.websiteURL.appendingPathComponent(parsed.archive.unversionedZipName)
+        parsed.log("Saving copy of archive to \(website.websiteURL.path) as \(parsed.archive.unversionedZipName).")
+        let latestZip = website.websiteURL.appendingPathComponent(parsed.archive.unversionedZipName)
         try? FileManager.default.removeItem(at: latestZip)
         try FileManager.default.copyItem(at: destination, to: latestZip)
     }

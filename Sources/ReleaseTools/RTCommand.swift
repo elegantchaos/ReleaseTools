@@ -44,6 +44,22 @@ struct PlatformOption: ParsableArguments {
     var platform: String?
 }
 
+struct WebsiteOption: ParsableArguments {
+    @Option(help: "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`.")
+    var website: String?
+
+    var websiteURL: URL {
+        if let path = website {
+            return URL(fileURLWithPath: path)
+        } else {
+            return URL(fileURLWithPath: "Dependencies/Website/")
+        }
+    }
+}
+
+//     let updatesOptionHelp = "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`."
+
+
 struct StandardOptions: ParsableArguments {
     
     @Flag(help: "Show the external commands that we're executing, and the output from them.")
@@ -55,8 +71,6 @@ struct StandardOptions: ParsableArguments {
     @Option(help: "updates help")
     var updates: String?
 
-    @Option(help: "website help")
-    var website: String?
     
     var updatesURL: URL {
         if let path = updates {
@@ -66,13 +80,6 @@ struct StandardOptions: ParsableArguments {
         }
     }
     
-    var websiteURL: URL {
-        if let path = website {
-            return URL(fileURLWithPath: path)
-        } else {
-            return URL(fileURLWithPath: "Dependencies/Website/")
-        }
-    }
 }
 
 class StandardOptionParser {

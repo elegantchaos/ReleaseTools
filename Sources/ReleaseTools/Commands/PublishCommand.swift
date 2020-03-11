@@ -25,13 +25,14 @@ struct PublishCommand: ParsableCommand {
         abstract: "Commit and push any changes made to the website repo."
     )
 
+    @OptionGroup() var website: WebsiteOption
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
         let parsed = try StandardOptionParser([.archive], options: options, command: Self.configuration)
 
         let git = GitRunner()
-        git.cwd = options.websiteURL
+        git.cwd = website.websiteURL
 
         parsed.log("Committing updates.")
         var result = try git.sync(arguments: ["add", options.updatesURL.path])
