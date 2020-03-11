@@ -3,7 +3,6 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import Arguments
 import ArgumentParser
 import Foundation
 
@@ -19,13 +18,15 @@ enum ExportError: Error {
 
 struct ExportCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "export",
         abstract: "Export an executable from the output of the archive command."
     )
 
     @OptionGroup() var options: StandardOptions
+    @OptionGroup() var setDefault: SetDefaultArgument
 
     func run() throws {
-        let parsed = try StandardOptionParser([.package, .workspace, .scheme], options: options, name: "export")
+        let parsed = try StandardOptionParser([.package, .workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
         let xcode = XCodeBuildRunner(parsed: parsed)
         
         parsed.log("Exporting \(parsed.scheme).")

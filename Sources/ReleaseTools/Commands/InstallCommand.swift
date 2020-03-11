@@ -18,6 +18,7 @@ enum InstallError: Error {
 
 struct InstallCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "install",
         abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
     )
     
@@ -41,7 +42,7 @@ struct InstallCommand: ParsableCommand {
 
     func run() throws {
         do {
-            let parsed = try StandardOptionParser([], options: options, name: "export")
+            let parsed = try StandardOptionParser([], options: options, command: Self.configuration)
             parsed.log("Installing stub to \(InstallCommand.stubPath.path).")
             try InstallCommand.stub.write(to: InstallCommand.stubPath, atomically: true, encoding: .utf8)
         } catch {

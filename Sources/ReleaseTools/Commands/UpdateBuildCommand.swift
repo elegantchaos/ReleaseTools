@@ -25,6 +25,7 @@ enum UpdateBuildError: Error {
 
 struct UpdateBuildCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "update",
         abstract: "Update BuildNumber.xcconfig to contain the latest build number."
     )
 
@@ -32,7 +33,7 @@ struct UpdateBuildCommand: ParsableCommand {
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser([], options: options, name: "export")
+        let parsed = try StandardOptionParser([], options: options, command: Self.configuration)
         let git = GitRunner()
 
         let configURL: URL

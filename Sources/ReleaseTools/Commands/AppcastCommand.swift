@@ -31,13 +31,15 @@ enum AppcastError: Error, CustomStringConvertible {
 
 struct AppcastCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "appcast",
         abstract: "Update the Sparkle appcast to include the zip created by the compress command."
     )
 
     @OptionGroup() var options: StandardOptions
-
+    @OptionGroup() var setDefault: SetDefaultArgument
+    
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
+        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
 
         let xcode = XCodeBuildRunner(parsed: parsed)
         

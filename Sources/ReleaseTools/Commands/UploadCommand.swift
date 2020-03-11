@@ -23,13 +23,15 @@ enum UploadError: Error {
 struct UploadCommand: ParsableCommand {
     
     static var configuration = CommandConfiguration(
+        commandName: "upload",
         abstract: "Upload the archived app to Apple Connect portal for processing."
     )
     
     @OptionGroup() var options: StandardOptions
-    
+    @OptionGroup() var setDefault: SetDefaultArgument
+
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .user, .archive, .scheme], options: options, name: "upload")
+        let parsed = try StandardOptionParser([.workspace, .user, .archive, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
         
         parsed.log("Uploading archive to Apple Connect.")
         let xcrun = XCRunRunner(parsed: parsed)

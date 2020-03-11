@@ -21,13 +21,14 @@ enum PublishError: Error {
 
 struct PublishCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "publish",
         abstract: "Commit and push any changes made to the website repo."
     )
 
     @OptionGroup() var options: StandardOptions
 
     func run() throws {
-        let parsed = try StandardOptionParser([.archive], options: options, name: "publish")
+        let parsed = try StandardOptionParser([.archive], options: options, command: Self.configuration)
 
         let git = GitRunner()
         git.cwd = options.websiteURL

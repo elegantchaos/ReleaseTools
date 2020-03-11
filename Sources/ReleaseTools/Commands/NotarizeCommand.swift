@@ -27,13 +27,15 @@ extension Result {
 
 struct NotarizeCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "notarize",
         abstract: "Notarize the compressed archive."
     )
 
     @OptionGroup() var options: StandardOptions
-    
+    @OptionGroup() var setDefault: SetDefaultArgument
+
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "notarize")
+        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
 
         parsed.log("Creating archive for notarization.")
         let ditto = DittoRunner(parsed: parsed)

@@ -27,13 +27,15 @@ enum ArchiveError: Error {
 
 struct ArchiveCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "archive",
         abstract: "Make an archive for uploading, distribution, etc."
     )
 
     @OptionGroup() var options: StandardOptions
+    @OptionGroup() var setDefault: SetDefaultArgument
 
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
+        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
         
         parsed.log("Archiving scheme \(parsed.scheme).")
 

@@ -24,9 +24,12 @@ enum ParserError: Error, CustomStringConvertible {
     }
 }
 
-struct StandardOptions: ParsableArguments {
+struct SetDefaultArgument: ParsableArguments {
     @Flag(help: "Remember the value that was specified for the scheme/user, and use it as the default in future.")
     var setDefault: Bool
+}
+
+struct StandardOptions: ParsableArguments {
     
     @Flag(help: "Show the external commands that we're executing, and the output from them.")
     var showOutput: Bool
@@ -130,7 +133,7 @@ class StandardOptionParser {
         return rootURL.appendingPathComponents(["Sources", package, "Resources", "ExportOptions-\(platform).plist"])
     }
     
-    init(_ requirements: Set<Requirement>, options: StandardOptions, name: String) throws {
+    init(_ requirements: Set<Requirement>, options: StandardOptions, command: CommandConfiguration, setDefaultArgument: SetDefaultArgument? = nil) throws {
         // add some implied requirements
         var expanded = requirements
         if requirements.contains(.scheme) || requirements.contains(.user) {
@@ -157,22 +160,22 @@ class StandardOptionParser {
         if expanded.contains(.scheme) {
             if let scheme = options.scheme ?? getDefault(for: "scheme") {
                 self.scheme = scheme
-                if options.setDefault {
+                if setDefaultArgument?.setDefault ?? false {
                     setDefault(scheme, for: "scheme")
                 }
             } else {
-                throw ParserError.noDefaultScheme("rt", name) // TODO: get command name from somewhere
+                throw ParserError.noDefaultScheme("rt", command.commandName!) // TODO: get command name from somewhere
             }
         }
         
         if expanded.contains(.user) {
             if let user = options.user ?? getDefault(for: "user") {
                 self.user = user
-                if options.setDefault {
+                if setDefaultArgument?.setDefault ?? false {
                     UserDefaults.standard.set(user, forKey: "defaultUser")
                 }
             } else {
-                throw ParserError.noDefaultUser("rt", name)
+                throw ParserError.noDefaultUser("rt", command.commandName!)
             }
         }
         

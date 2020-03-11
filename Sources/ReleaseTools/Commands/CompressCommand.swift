@@ -19,13 +19,15 @@ enum CompressError: Error {
 
 struct CompressCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "compress",
         abstract: "Compress the output of the export command for distribution."
     )
     
     @OptionGroup() var options: StandardOptions
-    
+    @OptionGroup() var setDefault: SetDefaultArgument
+
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, name: "Appcast")
+        let parsed = try StandardOptionParser([.workspace, .scheme], options: options, command: Self.configuration, setDefaultArgument: setDefault)
 
         let stapledAppURL = parsed.stapledURL.appendingPathComponent(parsed.archive.name)
         let ditto = DittoRunner(parsed: parsed)

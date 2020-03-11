@@ -32,15 +32,17 @@ enum WaitForNotarizationError: Error {
 
 struct WaitForNotarizationCommand: ParsableCommand {
     static var configuration = CommandConfiguration(
+        commandName: "wait",
         abstract: "Wait until notarization has completed."
     )
 
     @Option(help: "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command.") var request: String?
     
     @OptionGroup() var options: StandardOptions
+    @OptionGroup() var setDefault: SetDefaultArgument
 
     func run() throws {
-        let parsed = try StandardOptionParser([.workspace, .user, .archive], options: options, name: "wait")
+        let parsed = try StandardOptionParser([.workspace, .user, .archive], options: options, command: Self.configuration, setDefaultArgument: setDefault)
 
         guard let requestUUID = request ?? savedNotarizationReceipt(parsed: parsed) else {
             throw WaitForNotarizationError.loadingNotarizationReceiptFailed
