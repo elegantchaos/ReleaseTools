@@ -24,16 +24,17 @@ jobs:
           run: |
             wget --quiet https://swift.org/builds/$branch/xcode/$snapshot/$snapshot-osx.pkg
             sudo installer -pkg $snapshot-osx.pkg -target /
-            export PATH="$pre$snapshot$post:$PATH"
+            ln -s "$pre$snapshot$post" swift-latest
+            export PATH="swift-latest:$PATH"
             swift --version
         - name: Build (macOS/Debug)
-          run: export PATH="$pre$snapshot$post:$PATH"; swift build -c debug
+          run: export PATH="swift-latest:$PATH"; swift build -c debug
         - name: Build (macOS/Release)
-          run: export PATH="$pre$snapshot$post:$PATH"; swift build -c release
+          run: export PATH="swift-latest:$PATH"; swift build -c release
         - name: Test (macOS/Debug)
-          run: export PATH="$pre$snapshot$post:$PATH"; swift test -c debug
+          run: export PATH="swift-latest:$PATH"; swift test -c debug
         - name: Test (macOS/Release)
-          run: export PATH="$pre$snapshot$post:$PATH"; swift test -c release -Xswiftc -enable-testing
+          run: export PATH="swift-latest:$PATH"; swift test -c release -Xswiftc -enable-testing
         - name: Upload Logs
           uses: actions/upload-artifact@v1
           with:
