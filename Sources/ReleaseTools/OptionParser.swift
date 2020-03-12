@@ -65,7 +65,7 @@ class OptionParser {
     var exportURL: URL { return buildURL.appendingPathComponent("export") }
     var stapledURL: URL { return buildURL.appendingPathComponent("stapled") }
     var exportOptionsURL: URL { return rootURL.appendingPathComponents(["Sources", package, "Resources", "ExportOptions-\(platform).plist"]) }
-    var versionTag: String { return "v\(archive.version)-\(platform)" }
+    var versionTag: String { return "v\(archive.version)-\(archive.build)-\(platform)" }
 
     var defaultWorkspace: String? {
         let url = URL(fileURLWithPath: ".")
