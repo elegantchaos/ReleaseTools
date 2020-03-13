@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "rt"
-               BuildableName = "rt"
-               BlueprintName = "rt"
+               BlueprintIdentifier = "Configure"
+               BuildableName = "Configure"
+               BlueprintName = "Configure"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -28,16 +28,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "ReleaseToolsTests"
-               BuildableName = "ReleaseToolsTests"
-               BlueprintName = "ReleaseToolsTests"
-               ReferencedContainer = "container:">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
@@ -45,8 +35,7 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/developer/Projects/ActionStatus"
+      useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
@@ -55,18 +44,12 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "rt"
-            BuildableName = "rt"
-            BlueprintName = "rt"
+            BlueprintIdentifier = "Configure"
+            BuildableName = "Configure"
+            BlueprintName = "Configure"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "compress"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -78,9 +61,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "rt"
-            BuildableName = "rt"
-            BlueprintName = "rt"
+            BlueprintIdentifier = "Configure"
+            BuildableName = "Configure"
+            BlueprintName = "Configure"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>

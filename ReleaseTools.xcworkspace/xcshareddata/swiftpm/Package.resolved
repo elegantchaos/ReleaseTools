@@ -2,6 +2,33 @@
   "object": {
     "pins": [
       {
+        "package": "Builder",
+        "repositoryURL": "https://github.com/elegantchaos/Builder.git",
+        "state": {
+          "branch": null,
+          "revision": "58b7446a08fc84661f9beb8b12fcf5ddf2f1395c",
+          "version": "1.2.0"
+        }
+      },
+      {
+        "package": "BuilderConfiguration",
+        "repositoryURL": "https://github.com/elegantchaos/BuilderConfiguration.git",
+        "state": {
+          "branch": null,
+          "revision": "bf3ab85857d022ef38aec98188f2e01738bd606f",
+          "version": "1.1.4"
+        }
+      },
+      {
+        "package": "Logger",
+        "repositoryURL": "https://github.com/elegantchaos/Logger.git",
+        "state": {
+          "branch": null,
+          "revision": "e4073d0427146d2884730d0cdcb62e4ce0f80938",
+          "version": "1.5.2"
+        }
+      },
+      {
         "package": "Runner",
         "repositoryURL": "https://github.com/elegantchaos/Runner.git",
         "state": {
