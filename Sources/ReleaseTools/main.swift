@@ -53,7 +53,7 @@ struct Command: ParsableCommand {
 
     func run() throws {
         if version {
-            print("1.0")
+            print(Metadata.main.version)
         } else {
             throw CleanExit.helpRequest(self)
         }
