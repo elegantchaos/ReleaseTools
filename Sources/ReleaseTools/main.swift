@@ -29,8 +29,7 @@ extension Runner.Result: CustomStringConvertible {
 struct Command: ParsableCommand {
     static var configuration =
         CommandConfiguration(
-            abstract: "Test program.",
-            discussion: "Some blurb about the program.",
+            abstract: "Assorted tools for iOS/macOS releases.",
             subcommands: [
                 AppcastCommand.self,
                 ArchiveCommand.self,
