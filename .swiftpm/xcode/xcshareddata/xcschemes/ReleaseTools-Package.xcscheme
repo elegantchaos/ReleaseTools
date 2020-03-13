@@ -101,6 +101,10 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "compress"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "publish"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

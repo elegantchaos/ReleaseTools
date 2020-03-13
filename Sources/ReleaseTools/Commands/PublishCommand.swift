@@ -27,13 +27,15 @@ struct PublishCommand: ParsableCommand {
 
     @OptionGroup() var website: WebsiteOption
     @OptionGroup() var updates: UpdatesOption
+    @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
 
     func run() throws {
         let parsed = try OptionParser(
             requires: [.archive],
             options: options,
-            command: Self.configuration
+            command: Self.configuration,
+            platform: platform
         )
 
         let git = GitRunner()
