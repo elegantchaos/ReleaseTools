@@ -1,0 +1,53 @@
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//  Created by Sam Deane on 14/02/20.
+//  All code (c) 2020 - present day, Elegant Chaos Limited.
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+#include "BuildNumber.xcconfig"
+
+RT_CONFIG_ROOT = $(SOURCE_ROOT)/Configs
+
+RT_VERSION = 1.0
+RT_BUILD = ${BUILD_NUMBER}
+RT_COMMIT = ${BUILD_COMMIT}
+RT_COPYRIGHT = Copyright © 2020 Elegant Chaos Limited. All rights reserved.
+RT_PRODUCT_NAME = ForgotToSetProductName
+RT_SOURCE_ROOT = $(SOURCE_ROOT)/Sources
+RT_RESOURCE_ROOT = $(RT_SOURCE_ROOT)
+RT_RESOURCE_CONTAINER = Resources
+RT_SOURCE_PATH = $(RT_SOURCE_ROOT)/$(TARGET_NAME)
+RT_RESOURCE_PATH = $(RT_RESOURCE_ROOT)/$(TARGET_NAME)/$(RT_RESOURCE_CONTAINER)
+RT_COMMON_NAME = $(RT_SHORT_NAME)
+RT_COMMON_SOURCE_PATH = $(RT_SOURCE_ROOT)/$(RT_COMMON_NAME)
+RT_COMMON_RESOURCE_PATH = $(RT_RESOURCE_ROOT)/$(RT_COMMON_NAME)/$(RT_RESOURCE_CONTAINER)
+RT_BUNDLE_IDENTIFIER = com.elegantchaos.bookish.scanner
+
+// location of our build and release scripts
+RT_SCRIPTS_PATH = $(PROJECT_DIR)/.bin
+
+// location of the AppKit built products (used to find AppKit things when we're building for Catalyst)
+RT_MAC_PRODUCTS_DIR= ${BUILT_PRODUCTS_DIR}/../${CONFIGURATION}
+
+// location of the Resources/ folder inside the built application
+RT_BUILT_RESOURCES_DIR = ${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources
+
+// location of the XPCServices/ folder inside the built application
+RT_BUILT_XPCSERVICES_DIR = ${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/XPCServices
+
+// location of the ReleaseTools executable
+RELEASE_TOOLS = $(RT_SCRIPTS_PATH)/rt
+
+INFOPLIST_FILE = $(RT_RESOURCE_PATH)/Info.plist
+DEVELOPMENT_ASSET_PATHS = $(RT_COMMON_RESOURCE_PATH)/PreviewContent
+PRODUCT_NAME = $(RT_PRODUCT_NAME)
+PRODUCT_BUNDLE_IDENTIFIER = $(RT_BUNDLE_IDENTIFIER)
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = $(RT_TEAM)
+SWIFT_VERSION = 5.0
+ENABLE_PREVIEWS = YES
+CODE_SIGN_ENTITLEMENTS = $(RT_RESOURCE_PATH)/$(RT_COMMON_NAME).entitlements
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon$(RT_TYPE)
+PRODUCT_MODULE_NAME = $(RT_COMMON_NAME)
+SWIFT_OBJC_BRIDGING_HEADER = $(RT_COMMON_RESOURCE_PATH)/BridgingHeader.h
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks
+TARGETED_DEVICE_FAMILY = 1,2
