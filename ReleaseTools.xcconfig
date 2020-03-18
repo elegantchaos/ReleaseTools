@@ -24,6 +24,7 @@ RT_BUNDLE_IDENTIFIER = com.elegantchaos.bookish.scanner
 
 // location of our build and release scripts
 RT_SCRIPTS_PATH = $(PROJECT_DIR)/.bin
+RT_SHARED_SCRIPTS_PATH = $(PROJECT_DIR)/Dependencies/ReleaseTools/Scripts
 
 // location of the AppKit built products (used to find AppKit things when we're building for Catalyst)
 RT_MAC_PRODUCTS_DIR= ${BUILT_PRODUCTS_DIR}/../${CONFIGURATION}

@@ -1,0 +1,3 @@
+cd "$SOURCE_ROOT"
+export SDKROOT=macosx
+"$RELEASE_TOOLS" update-build --config "$RT_COMMON_RESOURCE_PATH/BuildNumber.xcconfig" > /tmp/prebuild.log 2>&1
