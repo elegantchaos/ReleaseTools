@@ -7,27 +7,37 @@
 
 RT_CONFIG_ROOT = $(SOURCE_ROOT)/Configs
 
+// Individual project should set these
+RT_PRODUCT_NAME = ForgotToSetProductName
+RT_SHORT_NAME = ForgotToSetShortName
+RT_BUNDLE_IDENTIFIER = forgot.to.set.bundle.id
+
+// These can usually be inherited
 RT_VERSION = 1.0
 RT_BUILD = ${BUILD_NUMBER}
 RT_COMMIT = ${BUILD_COMMIT}
 RT_COPYRIGHT = Copyright © 2020 Elegant Chaos Limited. All rights reserved.
-RT_PRODUCT_NAME = ForgotToSetProductName
+
+RT_COMMON_NAME = $(RT_SHORT_NAME)
+
+// source directories
 RT_SOURCE_ROOT = $(SOURCE_ROOT)/Sources
+RT_SOURCE_PATH = $(RT_SOURCE_ROOT)/$(TARGET_NAME)
+RT_COMMON_SOURCE_PATH = $(RT_SOURCE_ROOT)/$(RT_COMMON_NAME)
+
+// resource directories
 RT_RESOURCE_ROOT = $(RT_SOURCE_ROOT)
 RT_RESOURCE_CONTAINER = Resources
-RT_SOURCE_PATH = $(RT_SOURCE_ROOT)/$(TARGET_NAME)
 RT_RESOURCE_PATH = $(RT_RESOURCE_ROOT)/$(TARGET_NAME)/$(RT_RESOURCE_CONTAINER)
-RT_COMMON_NAME = $(RT_SHORT_NAME)
-RT_COMMON_SOURCE_PATH = $(RT_SOURCE_ROOT)/$(RT_COMMON_NAME)
 RT_COMMON_RESOURCE_PATH = $(RT_RESOURCE_ROOT)/$(RT_COMMON_NAME)/$(RT_RESOURCE_CONTAINER)
-RT_BUNDLE_IDENTIFIER = com.elegantchaos.bookish.scanner
 
-// location of our build and release scripts
+// location of our build and release scripts and tools
 RT_SCRIPTS_PATH = $(PROJECT_DIR)/.bin
 RT_SHARED_SCRIPTS_PATH = $(PROJECT_DIR)/Dependencies/ReleaseTools/Scripts
+RELEASE_TOOLS = $(RT_SCRIPTS_PATH)/rt
 
 // location of the AppKit built products (used to find AppKit things when we're building for Catalyst)
-RT_MAC_PRODUCTS_DIR= ${BUILT_PRODUCTS_DIR}/../${CONFIGURATION}
+RT_MAC_PRODUCTS_DIR = ${BUILT_PRODUCTS_DIR}/../${CONFIGURATION}
 
 // location of the Resources/ folder inside the built application
 RT_BUILT_RESOURCES_DIR = ${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources
@@ -35,20 +45,19 @@ RT_BUILT_RESOURCES_DIR = ${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources
 // location of the XPCServices/ folder inside the built application
 RT_BUILT_XPCSERVICES_DIR = ${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/XPCServices
 
-// location of the ReleaseTools executable
-RELEASE_TOOLS = $(RT_SCRIPTS_PATH)/rt
-
+// standard project settings and layout
+// (some of these may need overriding in the project)
 INFOPLIST_FILE = $(RT_RESOURCE_PATH)/Info.plist
 DEVELOPMENT_ASSET_PATHS = $(RT_COMMON_RESOURCE_PATH)/PreviewContent
 PRODUCT_NAME = $(RT_PRODUCT_NAME)
 PRODUCT_BUNDLE_IDENTIFIER = $(RT_BUNDLE_IDENTIFIER)
 CODE_SIGN_STYLE = Automatic
 DEVELOPMENT_TEAM = $(RT_TEAM)
-SWIFT_VERSION = 5.0
+SWIFT_VERSION = 5.1
 ENABLE_PREVIEWS = YES
-CODE_SIGN_ENTITLEMENTS = $(RT_RESOURCE_PATH)/$(RT_COMMON_NAME).entitlements
-ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon$(RT_TYPE)
-PRODUCT_MODULE_NAME = $(RT_COMMON_NAME)
+CODE_SIGN_ENTITLEMENTS = $(RT_RESOURCE_PATH)/$(RT_SHORT_NAME).entitlements
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+PRODUCT_MODULE_NAME = $(RT_SHORT_NAME)
 SWIFT_OBJC_BRIDGING_HEADER = $(RT_COMMON_RESOURCE_PATH)/BridgingHeader.h
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks
 TARGETED_DEVICE_FAMILY = 1,2

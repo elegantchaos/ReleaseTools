@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+if [[ ! -e .bin/rt ]]
+then
+    echo "Rebuilding release tools."
+    pushd Dependencies/ReleaseTools > /dev/null
+    swift run builder build --configuration release
+    cp .build/release/rt ../../.bin/rt
+    popd > /dev/null
+fi
+
+echo "Using release tools $(rt --version)."

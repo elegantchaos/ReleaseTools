@@ -1,4 +1,4 @@
-# update main build number
 cd "$SOURCE_ROOT"
 export SDKROOT=macosx
 "$RELEASE_TOOLS" update-build --config "$RT_COMMON_RESOURCE_PATH/BuildNumber.xcconfig" > /tmp/prearchive.log 2>&1
+echo "note: Archiving"
