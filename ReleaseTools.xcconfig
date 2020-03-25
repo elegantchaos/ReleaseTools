@@ -40,6 +40,9 @@ RT_MAC_PRODUCTS_DIR = ${BUILT_PRODUCTS_DIR}/../${CONFIGURATION}
 // location of the Resources/ folder inside the built application
 RT_BUILT_RESOURCES_DIR = ${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources
 
+// location of the Frameworks/ folder inside the built application
+RT_BUILT_FRAMEWORKS_DIR = ${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Frameworks
+
 // location of the XPCServices/ folder inside the built application
 RT_BUILT_XPCSERVICES_DIR = ${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/XPCServices
 
