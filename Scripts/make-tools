@@ -1,6 +1,17 @@
 #!/bin/sh
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#  Created by Sam Deane on 25/03/2020.
+#  All code (c) 2020 - present day, Elegant Chaos Limited.
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 set -e
+
+if [[ "$(which xcpretty)" == "" ]]
+then
+    echo "Installing xcpretty."
+    sudo gem install xcpretty
+fi
 
 if [[ ! -e .bin/rt ]]
 then
