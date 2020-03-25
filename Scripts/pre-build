@@ -1,3 +1,10 @@
+#!/bin/sh
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#  Created by Sam Deane on 25/03/2020.
+#  All code (c) 2020 - present day, Elegant Chaos Limited.
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 cd "$SOURCE_ROOT"
 export SDKROOT=macosx
 "$RELEASE_TOOLS" update-build --config "$RT_COMMON_RESOURCE_PATH/BuildNumber.xcconfig" > /tmp/prebuild.log 2>&1
