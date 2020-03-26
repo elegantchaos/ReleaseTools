@@ -1,0 +1,14 @@
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//  Created by Sam Deane on 14/02/20.
+//  All code (c) 2020 - present day, Elegant Chaos Limited.
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+#include "ReleaseTools.xcconfig"
+
+RT_TYPE = Tests
+RT_PLATFORM = Tests
+
+CODE_SIGN_ENTITLEMENTS =
+PRODUCT_MODULE_NAME = $(TARGET_NAME)
+SWIFT_OBJC_BRIDGING_HEADER =
+INFOPLIST_FILE = Tests/$(TARGET_NAME)/Info.plist
