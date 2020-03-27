@@ -35,6 +35,7 @@ struct AppcastCommand: ParsableCommand {
         abstract: "Update the Sparkle appcast to include the zip created by the compress command."
     )
 
+    @Option(help: "Path the to the keychain to get the appcast key from. Defaults to the login keychain.") var keychain: String?
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var updates: UpdatesOption
@@ -50,8 +51,8 @@ struct AppcastCommand: ParsableCommand {
 
         let xcode = XCodeBuildRunner(parsed: parsed)
         
-        let keyChainPath = ("~/Library/Keychains/login.keychain" as NSString).expandingTildeInPath
-        
+        let keyChainPath = keychain ?? parsed.getDefault(for: "keychain") ?? ("~/Library/Keychains/login.keychain" as NSString).expandingTildeInPath
+
         parsed.log("Rebuilding appcast.")
         let fm = FileManager.default
         let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)

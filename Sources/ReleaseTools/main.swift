@@ -6,6 +6,7 @@
 import Foundation
 import ArgumentParser
 import Runner
+import Logger
 
 class Shell {
     var semaphore: DispatchSemaphore? = nil
@@ -59,4 +60,12 @@ struct Command: ParsableCommand {
     }
 }
 
-Command.main()
+do {
+    let command = try Command.parseAsRoot()
+    try command.run()
+    Logger.defaultManager.flush()
+    Command.exit()
+} catch {
+    Logger.defaultManager.flush()
+    Command.exit(withError: error)
+}
