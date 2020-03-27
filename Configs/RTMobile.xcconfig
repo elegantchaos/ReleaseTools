@@ -3,7 +3,10 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-#include "ReleaseTools.xcconfig"
+#include "RTCommon.xcconfig"
 
-RT_TYPE = Mac
-RT_PLATFORM = Mac
+RT_TYPE = Mobile
+RT_PLATFORM = Mobile
+
+SDKROOT = iphoneos
+IPHONEOS_DEPLOYMENT_TARGET = 13.2

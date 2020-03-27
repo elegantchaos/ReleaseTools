@@ -3,7 +3,7 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-#include "Mobile.xcconfig"
+#include "RTMobile.xcconfig"
 
 RT_PLATFORM = Catalyst
 SUPPORTS_MACCATALYST = YES

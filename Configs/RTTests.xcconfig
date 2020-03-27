@@ -3,7 +3,7 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-#include "ReleaseTools.xcconfig"
+#include "RTCommon.xcconfig"
 
 RT_TYPE = Tests
 RT_PLATFORM = Tests
