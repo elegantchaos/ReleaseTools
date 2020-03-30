@@ -31,6 +31,7 @@ struct ArchiveCommand: ParsableCommand {
         abstract: "Make an archive for uploading, distribution, etc."
     )
 
+    @Option(help: "Additional xcconfig file to use when building") var xcconfig: String?
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
@@ -49,6 +50,10 @@ struct ArchiveCommand: ParsableCommand {
 
         let xcode = XCodeBuildRunner(parsed: parsed)
         var args = ["-workspace", parsed.workspace, "-scheme", parsed.scheme, "archive", "-archivePath", parsed.archiveURL.path]
+        if let config = xcconfig {
+            args.append(contentsOf: ["-xcconfig", config])
+        }
+        
         switch parsed.platform {
             case "iOS":
                 args.append(contentsOf: ["-sdk", "iphoneos"])
