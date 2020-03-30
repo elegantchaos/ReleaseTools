@@ -18,7 +18,8 @@ class DittoRunner: Runner {
             parsed.log("ditto " + arguments.joined(separator: " "))
         }
         
-        return try sync(arguments: arguments, passthrough: parsed.showOutput)
+        let mode = parsed.showOutput ? Runner.Mode.tee : Runner.Mode.capture
+        return try sync(arguments: arguments, stdoutMode: mode, stderrMode: mode)
     }
     
     func zip(_ url: URL, as zipURL: URL) throws -> Runner.Result {

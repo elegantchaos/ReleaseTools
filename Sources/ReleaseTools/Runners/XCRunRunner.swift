@@ -18,6 +18,7 @@ class XCRunRunner: Runner {
             parsed.log("xcrun " + arguments.joined(separator: " "))
         }
         
-        return try sync(arguments: arguments, passthrough: parsed.showOutput)
+        let mode = parsed.showOutput ? Runner.Mode.tee : Runner.Mode.capture
+        return try sync(arguments: arguments, stdoutMode: mode, stderrMode: mode)
     }
 }
