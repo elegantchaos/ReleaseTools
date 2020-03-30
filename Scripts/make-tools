@@ -13,11 +13,11 @@ then
     sudo gem install xcpretty
 fi
 
-if [[ ! -e .bin/rt ]]
+if [[ $RT_REBUILD || (! -e .bin/rt) ]]
 then
     echo "Rebuilding release tools."
     pushd Dependencies/ReleaseTools > /dev/null
-    swift run builder build --configuration release
+    swift run builder build --configuration release > /dev/null
     cp .build/release/rt ../../.bin/rt
     popd > /dev/null
 fi
