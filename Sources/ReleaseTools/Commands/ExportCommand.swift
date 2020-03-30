@@ -8,10 +8,12 @@ import Foundation
 
 enum ExportError: Error {
     case exportFailed(_ output: String)
-    
+    case writingOptionsFailed(_ output: Error)
+
     public var description: String {
         switch self {
             case .exportFailed(let output): return "Exporting failed.\n\(output)"
+            case .writingOptionsFailed(let error): return "Writing export options file failed.\n\(error)"
         }
     }
 }
@@ -22,6 +24,7 @@ struct ExportCommand: ParsableCommand {
         abstract: "Export an executable from the output of the archive command."
     )
 
+    @Option(default: false, help: "Export for distribution outside of the appstore.") var distribution: Bool
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
@@ -34,9 +37,21 @@ struct ExportCommand: ParsableCommand {
             platform: platform
         )
         
-        let xcode = XCodeBuildRunner(parsed: parsed)
+        parsed.log("Generating export options for \(distribution ? "direct" : "appstore") distribution.")
+        do {
+            let options = [
+                "iCloudContainerEnvironment": "Production",
+                "signingStyle": "automatic",
+                "method": distribution ? "developer-id" : "app-store"
+                ]
+            let data = try PropertyListSerialization.data(fromPropertyList: options, format: .xml, options: 0)
+            try data.write(to: parsed.exportOptionsURL)
+        } catch {
+            throw ExportError.writingOptionsFailed(error)
+        }
         
         parsed.log("Exporting \(parsed.scheme).")
+        let xcode = XCodeBuildRunner(parsed: parsed)
         try? FileManager.default.removeItem(at: parsed.exportURL)
         let result = try xcode.run(arguments: ["-exportArchive", "-archivePath", parsed.archiveURL.path, "-exportPath", parsed.exportURL.path, "-exportOptionsPlist", parsed.exportOptionsURL.path, "-allowProvisioningUpdates"])
         if result.status != 0 {

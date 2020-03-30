@@ -57,14 +57,14 @@ class OptionParser {
     let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
     var exportedAppURL: URL { return exportURL.appendingPathComponent(archive.name) }
-    var exportedIPAURL: URL { return exportURL.appendingPathComponent(scheme).appendingPathExtension("ipa") }
+    var exportedIPAURL: URL { return exportURL.appendingPathComponent(scheme).appendingPathExtension(platform == "macOS" ? "pkg" : "ipa") }
+    var exportOptionsURL: URL { return buildURL.appendingPathComponent("options.plist") }
     var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
     var uploadingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
     var buildURL: URL { return rootURL.appendingPathComponents([".build", platform]) }
     var archiveURL: URL { return buildURL.appendingPathComponent("archive.xcarchive") }
     var exportURL: URL { return buildURL.appendingPathComponent("export") }
     var stapledURL: URL { return buildURL.appendingPathComponent("stapled") }
-    var exportOptionsURL: URL { return rootURL.appendingPathComponents(["Sources", package, "Resources", "ExportOptions-\(platform).plist"]) }
     var versionTag: String { return "v\(archive.version)-\(archive.build)-\(platform)" }
 
     var defaultWorkspace: String? {
