@@ -1,7 +1,7 @@
     struct Metadata {
-        let build = "110"
-        let version = "v1.1.1-12-ge70481e"
-        let commit = "e70481e620948f79f36e5eac508f72f603e93732"
+        let build = "116"
+        let version = "v1.1.1-18-g0d3da4c"
+        let commit = "0d3da4c3b2bf9b728a83cc370629b3d2d8507329"
         let tags = "heads/master"
 
         static var main = Metadata()
