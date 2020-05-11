@@ -24,7 +24,7 @@ struct ExportCommand: ParsableCommand {
         abstract: "Export an executable from the output of the archive command."
     )
 
-    @Flag(default: false, help: "Export for distribution outside of the appstore.") var distribution: Bool
+    @Flag(help: "Export for distribution outside of the appstore.") var distribution: Bool
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
