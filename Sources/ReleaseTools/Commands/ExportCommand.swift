@@ -24,7 +24,7 @@ struct ExportCommand: ParsableCommand {
         abstract: "Export an executable from the output of the archive command."
     )
 
-    @Option(default: false, help: "Export for distribution outside of the appstore.") var distribution: Bool
+    @Flag(default: false, help: "Export for distribution outside of the appstore.") var distribution: Bool
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
@@ -36,7 +36,7 @@ struct ExportCommand: ParsableCommand {
             scheme: scheme,
             platform: platform
         )
-        
+
         parsed.log("Generating export options for \(distribution ? "direct" : "appstore") distribution.")
         do {
             let options = [
@@ -49,7 +49,7 @@ struct ExportCommand: ParsableCommand {
         } catch {
             throw ExportError.writingOptionsFailed(error)
         }
-        
+
         parsed.log("Exporting \(parsed.scheme).")
         let xcode = XCodeBuildRunner(parsed: parsed)
         try? FileManager.default.removeItem(at: parsed.exportURL)
