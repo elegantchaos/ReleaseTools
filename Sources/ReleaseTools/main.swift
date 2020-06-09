@@ -62,7 +62,7 @@ struct Command: ParsableCommand {
 }
 
 do {
-    let command = try Command.parseAsRoot()
+    var command = try Command.parseAsRoot()
     try command.run()
     Logger.defaultManager.flush()
     Command.exit()
