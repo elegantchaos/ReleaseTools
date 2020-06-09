@@ -20,6 +20,15 @@
         }
       },
       {
+        "package": "Files",
+        "repositoryURL": "https://github.com/elegantchaos/Files.git",
+        "state": {
+          "branch": null,
+          "revision": "fb3252dc942744566af0e63c1a1e8697f821dda6",
+          "version": "1.0.5"
+        }
+      },
+      {
         "package": "Logger",
         "repositoryURL": "https://github.com/elegantchaos/Logger.git",
         "state": {
@@ -33,8 +42,8 @@
         "repositoryURL": "https://github.com/elegantchaos/Runner.git",
         "state": {
           "branch": null,
-          "revision": "394f2a5a92ac6b81215a3eeaec5ee4c8227a4a47",
-          "version": "1.0.5"
+          "revision": "db79e08a53d822156221dc2614970b9dfe1301f5",
+          "version": "1.3.0"
         }
       },
       {
@@ -44,15 +53,6 @@
           "branch": null,
           "revision": "35b76bf577d3cc74820f8991894ce3bcdf024ddc",
           "version": "0.0.2"
-        }
-      },
-      {
-        "package": "URLExtensions",
-        "repositoryURL": "https://github.com/elegantchaos/URLExtensions.git",
-        "state": {
-          "branch": null,
-          "revision": "86fcffb5f6ce429253c0bb5e179a885b42ef268e",
-          "version": "1.0.2"
         }
       },
       {
