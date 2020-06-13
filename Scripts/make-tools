@@ -22,4 +22,4 @@ then
     popd > /dev/null
 fi
 
-echo "Using release tools $(rt --version)."
+echo "Using release tools $(.bin/rt --version)."
