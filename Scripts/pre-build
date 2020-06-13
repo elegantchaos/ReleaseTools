@@ -6,6 +6,9 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 cd "$SOURCE_ROOT"
+"$RT_SHARED_SCRIPTS_PATH/make-tools" > /tmp/prebuild.log 2>&1
+
+cd "$SOURCE_ROOT"
 export SDKROOT=macosx
-"$RELEASE_TOOLS" update-build --config "$RT_COMMON_RESOURCE_PATH/BuildNumber.xcconfig" > /tmp/prebuild.log 2>&1
+"$RELEASE_TOOLS" update-build --config "$RT_COMMON_RESOURCE_PATH/BuildNumber.xcconfig" >> /tmp/prebuild.log 2>&1
 echo "note: Building"
