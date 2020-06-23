@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#  Created by Sam Deane on 23/06/2020.
+#  All code (c) 2020 - present day, Elegant Chaos Limited.
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+set -e
+
+RT_BIN="$PROJECT_DIR/.build/rt/bin"
+mkdir -p "$RT_BIN"
+cp -r "$BUILT_PRODUCTS_DIR/rt" "$RT_BIN/"
+
+RT_INSTALL="$PROJECT_DIR/.rt"
+mkdir -p "$RT_INSTALL"
+cp -r "$BUILT_PRODUCTS_DIR/ReleaseTools_ReleaseToolsResources.bundle/Contents/Resources/Configs/" "$RT_INSTALL"

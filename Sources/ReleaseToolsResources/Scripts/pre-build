@@ -6,7 +6,7 @@
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 cd "$SOURCE_ROOT"
-"$RT_SHARED_SCRIPTS_PATH/make-tools" > /tmp/prebuild.log 2>&1
+echo "Using release tools $($RELEASE_TOOLS --version)." > /tmp/prebuild.log 2>&1
 
 cd "$SOURCE_ROOT"
 export SDKROOT=macosx

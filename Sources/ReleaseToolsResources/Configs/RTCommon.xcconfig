@@ -19,6 +19,11 @@ RT_COPYRIGHT = Copyright © 2020 Elegant Chaos Limited. All rights reserved.
 
 RT_COMMON_NAME = $(RT_SHORT_NAME)
 
+// RT's own directories
+RT_ROOT = $(RT_MAC_PRODUCTS_DIR)/ReleaseTools_ReleaseToolsResources.bundle/Contents/Resources
+RT_SCRIPTS_PATH = $(RT_ROOT)/Scripts
+RELEASE_TOOLS = $(PROJECT_DIR)/.build/rt/bin/rt
+
 // source directories
 RT_SOURCE_ROOT = $(SOURCE_ROOT)/Sources
 RT_SOURCE_PATH = $(RT_SOURCE_ROOT)/$(TARGET_NAME)
@@ -30,12 +35,8 @@ RT_RESOURCE_CONTAINER = Resources
 RT_RESOURCE_PATH = $(RT_RESOURCE_ROOT)/$(TARGET_NAME)/$(RT_RESOURCE_CONTAINER)
 RT_COMMON_RESOURCE_PATH = $(RT_RESOURCE_ROOT)/$(RT_COMMON_NAME)/$(RT_RESOURCE_CONTAINER)
 
-// location of our build and release scripts and tools
-RT_SCRIPTS_PATH = $(PROJECT_DIR)/.bin
-RT_SHARED_SCRIPTS_PATH = $(PROJECT_DIR)/Dependencies/ReleaseTools/Scripts
-RELEASE_TOOLS = $(RT_SCRIPTS_PATH)/rt
-
-// location of the AppKit built products (used to find AppKit things when we're building for Catalyst)
+// location of the Mac built products
+// (used to find AppKit things when we're building for Catalyst, and built tools)
 RT_MAC_PRODUCTS_DIR = ${BUILT_PRODUCTS_DIR}/../${CONFIGURATION}
 
 // location of the Resources/ folder inside the built application

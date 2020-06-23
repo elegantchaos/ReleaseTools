@@ -5,8 +5,10 @@
 #  All code (c) 2020 - present day, Elegant Chaos Limited.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+set > /tmp/rt.log
+
 cd "$SOURCE_ROOT"
-"$RT_SHARED_SCRIPTS_PATH/make-tools" > /tmp/prearchive.log 2>&1
+"$RT_SCRIPTS_PATH/make-tools" > /tmp/prearchive.log 2>&1
 
 cd "$SOURCE_ROOT"
 export SDKROOT=macosx
