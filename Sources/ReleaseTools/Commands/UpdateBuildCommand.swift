@@ -30,6 +30,11 @@ struct UpdateBuildCommand: ParsableCommand {
     )
 
     @Option(help: "The .xcconfig file to update.") var config: String?
+    @Option(help: "The header file to generate.") var header: String?
+    @Option(help: "The .plist file to update.") var plist: String?
+    @Option(help: "The .plist file to update.") var plistDest: String?
+    @Option(help: "The git repo to derive the build number from.") var repo: String?
+
     @OptionGroup() var options: CommonOptions
 
     func run() throws {
@@ -38,21 +43,19 @@ struct UpdateBuildCommand: ParsableCommand {
             command: Self.configuration
         )
 
-        let git = GitRunner()
-
-        let configURL: URL
-        if let config = config {
-            configURL = URL(fileURLWithPath: config)
-        } else if let sourceRoot = ProcessInfo.processInfo.environment["SOURCE_ROOT"] {
-            configURL = URL(fileURLWithPath: sourceRoot).appendingPathComponent("Configs").appendingPathComponent("BuildNumber.xcconfig")
+        if let header = header, let repo = repo {
+            try generateHeader(parsed: parsed, header: header, repo: repo)
+        } else if let plist = plist, let dest = plistDest, let repo = repo {
+            try generatePlist(parsed: parsed, source: plist, dest: dest, repo: repo)
         } else {
-            configURL = URL(fileURLWithPath: "Configs/BuildNumber.xcconfig")
+            try generateConfig(parsed: parsed)
         }
-        
-        let configRoot = configURL.deletingLastPathComponent()
-        git.cwd = configRoot
-        chdir(configRoot.path)
+    }
 
+    func getBuild(in url: URL, using git: GitRunner) throws -> (String, String) {
+        git.cwd = url
+        chdir(url.path)
+        
         var result = try git.sync(arguments: ["rev-list", "--count", "HEAD"])
         if result.status != 0 {
             throw UpdateBuildError.gettingBuildFailed(result)
@@ -66,6 +69,62 @@ struct UpdateBuildCommand: ParsableCommand {
         }
         
         let commit = result.stdout.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+
+        return (build, commit)
+    }
+    
+    func generatePlist(parsed: OptionParser, source: String, dest: String, repo: String) throws {
+        let plistURL = URL(fileURLWithPath: source)
+        let destURL = URL(fileURLWithPath: dest)
+        let repoURL = URL(fileURLWithPath: repo)
+        let data = try Data(contentsOf: plistURL)
+        let info = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
+        
+        let git = GitRunner()
+        let (build, commit) = try getBuild(in: repoURL, using: git)
+        
+        if var info = info as? [String:Any] {
+            print(info)
+            if let existing = info["CFBundleVersion"] as? String, existing == build {
+                parsed.log("Build number is \(build).")
+            } else {
+                parsed.log("Setting build number to \(build).")
+                info["CFBundleVersion"] = build
+                info["Commit"] = commit
+                let data = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+                try data.write(to: destURL, options: .atomic)
+                
+                let headerURL = destURL.deletingLastPathComponent().appendingPathComponent("RTInfo.h")
+                let header = "#define BUILD \(build)\n#define COMMIT \(commit)"
+                try header.write(to: headerURL, atomically: true, encoding: .utf8)
+            }
+        }
+    }
+  
+    func generateHeader(parsed: OptionParser, header: String, repo: String) throws {
+        let headerURL = URL(fileURLWithPath: header)
+        let repoURL = URL(fileURLWithPath: repo)
+        
+        let git = GitRunner()
+        let (build, commit) = try getBuild(in: repoURL, using: git)
+        parsed.log("Setting build number to \(build).")
+        let header = "#define BUILD \(build)\n#define COMMIT \(commit)"
+        try header.write(to: headerURL, atomically: true, encoding: .utf8)
+    }
+    
+    func generateConfig(parsed: OptionParser) throws {
+
+        let configURL: URL
+        if let config = config {
+            configURL = URL(fileURLWithPath: config)
+        } else if let sourceRoot = ProcessInfo.processInfo.environment["SOURCE_ROOT"] {
+            configURL = URL(fileURLWithPath: sourceRoot).appendingPathComponent("Configs").appendingPathComponent("BuildNumber.xcconfig")
+        } else {
+            configURL = URL(fileURLWithPath: "Configs/BuildNumber.xcconfig")
+        }
+        
+        let git = GitRunner()
+        let (build, commit) = try getBuild(in: configURL.deletingLastPathComponent(), using: git)
         let new = "BUILD_NUMBER = \(build)\nBUILD_COMMIT = \(commit)"
 
         if let existing = try? String(contentsOf: configURL), existing == new {
@@ -78,12 +137,11 @@ struct UpdateBuildCommand: ParsableCommand {
                 throw UpdateBuildError.writingConfigFailed
             }
             
-            result = try git.sync(arguments: ["update-index", "--assume-unchanged", configURL.path])
+            let result = try git.sync(arguments: ["update-index", "--assume-unchanged", configURL.path])
             if result.status != 0 {
                 throw UpdateBuildError.updatingIndexFailed(result)
             }
 
         }
     }
-  
 }
