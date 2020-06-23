@@ -22,7 +22,7 @@ RT_COMMON_NAME = $(RT_SHORT_NAME)
 // RT's own directories
 RT_ROOT = $(RT_MAC_PRODUCTS_DIR)/ReleaseTools_ReleaseToolsResources.bundle/Contents/Resources
 RT_SCRIPTS_PATH = $(RT_ROOT)/Scripts
-RELEASE_TOOLS = $(PROJECT_DIR)/.build/rt/bin/rt
+RELEASE_TOOLS = $(RT_MAC_PRODUCTS_DIR)/rt
 
 // source directories
 RT_SOURCE_ROOT = $(SOURCE_ROOT)/Sources

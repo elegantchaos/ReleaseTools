@@ -4,13 +4,16 @@ import PackageDescription
 
 let package = Package(
     name: "ReleaseTools",
+    
     platforms: [
         .macOS(.v10_15)
     ],
+    
     products: [
         .executable(name: "rt", targets: ["ReleaseTools"]),
-        .library(name: "ReleaseToolsResources", targets: ["ReleaseToolsResources"]),
+        .library(name: "Resources", targets: ["Resources"]),
     ],
+    
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "0.0.2"),
         .package(url: "https://github.com/elegantchaos/BuilderConfiguration.git", from: "1.1.4"),
@@ -19,6 +22,7 @@ let package = Package(
         .package(url: "https://github.com/elegantchaos/Files.git", from: "1.0.5"),
         .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.0.9"),
     ],
+    
     targets: [
         .target(
             name: "ReleaseTools",
@@ -27,21 +31,28 @@ let package = Package(
                 "Files",
                 "Logger",
                 "Runner",
-            ]),
+            ]
+            ),
+        
         .target(
-            name: "ReleaseToolsResources",
+            name: "Resources",
             dependencies: [
                 "ReleaseTools"
             ],
             resources: [
                 .copy("Configs"),
                 .copy("Scripts")
-            ]),
+            ]
+            ),
+        
         .target(
             name: "Configure",
-            dependencies: ["BuilderConfiguration"]),
+            dependencies: ["BuilderConfiguration"]
+            ),
+        
         .testTarget(
             name: "ReleaseToolsTests",
-            dependencies: ["ReleaseTools", "XCTestExtensions"]),
+            dependencies: ["ReleaseTools", "XCTestExtensions"]
+            ),
     ]
 )
