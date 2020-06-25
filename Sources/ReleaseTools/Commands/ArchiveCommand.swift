@@ -56,11 +56,11 @@ struct ArchiveCommand: ParsableCommand {
         
         switch parsed.platform {
             case "iOS":
-                args.append(contentsOf: ["-sdk", "iphoneos"])
+                args.append(contentsOf: ["-destination", "generic/platform=iOS"])
             case "tvOS":
-                args.append(contentsOf: ["-sdk", "appletvos"])
+                args.append(contentsOf: ["-destination", "generic/platform=tvOS"])
             case "watchOS":
-                args.append(contentsOf: ["-sdk", "watchos"])
+                args.append(contentsOf: ["-destination", "generic/platform=watchOS"])
             default:
                 break
         }
