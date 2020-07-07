@@ -12,7 +12,8 @@ set -e
 if [[ "$(which xcpretty)" == "" ]]
 then
     echo "Installing xcpretty."
-    sudo gem install xcpretty
+    SCRIPT="$BUILT_PRODUCTS_DIR/ReleaseTools_Resources.bundle/Contents/Resources/Scripts/install-xcpretty"
+    osascript -e "do shell script \"$SCRIPT\" with administrator privileges"
 fi
 
 
