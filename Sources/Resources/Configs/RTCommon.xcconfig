@@ -71,3 +71,7 @@ PRODUCT_MODULE_NAME = $(TARGET_NAME)
 SWIFT_OBJC_BRIDGING_HEADER = $(RT_COMMON_RESOURCE_PATH)/BridgingHeader.h
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks
 TARGETED_DEVICE_FAMILY = 1,2
+
+// Build debugging
+RT_LOG = echo
+RT_LOG_FILE = echo >> /tmp/$(RT_SHORT_NAME).log

@@ -86,6 +86,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "wait"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "upload"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--platform=iOS"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

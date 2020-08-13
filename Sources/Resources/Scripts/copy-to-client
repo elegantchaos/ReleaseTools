@@ -11,7 +11,7 @@ set -e
 
 if [[ "$(which xcpretty)" == "" ]]
 then
-    echo "Installing xcpretty."
+    $RT_LOG "Installing xcpretty."
     SCRIPT="$BUILT_PRODUCTS_DIR/ReleaseTools_Resources.bundle/Contents/Resources/Scripts/install-xcpretty"
     osascript -e "do shell script \"$SCRIPT\" with administrator privileges"
 fi
@@ -33,3 +33,5 @@ mkdir -p "$RT_INSTALL"
 cp -r "$BUILT_PRODUCTS_DIR/ReleaseTools_Resources.bundle/Contents/Resources/Configs/" "$RT_INSTALL"
 
 "$BUILT_PRODUCTS_DIR/rt" update-build --header "$BUILT_PRODUCTS_DIR/RTInfo.h" --repo "$SOURCE_ROOT"
+
+$RT_LOG "Updated build number"
