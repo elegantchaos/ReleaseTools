@@ -50,7 +50,7 @@ struct Command: ParsableCommand {
             defaultSubcommand: nil
     )
     
-    @Flag(help: "Show the version.") var version: Bool
+    @Flag(help: "Show the version.") var version = false
 
     func run() throws {
         if version {
