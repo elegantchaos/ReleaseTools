@@ -5,7 +5,7 @@
 #  All code (c) 2020 - present day, Elegant Chaos Limited.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-set -e
+set -euo pipefail  # (add an x to flags to enable debugging)
 
 # We will need xcpretty for the upload scripts, might as well install it now.
 
@@ -17,21 +17,17 @@ then
 fi
 
 
-# Cache a copy of the rt executable in the client project's `.build` folder,
-# for easier access by client scripts.
-
-RT_BIN="$PROJECT_DIR/.build/"
-mkdir -p "$RT_BIN"
-cp -r "$BUILT_PRODUCTS_DIR/rt" "$RT_BIN/"
 
 # Copy the xcconfig files from the Resources bundle into the client project.
 # These currently have to live in the client because it uses them before it starts
 # building, and so there is a bootstrap problem.
-
+TOOLS="$PROJECT_DIR/.build/tools"
 RT_INSTALL="$PROJECT_DIR/.rt"
 mkdir -p "$RT_INSTALL"
-cp -r "$BUILT_PRODUCTS_DIR/ReleaseTools_Resources.bundle/Contents/Resources/Configs/" "$RT_INSTALL"
+cp -r "$TOOLS/ReleaseTools_Resources.bundle/Configs/" "$RT_INSTALL"
 
-"$BUILT_PRODUCTS_DIR/rt" update-build --header "$BUILT_PRODUCTS_DIR/RTInfo.h" --repo "$SOURCE_ROOT"
+
+mkdir -p "$BUILT_PRODUCTS_DIR"
+"$TOOLS/rt" update-build --header "$BUILT_PRODUCTS_DIR/RTInfo.h" --repo "$SOURCE_ROOT"
 
 $RT_LOG "Updated build number"

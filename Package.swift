@@ -31,13 +31,13 @@ let package = Package(
                 "Files",
                 "Logger",
                 "Runner",
+                "Resources"
             ]
             ),
         
         .target(
             name: "Resources",
             dependencies: [
-                "ReleaseTools"
             ],
             resources: [
                 .copy("Configs"),
