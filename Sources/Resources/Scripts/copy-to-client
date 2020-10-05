@@ -38,4 +38,4 @@ ln -sf "$RT_BUNDLE/Scripts/upload" ".bin/upload"
 mkdir -p "$BUILT_PRODUCTS_DIR"
 "$TOOLS/rt" update-build --header "$BUILT_PRODUCTS_DIR/RTInfo.h" --repo "$SOURCE_ROOT"
 
-$RT_LOG "Updated build number"
+$RT_LOG "Updated build number."
