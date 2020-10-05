@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#  Created by Sam Deane on 25/03/2020.
+#  All code (c) 2020 - present day, Elegant Chaos Limited.
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+source "bootstrap-tools"
+
+echo " "
+echo "*************"
+echo "Uploading iOS  "
+echo "*************"
+
+$RT archive --platform=iOS --show-output 2> /dev/null | xcpretty
+$RT export --platform=iOS
+$RT upload --platform=iOS
+
+#open "https://appstoreconnect.apple.com/apps/1519213388/testflight/ios/"

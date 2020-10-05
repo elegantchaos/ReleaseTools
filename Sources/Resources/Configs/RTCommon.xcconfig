@@ -20,9 +20,9 @@ RT_COPYRIGHT = Copyright © 2020 Elegant Chaos Limited. All rights reserved.
 RT_COMMON_NAME = $(RT_SHORT_NAME)
 
 // RT's own directories
-RT_ROOT = $(RT_MAC_PRODUCTS_DIR)/ReleaseTools_ReleaseToolsResources.bundle/Contents/Resources
-RT_SCRIPTS_PATH = $(RT_ROOT)/Scripts
-RELEASE_TOOLS = $(RT_MAC_PRODUCTS_DIR)/rt
+RT_ROOT = $PROJECT_DIR/.build/tools
+RT_SCRIPTS_PATH = $RT_ROOT/ReleaseTools_Resources.bundle/Scripts
+RELEASE_TOOLS = $RT_ROOT/rt
 
 // source directories
 RT_SOURCE_ROOT = $(SOURCE_ROOT)/Sources
