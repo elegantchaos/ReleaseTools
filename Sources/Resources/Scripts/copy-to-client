@@ -29,7 +29,7 @@ cp -r "$RT_BUNDLE/Configs/" "$RT_INSTALL"
 # and link the built rt so that it can be found run from the command line
 if [[ ! -e "$PROJECT_DIR/.bin" ]]
 then
-    ln -s "$PROJECT_DIR/Extras/Scripts" "$PROJECT_DIR/.bin"
+    ln -sf "$PROJECT_DIR/Extras/Scripts" "$PROJECT_DIR/.bin"
     ln -sf "$TOOLS/rt" "$PROJECT_DIR/.bin/rt"
 fi
 
