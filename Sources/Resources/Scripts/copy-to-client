@@ -15,7 +15,7 @@ RT_BUNDLE="$TOOLS/ReleaseTools_Resources.bundle"
 if [[ "$(which xcpretty)" == "" ]]
 then
     $RT_LOG "Installing xcpretty."
-    SCRIPT="$RT_BUNDLE/Contents/Resources/Scripts/install-xcpretty"
+    SCRIPT="$RT_BUNDLE/Scripts/install-xcpretty"
     if [[ -e "$SCRIPT" ]]
     then
         osascript -e "do shell script \"$SCRIPT\" with administrator privileges"
