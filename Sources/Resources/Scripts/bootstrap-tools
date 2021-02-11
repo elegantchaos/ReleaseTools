@@ -64,7 +64,7 @@ then
         echo "Updating release tools."
     fi
 
-    swift build
+    swift run builder build ..
     popd > /dev/null
     "$RT" bootstrap
 fi
