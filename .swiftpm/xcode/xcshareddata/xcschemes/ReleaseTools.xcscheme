@@ -81,8 +81,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--version"
+            argument = "configs"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--version"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "notarize"

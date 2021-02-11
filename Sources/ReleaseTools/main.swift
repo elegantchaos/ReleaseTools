@@ -36,6 +36,7 @@ struct Command: ParsableCommand {
                 ArchiveCommand.self,
                 ChangesCommand.self,
                 CompressCommand.self,
+                ConfigsCommand.self,
                 ExportCommand.self,
                 GetCommand.self,
                 InstallCommand.self,
