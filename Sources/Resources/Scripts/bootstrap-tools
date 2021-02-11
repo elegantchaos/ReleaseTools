@@ -18,7 +18,7 @@
 # - set this to be a dependency of the main target, so that it is built first
 # - add a run script phase to the tools target which
 #   - runs the local copy of this script
-#   - runs the copy-to-client script
+#   - runs the rt update-build command
 
 # The local build phase can update the build number with the following lines:
 # source "$PROJECT_DIR/Extras/Scripts/bootstrap-tools"
