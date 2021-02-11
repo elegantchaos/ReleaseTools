@@ -22,24 +22,29 @@
 
 # The local build phase can update the build number with the following lines:
 # source "$PROJECT_DIR/Extras/Scripts/bootstrap-tools"
-# "$RT" bootstrap
 # "$RT" update-build --header "$BUILT_PRODUCTS_DIR/RTInfo.h" --repo "$SOURCE_ROOT"
 
 
-set -euo pipefail  # (add an x to flags to enable debugging)
-
 REBUILD=false
+if [[ "$1" == "--rebuild" ]]
+then
+    echo "Forced rebuild of release tools."
+    REBUILD=true
+fi
+
+set -euo pipefail  # (add an x to flags to enable debugging)
 
 LOCALTOOLS="$PWD/../ReleaseTools"
 if [[ -e "$LOCALTOOLS" ]]
 then
     RT="$LOCALTOOLS/.build/debug/rt"
 else
+    TOOLS="$PWD/.build/tools"
     RT="$TOOLS/rt"
 fi
 
-TOOLS="$PWD/.build/tools"
-if [[ $REBUILD || (! -e "$RT") ]]
+
+if $REBUILD || [ ! -f "$RT" ]
 then
     if [[ -e "$LOCALTOOLS" ]]
     then

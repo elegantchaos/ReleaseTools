@@ -37,7 +37,7 @@ struct BootstrapCommand: ParsableCommand {
                 command: Self.configuration
             )
             
-            parsed.log("Copying configs to \(Self.localConfigFolder).")
+            parsed.log("Copying .xcconfig files to \(Self.localConfigFolder).")
             try Resources.configsPath.merge(into: Self.localConfigFolder)
 
             parsed.log("Copying scripts to \(Self.localScriptsFolder).")
