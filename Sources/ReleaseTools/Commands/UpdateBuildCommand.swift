@@ -3,8 +3,10 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import Foundation
 import ArgumentParser
+import Files
+import Foundation
+import Resources
 import Runner
 
 enum UpdateBuildError: Error {
@@ -109,6 +111,7 @@ struct UpdateBuildCommand: ParsableCommand {
         let (build, commit) = try getBuild(in: repoURL, using: git)
         parsed.log("Setting build number to \(build).")
         let header = "#define BUILD \(build)\n#define COMMIT \(commit)"
+        try? FileManager.default.createDirectory(at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try header.write(to: headerURL, atomically: true, encoding: .utf8)
     }
     

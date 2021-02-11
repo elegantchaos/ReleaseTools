@@ -20,21 +20,30 @@
 #   - runs the local copy of this script
 #   - runs the copy-to-client script
 
-# The local build phase can run the two scripts it needs with the following lines:
-#   "$PROJECT_DIR/Extras/Scripts/bootstrap-tools"
-#   "$PROJECT_DIR/.build/tools/ReleaseTools_Resources.bundle/Scripts/copy-to-client"
+# The local build phase can update the build number with the following lines:
+# source "$PROJECT_DIR/Extras/Scripts/bootstrap-tools"
+# "$RT" bootstrap
+# "$RT" update-build --header "$BUILT_PRODUCTS_DIR/RTInfo.h" --repo "$SOURCE_ROOT"
 
 
 set -euo pipefail  # (add an x to flags to enable debugging)
 
 REBUILD=false
+
+LOCALTOOLS="$PWD/../ReleaseTools"
+if [[ -e "$LOCALTOOLS" ]]
+then
+    RT="$LOCALTOOLS/.build/debug/rt"
+else
+    RT="$TOOLS/rt"
+fi
+
 TOOLS="$PWD/.build/tools"
-RT="$TOOLS/rt"
 if [[ $REBUILD || (! -e "$RT") ]]
 then
-    LOCALTOOLS="$PWD/../ReleaseTools"
     if [[ -e "$LOCALTOOLS" ]]
     then
+        echo "Updating local release tools."
         pushd "$LOCALTOOLS" > /dev/null
     else
         TOOLSRC="$PWD/.build/tools/src"
@@ -48,14 +57,11 @@ then
         fi
         pushd "$RTSRC" > /dev/null
         echo "Updating release tools."
-        git checkout development
     fi
 
     swift build
-    mkdir -p "$TOOLS"
-    cp .build/debug/rt "$RT"
-    cp -r .build/debug/ReleaseTools_Resources.bundle "$TOOLS/"
     popd > /dev/null
+    "$RT" bootstrap
 fi
 
 RTV=`"$RT" --version`

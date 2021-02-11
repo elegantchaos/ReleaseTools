@@ -34,9 +34,9 @@ struct Command: ParsableCommand {
             subcommands: [
                 AppcastCommand.self,
                 ArchiveCommand.self,
+                BootstrapCommand.self,
                 ChangesCommand.self,
                 CompressCommand.self,
-                ConfigsCommand.self,
                 ExportCommand.self,
                 GetCommand.self,
                 InstallCommand.self,
