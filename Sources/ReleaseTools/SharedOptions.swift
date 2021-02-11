@@ -52,9 +52,6 @@ struct UpdatesOption: ParsableArguments {
 }
 
 struct CommonOptions: ParsableArguments {
-    @Flag(help: "Show the external commands that we're executing, and the output from them.")
-    var showOutput: Bool
-
-    @Flag(help: "Show extra logging.")
-    var verbose: Bool
+    @Flag(help: "Show the external commands that we're executing, and the output from them.") var showOutput = false
+    @Flag(help: "Show extra logging.") var verbose = false
 }
