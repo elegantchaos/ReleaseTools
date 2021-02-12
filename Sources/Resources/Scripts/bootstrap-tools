@@ -24,6 +24,8 @@
 # source "$PROJECT_DIR/Extras/Scripts/bootstrap-tools"
 # "$RT" update-build --header "$BUILT_PRODUCTS_DIR/RTInfo.h" --repo "$SOURCE_ROOT"
 
+# TODO: use `swift build --show-bin-path ...` to find the path to the built executable
+# TODO: add a configuration setting, and switch to release by default?
 
 REBUILD=false
 if [[ "$1" == "--rebuild" ]]
