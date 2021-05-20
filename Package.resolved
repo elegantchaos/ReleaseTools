@@ -20,6 +20,15 @@
         }
       },
       {
+        "package": "Coercion",
+        "repositoryURL": "https://github.com/elegantchaos/Coercion.git",
+        "state": {
+          "branch": null,
+          "revision": "f5ae9b7b191d9c042047e08e880e80ce676de230",
+          "version": "1.1.2"
+        }
+      },
+      {
         "package": "Files",
         "repositoryURL": "https://github.com/elegantchaos/Files.git",
         "state": {
