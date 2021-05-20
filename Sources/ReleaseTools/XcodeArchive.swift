@@ -3,6 +3,7 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import Coercion
 import Foundation
 
 struct XcodeArchive {
@@ -12,6 +13,7 @@ struct XcodeArchive {
     let shortName: String
     let lowername: String
     let identifier: String
+    let team: String
     
     init?(url: URL) {
         let infoURL = url.appendingPathComponent("Info.plist")
@@ -24,15 +26,17 @@ struct XcodeArchive {
             let appPath = appInfo["ApplicationPath"] as? String,
             let build = appInfo["CFBundleVersion"] as? String,
             let version = appInfo["CFBundleShortVersionString"] as? String,
-            let identifier = appInfo["CFBundleIdentifier"] as? String
+            let identifier = appInfo["CFBundleIdentifier"] as? String,
+            let team = appInfo[asString: "Team"]
+    
             else {
                 return nil
         }
         
-        self.init(version: version, build: build, path: appPath, identifier: identifier)
+        self.init(version: version, build: build, path: appPath, identifier: identifier, team: team)
     }
     
-    init(version: String, build: String, path: String, identifier: String) {
+    init(version: String, build: String, path: String, identifier: String, team: String) {
         self.build = build
         self.version = version
         let url = URL(fileURLWithPath: path)
@@ -40,6 +44,7 @@ struct XcodeArchive {
         self.shortName = url.deletingPathExtension().lastPathComponent
         self.lowername = shortName.lowercased().replacingOccurrences(of: " ", with: "")
         self.identifier = identifier
+        self.team = team
     }
     
     var versionedZipName: String {

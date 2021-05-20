@@ -57,7 +57,7 @@ struct NotarizeCommand: ParsableCommand {
 
         parsed.log("Uploading \(parsed.versionTag) to notarization service.")
         let xcrun = XCRunRunner(parsed: parsed)
-        let result = try xcrun.run(arguments: ["altool", "--notarize-app", "--primary-bundle-id", parsed.archive.identifier, "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedZipURL.path, "--output-format", "xml"])
+        let result = try xcrun.run(arguments: ["altool", "--notarize-app", "--primary-bundle-id", parsed.archive.identifier, "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--team-id", parsed.archive.team, "--file", parsed.exportedZipURL.path, "--output-format", "xml"])
         if result.status != 0 {
             throw NotarizeError.notarizingFailed(result)
         }
