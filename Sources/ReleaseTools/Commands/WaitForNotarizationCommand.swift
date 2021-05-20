@@ -3,8 +3,9 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import Foundation
 import ArgumentParser
+import Coercion
+import Foundation
 import Runner
 
 enum WaitForNotarizationError: Error {
@@ -118,27 +119,27 @@ struct WaitForNotarizationCommand: ParsableCommand {
             if let data = result.stdout.data(using: .utf8),
                 let receipt = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String:Any],
                 let info = receipt["notarization-info"] as? [String:Any],
-                let status = info["Status"] as? String {
+                let status = info[asString: "Status"] {
                 parsed.log("Status was \(status).")
                 if status == "success" {
                     exportNotarized(parsed: parsed)
                     return
                 } else if status == "invalid" {
-                    let message = (info["Status Message"] as? String) ?? ""
+                    let message = (info[asString: "Status Message"]) ?? ""
                     var output = "\(message).\n"
-                    if let logFile = info["LogFileURL"] as? String,
+                    if let logFile = info[asString: "LogFileURL"],
                         let url = URL(string: logFile),
                         let data = try? Data(contentsOf: url),
                         let log = try? JSONSerialization.jsonObject(with: data, options: []) as? [String:Any] {
-                        let summary = (log["statusSummary"] as? String) ?? ""
+                        let summary = (log[asString: "statusSummary"]) ?? ""
                         output.append("\(summary).\n")
                         if let issues = log["issues"] as? [[String:Any]] {
                             var count = 1
                             for issue in issues {
-                                let message = issue["message"] as? String ?? ""
-                                let path = issue["path"] as? String ?? ""
+                                let message = issue[asString: "message"] ?? ""
+                                let path = issue[asString: "path"] ?? ""
                                 let name = URL(fileURLWithPath: path).lastPathComponent
-                                let severity = issue["severity"] as? String ?? ""
+                                let severity = issue[asString: "severity"] ?? ""
                                 output.append("\n#\(count) \(name) (\(severity)):\n\(message)\n\(path)\n")
                                 count += 1
                             }

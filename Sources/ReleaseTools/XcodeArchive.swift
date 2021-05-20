@@ -23,10 +23,10 @@ struct XcodeArchive {
         
         guard
             let appInfo = info["ApplicationProperties"] as? [String:Any],
-            let appPath = appInfo["ApplicationPath"] as? String,
-            let build = appInfo["CFBundleVersion"] as? String,
-            let version = appInfo["CFBundleShortVersionString"] as? String,
-            let identifier = appInfo["CFBundleIdentifier"] as? String,
+            let appPath = appInfo[asString: "ApplicationPath"],
+            let build = appInfo[asString: "CFBundleVersion"],
+            let version = appInfo[asString: "CFBundleShortVersionString"],
+            let identifier = appInfo[asString: "CFBundleIdentifier"],
             let team = appInfo[asString: "Team"]
     
             else {
