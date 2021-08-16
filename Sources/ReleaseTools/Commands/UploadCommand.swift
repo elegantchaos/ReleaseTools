@@ -44,7 +44,7 @@ struct UploadCommand: ParsableCommand {
         
         parsed.log("Uploading \(parsed.versionTag) to Apple Connect.")
         let xcrun = XCRunRunner(parsed: parsed)
-        let uploadResult = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml"])
+        let uploadResult = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform])
         if uploadResult.status != 0 {
             throw UploadError.uploadingFailed(uploadResult)
         }

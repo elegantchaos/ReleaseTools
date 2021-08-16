@@ -49,7 +49,7 @@ struct ArchiveCommand: ParsableCommand {
         parsed.log("Archiving scheme \(parsed.scheme).")
 
         let xcode = XCodeBuildRunner(parsed: parsed)
-        var args = ["-workspace", parsed.workspace, "-scheme", parsed.scheme, "archive", "-archivePath", parsed.archiveURL.path]
+        var args = ["-workspace", parsed.workspace, "-scheme", parsed.scheme, "archive", "-archivePath", parsed.archiveURL.path, "-allowProvisioningUpdates"]
         if let config = xcconfig {
             args.append(contentsOf: ["-xcconfig", config])
         }
