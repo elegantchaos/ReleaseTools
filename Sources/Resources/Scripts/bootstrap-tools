@@ -42,7 +42,9 @@ then
     RT="$LOCALTOOLS/.build/debug/rt"
 else
     TOOLS="$PWD/.build/tools"
-    RT="$TOOLS/rt"
+    TOOLSRC="$TOOLS/src"
+    RTSRC="$TOOLSRC/ReleaseTools"
+    RT="$RTSRC/.build/debug/rt"
 fi
 
 
@@ -53,8 +55,6 @@ then
         echo "Updating local release tools."
         pushd "$LOCALTOOLS" > /dev/null
     else
-        TOOLSRC="$PWD/.build/tools/src"
-        RTSRC="$TOOLSRC/ReleaseTools"
         if [[ ! -e "$RTSRC" ]]
         then
             echo "Cloning release tools."
