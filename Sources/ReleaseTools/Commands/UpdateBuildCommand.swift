@@ -46,15 +46,15 @@ struct UpdateBuildCommand: ParsableCommand {
         )
 
         if let header = header, let repo = repo {
-            try generateHeader(parsed: parsed, header: header, repo: repo)
+            try Self.generateHeader(parsed: parsed, header: header, repo: repo)
         } else if let plist = plist, let dest = plistDest, let repo = repo {
-            try generatePlist(parsed: parsed, source: plist, dest: dest, repo: repo)
+            try Self.generatePlist(parsed: parsed, source: plist, dest: dest, repo: repo)
         } else {
-            try generateConfig(parsed: parsed)
+            try Self.generateConfig(parsed: parsed, config: config)
         }
     }
 
-    func getBuild(in url: URL, using git: GitRunner) throws -> (String, String) {
+    static func getBuild(in url: URL, using git: GitRunner) throws -> (String, String) {
         git.cwd = url
         chdir(url.path)
         
@@ -75,7 +75,7 @@ struct UpdateBuildCommand: ParsableCommand {
         return (build, commit)
     }
     
-    func generatePlist(parsed: OptionParser, source: String, dest: String, repo: String) throws {
+    static func generatePlist(parsed: OptionParser, source: String, dest: String, repo: String) throws {
         let plistURL = URL(fileURLWithPath: source)
         let destURL = URL(fileURLWithPath: dest)
         let repoURL = URL(fileURLWithPath: repo)
@@ -103,7 +103,7 @@ struct UpdateBuildCommand: ParsableCommand {
         }
     }
   
-    func generateHeader(parsed: OptionParser, header: String, repo: String) throws {
+    static func generateHeader(parsed: OptionParser, header: String, repo: String) throws {
         let headerURL = URL(fileURLWithPath: header)
         let repoURL = URL(fileURLWithPath: repo)
         
@@ -115,7 +115,7 @@ struct UpdateBuildCommand: ParsableCommand {
         try header.write(to: headerURL, atomically: true, encoding: .utf8)
     }
     
-    func generateConfig(parsed: OptionParser) throws {
+    static func generateConfig(parsed: OptionParser, config: String?) throws {
 
         let configURL: URL
         if let config = config {
