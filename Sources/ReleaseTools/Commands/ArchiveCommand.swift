@@ -44,6 +44,10 @@ struct ArchiveCommand: ParsableCommand {
             platform: platform
         )
         
+        try Self.archive(parsed: parsed, xcconfig: xcconfig)
+    }
+    
+    static func archive(parsed: OptionParser, xcconfig: String? = nil) throws {
         parsed.showOutput = true // TEMPORARY OVERRIDE THE OPTION BECAUSE WE HANG WITHOUT IT
         
         parsed.log("Updating Version Info")
