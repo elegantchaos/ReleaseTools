@@ -21,7 +21,6 @@ enum UploadError: Error {
 }
 
 struct UploadCommand: ParsableCommand {
-    
     static var configuration = CommandConfiguration(
         commandName: "upload",
         abstract: "Upload the archived app to Apple Connect portal for processing."
@@ -46,6 +45,10 @@ struct UploadCommand: ParsableCommand {
             platform: platform
         )
         
+        try Self.upload(parsed: parsed)
+    }
+    
+    static func upload(parsed: OptionParser) throws {
         parsed.log("Uploading \(parsed.versionTag) to Apple Connect.")
         let xcrun = XCRunRunner(parsed: parsed)
         let uploadResult: Runner.Result
