@@ -37,6 +37,10 @@ struct ExportCommand: ParsableCommand {
             platform: platform
         )
 
+        try Self.export(parsed: parsed, distribution: distribution)
+    }
+    
+    static func export(parsed: OptionParser, distribution: Bool = false) throws {
         parsed.log("Generating export options for \(distribution ? "direct" : "appstore") distribution.")
         do {
             let options = [
