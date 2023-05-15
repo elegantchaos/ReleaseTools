@@ -16,6 +16,16 @@ struct UserOption: ParsableArguments {
     var user: String?
 }
 
+struct ApiKeyOption: ParsableArguments {
+    @Option(name: .customLong("--api-key"), help: "The App Store Connect api key ID we're using.")
+    var key: String?
+}
+
+struct ApiIssuerOption: ParsableArguments {
+    @Option(name: .customLong("--api-issuer"), help: "The App Store Connect issuer ID we're using.")
+    var issuer: String?
+}
+
 struct PlatformOption: ParsableArguments {
     @Option(help: "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS.")
     var platform: String?

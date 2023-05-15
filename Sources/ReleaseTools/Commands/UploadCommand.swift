@@ -29,6 +29,8 @@ struct UploadCommand: ParsableCommand {
 
     @OptionGroup() var scheme: SchemeOption
     @OptionGroup() var user: UserOption
+    @OptionGroup() var apiKey: ApiKeyOption
+    @OptionGroup() var apiIssuer: ApiIssuerOption
     @OptionGroup() var platform: PlatformOption
     @OptionGroup() var options: CommonOptions
 
@@ -39,12 +41,21 @@ struct UploadCommand: ParsableCommand {
             command: Self.configuration,
             scheme: scheme,
             user: user,
+            apiKey: apiKey,
+            apiIssuer: apiIssuer,
             platform: platform
         )
         
         parsed.log("Uploading \(parsed.versionTag) to Apple Connect.")
         let xcrun = XCRunRunner(parsed: parsed)
-        let uploadResult = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform])
+        let uploadResult: Runner.Result
+        if parsed.apiKey.isEmpty {
+            uploadResult = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform])
+        } else {
+            // --key /path/to/key.p8 --key-id KEY_ID -i ISSUER
+            uploadResult = try xcrun.run(arguments: ["altool", "--upload-app", "--apiIssuer", parsed.apiIssuer, "--apiKey", parsed.apiKey, "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform])
+        }
+        
         if uploadResult.status != 0 {
             throw UploadError.uploadingFailed(uploadResult)
         }

@@ -50,14 +50,18 @@ class OptionParser {
     var platform: String = ""
     var scheme: String = ""
     var user: String = ""
+    var apiKey: String = ""
+    var apiIssuer: String = ""
     var package: String = ""
     var workspace: String = ""
     var archive: XcodeArchive!
     
     let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    let homeURL = FileManager.default.homeDirectoryForCurrentUser
     var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
     var exportedAppURL: URL { return exportURL.appendingPathComponent(archive.name) }
     var exportedIPAURL: URL { return exportURL.appendingPathComponent(archive.shortName).appendingPathExtension(platform == "macOS" ? "pkg" : "ipa") }
+    var apiKeyURL: URL { return homeURL.appendingPathComponent(".ssh").appendingPathComponent("AuthKey_\(apiKey)") }
     var exportOptionsURL: URL { return buildURL.appendingPathComponent("options.plist") }
     var changesURL: URL { return buildURL.appendingPathComponent("changes.txt") }
     var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
@@ -86,6 +90,8 @@ class OptionParser {
          command: CommandConfiguration,
          scheme: SchemeOption? = nil,
          user: UserOption? = nil,
+         apiKey: ApiKeyOption? = nil,
+         apiIssuer: ApiIssuerOption? = nil,
          platform: PlatformOption? = nil,
          setDefaultPlatform: Bool = true
     ) throws {
@@ -119,6 +125,18 @@ class OptionParser {
                 self.user = user
             } else {
                 throw GeneralError.noDefaultUser
+            }
+        }
+        
+        if apiKey != nil {
+            if let key = apiKey?.key ?? getDefault(for: "api-key") {
+                self.apiKey = key
+            }
+        }
+
+        if apiIssuer != nil {
+            if let issuer = apiIssuer?.issuer ?? getDefault(for: "api-issuer") {
+                self.apiIssuer = issuer
             }
         }
         
