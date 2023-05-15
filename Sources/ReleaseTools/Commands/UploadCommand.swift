@@ -50,9 +50,10 @@ struct UploadCommand: ParsableCommand {
         let xcrun = XCRunRunner(parsed: parsed)
         let uploadResult: Runner.Result
         if parsed.apiKey.isEmpty {
+            // use username & password
             uploadResult = try xcrun.run(arguments: ["altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD", "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform])
         } else {
-            // --key /path/to/key.p8 --key-id KEY_ID -i ISSUER
+            // use api key and issuer
             uploadResult = try xcrun.run(arguments: ["altool", "--upload-app", "--apiIssuer", parsed.apiIssuer, "--apiKey", parsed.apiKey, "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform])
         }
         

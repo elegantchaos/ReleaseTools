@@ -12,6 +12,8 @@ enum GeneralError: Error, CustomStringConvertible {
     case infoUnreadable(_ path: String)
     case missingWorkspace
     case noDefaultUser
+    case apiKeyAndIssuer
+    case userOrApiKey
     case noDefaultScheme(_ platform: String)
     case taggingFailed(_ result: Runner.Result)
 
@@ -25,9 +27,40 @@ enum GeneralError: Error, CustomStringConvertible {
 
             case .noDefaultUser: return """
                 No user specified.
-                Either supply a value with --user <user>, or set a default value using \(CommandLine.name) set user <user>."
+                Either supply a value with --user <user>, or set a default value using \(CommandLine.name) set user <user>.
+                
+                A corresponding app-specific password should be stored in your keychain.
+                See https://support.apple.com/en-us/HT204397 for more details.
                 """
-            
+
+            case .apiKeyAndIssuer: return """
+                You need to supply both --api-key and --api-issuer together.
+                Either supply both values on the command line, or set default values using:
+                  \(CommandLine.name) set api-key <key>
+                  \(CommandLine.name) set api-issuer <issuer>
+                
+                A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
+                See https://appstoreconnect.apple.com/access/api to generate a key.
+                """
+
+            case .userOrApiKey: return """
+                You need to supply either --user, or --api-key and --api-issuer together.
+                If you are using --user, either supply it on the command line, or set a
+                default value using:
+                  \(CommandLine.name) set user <user>
+
+                A corresponding app-specific password should be stored in your keychain.
+                See https://support.apple.com/en-us/HT204397 for more details.
+
+                If you are using an api key, either supply both --api-key and --api-issuer
+                on the command line, or set default values using:
+                  \(CommandLine.name) set api-key <key>
+                  \(CommandLine.name) set api-issuer <issuer>
+
+                A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
+                See https://appstoreconnect.apple.com/access/api to generate a key.
+                """
+
             case .noDefaultScheme(let platform): return """
                 No scheme specified for \(platform).
                 Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
@@ -123,7 +156,7 @@ class OptionParser {
         if user != nil {
             if let user = user?.user ?? getDefault(for: "user") {
                 self.user = user
-            } else {
+            } else if apiKey == nil {
                 throw GeneralError.noDefaultUser
             }
         }
@@ -137,6 +170,18 @@ class OptionParser {
         if apiIssuer != nil {
             if let issuer = apiIssuer?.issuer ?? getDefault(for: "api-issuer") {
                 self.apiIssuer = issuer
+            }
+        }
+        
+        if (apiKey != nil) {
+            // one of api-key or api-issuer is missing
+            if (self.apiKey.isEmpty != self.apiIssuer.isEmpty) {
+                throw GeneralError.apiKeyAndIssuer
+            }
+
+            // neither user or api key has been provided - we need one
+            if (self.apiKey.isEmpty && self.user.isEmpty) {
+                throw GeneralError.userOrApiKey
             }
         }
         
