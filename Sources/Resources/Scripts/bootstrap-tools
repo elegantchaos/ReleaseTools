@@ -59,10 +59,15 @@ then
         then
             echo "Cloning release tools."
             mkdir -p "$TOOLSRC"
-            cd "$TOOLSRC"
+            pushd "$TOOLSRC" > /dev/null
             git clone git@github.com:elegantchaos/ReleaseTools.git
+            cd "$RTSRC"
+        else
+            pushd "$RTSRC" > /dev/null
+            git fetch
+            git checkout main
+            git pull
         fi
-        pushd "$RTSRC" > /dev/null
         echo "Updating release tools."
     fi
 
