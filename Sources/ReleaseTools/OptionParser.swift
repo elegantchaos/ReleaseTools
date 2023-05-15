@@ -27,7 +27,9 @@ enum GeneralError: Error, CustomStringConvertible {
 
             case .noDefaultUser: return """
                 No user specified.
-                Either supply a value with --user <user>, or set a default value using \(CommandLine.name) set user <user>.
+                Either supply a value with --user <user>, or set a default value using:
+                
+                  \(CommandLine.name) set user <user>.
                 
                 A corresponding app-specific password should be stored in your keychain.
                 See https://support.apple.com/en-us/HT204397 for more details.
@@ -36,6 +38,7 @@ enum GeneralError: Error, CustomStringConvertible {
             case .apiKeyAndIssuer: return """
                 You need to supply both --api-key and --api-issuer together.
                 Either supply both values on the command line, or set default values using:
+                
                   \(CommandLine.name) set api-key <key>
                   \(CommandLine.name) set api-issuer <issuer>
                 
@@ -47,6 +50,7 @@ enum GeneralError: Error, CustomStringConvertible {
                 You need to supply either --user, or --api-key and --api-issuer together.
                 If you are using --user, either supply it on the command line, or set a
                 default value using:
+                
                   \(CommandLine.name) set user <user>
 
                 A corresponding app-specific password should be stored in your keychain.
@@ -54,6 +58,7 @@ enum GeneralError: Error, CustomStringConvertible {
 
                 If you are using an api key, either supply both --api-key and --api-issuer
                 on the command line, or set default values using:
+                
                   \(CommandLine.name) set api-key <key>
                   \(CommandLine.name) set api-issuer <issuer>
 
