@@ -103,16 +103,17 @@ struct UpdateBuildCommand: ParsableCommand {
         }
     }
   
-    static func generateHeader(parsed: OptionParser, header: String, repo: String) throws {
+    static func generateHeader(parsed: OptionParser, header: String, repo: String) throws -> String {
         let headerURL = URL(fileURLWithPath: header)
         let repoURL = URL(fileURLWithPath: repo)
         
         let git = GitRunner()
         let (build, commit) = try getBuild(in: repoURL, using: git)
         parsed.log("Setting build number to \(build).")
-        let header = "#define BUILD \(build)\n#define COMMIT \(commit)"
+        let header = "#define BUILD \(build)\n#define CURRENT_PROJECT_VERSION \(build)\n#define COMMIT \(commit)"
         try? FileManager.default.createDirectory(at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try header.write(to: headerURL, atomically: true, encoding: .utf8)
+        return build
     }
     
     static func generateConfig(parsed: OptionParser, config: String?) throws {

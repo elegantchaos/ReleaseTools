@@ -52,11 +52,11 @@ struct ArchiveCommand: ParsableCommand {
         
         parsed.log("Updating Version Info")
         let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
-        try UpdateBuildCommand.generateHeader(parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)
+        let build = try UpdateBuildCommand.generateHeader(parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)
         parsed.log("Archiving scheme \(parsed.scheme).")
 
         let xcode = XCodeBuildRunner(parsed: parsed)
-        var args = ["-workspace", parsed.workspace, "-scheme", parsed.scheme, "archive", "-archivePath", parsed.archiveURL.path, "-allowProvisioningUpdates", "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)"]
+        var args = ["-workspace", parsed.workspace, "-scheme", parsed.scheme, "archive", "-archivePath", parsed.archiveURL.path, "-allowProvisioningUpdates", "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)", "INFOPLIST_PREPROCESS=YES", "CURRENT_PROJECT_VERSION=\(build)"]
         if let config = xcconfig {
             args.append(contentsOf: ["-xcconfig", config])
         }
