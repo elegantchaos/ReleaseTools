@@ -22,7 +22,7 @@ struct BootstrapCommand: ParsableCommand {
 
     static var configuration = CommandConfiguration(
         commandName: "bootstrap",
-        abstract: "Copy xcconfig and script files into the current project."
+        abstract: "Copy script files into the current project."
     )
     
     @OptionGroup() var options: CommonOptions
@@ -37,9 +37,6 @@ struct BootstrapCommand: ParsableCommand {
                 command: Self.configuration
             )
             
-//            parsed.log("Copying .xcconfig files to \(Self.localConfigFolder).")
-//            try Resources.configsPath.merge(into: Self.localConfigFolder)
-
             parsed.log("Copying scripts to \(Self.localScriptsFolder).")
             try Resources.scriptsPath.merge(into: Self.localScriptsFolder)
 
