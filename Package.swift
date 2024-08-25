@@ -19,9 +19,9 @@ let package = Package(
         .package(url: "https://github.com/elegantchaos/Coercion.git", from: "1.1.2"),
         .package(url: "https://github.com/elegantchaos/Files.git", from: "1.2.0"),
         .package(url: "https://github.com/elegantchaos/Logger.git", from: "1.6.0"),
-        .package(url: "https://github.com/elegantchaos/Runner.git", from: "1.3.0"),
+        .package(url: "https://github.com/elegantchaos/Runner.git", from: "1.3.3"),
         .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.3.0"),
-        .package(url: "https://github.com/elegantchaos/Versionator.git", branch: "main"),
+        .package(url: "https://github.com/elegantchaos/Versionator.git", from: "1.0.3"),
     ],
     
     targets: [
@@ -46,7 +46,6 @@ let package = Package(
                 "Files"
             ],
             resources: [
-                .copy("Configs"),
                 .copy("Scripts")
             ]
             ),

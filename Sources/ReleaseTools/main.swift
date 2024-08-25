@@ -20,13 +20,6 @@ class Shell {
 }
 
 let sharedShell = Shell()
-
-extension Runner.Result: CustomStringConvertible {
-    public var description: String {
-        return [stdout, stderr].joined(separator: "\n\n")
-    }
-}
-
 struct Command: ParsableCommand {
     static var configuration =
         CommandConfiguration(

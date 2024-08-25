@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/Runner.git",
       "state" : {
-        "revision" : "65420eb4e534a58c8fb1bf18e344bc86edb42c65",
-        "version" : "1.3.2"
+        "revision" : "e23479ac9d314541e69268baa43caf05b8949a14",
+        "version" : "1.3.3"
       }
     },
     {
@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/Versionator.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "d7bf7747ae277f6a5cd3193806262160d579f0cc"
+        "revision" : "d7bf7747ae277f6a5cd3193806262160d579f0cc",
+        "version" : "1.0.3"
       }
     },
     {
