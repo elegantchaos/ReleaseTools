@@ -215,7 +215,18 @@ class OptionParser {
         }
 
         // fall back on general key
-        return UserDefaults.standard.string(forKey: defaultKey(for: key, platform: ""))
+        if let scheme = UserDefaults.standard.string(forKey: defaultKey(for: key, platform: "")) {
+            return scheme
+        }
+        
+        if let ws = defaultWorkspace {
+            let url = URL(fileURLWithPath: ws)
+            let name = url.deletingPathExtension().lastPathComponent
+            log("No scheme supplied - guessing at “\(name)”.")
+            return name
+        }
+        
+        return nil
     }
     
     func setDefault(_ value: String, for key: String) {
