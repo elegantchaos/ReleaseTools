@@ -1,0 +1,28 @@
+{
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": [
+        "swift"
+      ],
+      "args": ["--version"],
+      "cwd": "${workspaceFolder:ReleaseTools}",
+      "name": "Debug rt",
+      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
+      "preLaunchTask": "swift: Build Debug rt"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": [
+        "swift"
+      ],
+      "args": [],
+      "cwd": "${workspaceFolder:ReleaseTools}",
+      "name": "Release rt",
+      "program": "${workspaceFolder:ReleaseTools}/.build/release/rt",
+      "preLaunchTask": "swift: Build Release rt"
+    }
+  ]
+}
