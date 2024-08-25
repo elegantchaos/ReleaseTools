@@ -56,7 +56,7 @@ struct Command: ParsableCommand {
 
     func run() throws {
         if version {
-            print(Metadata.main.version)
+            print(CurrentVersion.git)
         } else {
             throw CleanExit.helpRequest(self)
         }
