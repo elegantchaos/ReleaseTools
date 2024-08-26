@@ -9,39 +9,38 @@ import Foundation
 import Resources
 
 struct BootstrapCommand: ParsableCommand {
-    enum Error: Swift.Error {
-        case couldntCopyConfigs(error: Swift.Error)
-        
-        public var description: String {
-            switch self {
-                case let .couldntCopyConfigs(error): return "Couldn't copy files \(error)."
-            }
-        }
+  enum Error: Swift.Error {
+    case couldntCopyConfigs(error: Swift.Error)
+
+    public var description: String {
+      switch self {
+      case let .couldntCopyConfigs(error): return "Couldn't copy files \(error)."
+      }
     }
+  }
 
+  static var configuration = CommandConfiguration(
+    commandName: "bootstrap",
+    abstract: "Copy script files into the current project."
+  )
 
-    static var configuration = CommandConfiguration(
-        commandName: "bootstrap",
-        abstract: "Copy script files into the current project."
-    )
-    
-    @OptionGroup() var options: CommonOptions
+  @OptionGroup() var options: CommonOptions
 
-    static let localConfigFolder = ThrowingManager.default.current.folder(".rt")
-    static let localScriptsFolder = ThrowingManager.default.current.folder("Extras/Scripts")
+  static let localConfigFolder = ThrowingManager.default.current.folder(".rt")
+  static let localScriptsFolder = ThrowingManager.default.current.folder("Extras/Scripts")
 
-    func run() throws {
-        do {
-            let parsed = try OptionParser(
-                options: options,
-                command: Self.configuration
-            )
-            
-            parsed.log("Copying scripts to \(Self.localScriptsFolder).")
-            try Resources.scriptsPath.merge(into: Self.localScriptsFolder)
+  func run() throws {
+    do {
+      let parsed = try OptionParser(
+        options: options,
+        command: Self.configuration
+      )
 
-        } catch {
-            throw Error.couldntCopyConfigs(error: error)
-        }
+      parsed.log("Copying scripts to \(Self.localScriptsFolder).")
+      try Resources.scriptsPath.merge(into: Self.localScriptsFolder)
+
+    } catch {
+      throw Error.couldntCopyConfigs(error: error)
     }
+  }
 }

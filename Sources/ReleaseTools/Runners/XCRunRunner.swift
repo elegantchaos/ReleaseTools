@@ -6,19 +6,19 @@
 import Runner
 
 class XCRunRunner: Runner {
-    let parsed: OptionParser
-    
-    init(parsed: OptionParser) {
-        self.parsed = parsed
-        super.init(command: "xcrun")
+  let parsed: OptionParser
+
+  init(parsed: OptionParser) {
+    self.parsed = parsed
+    super.init(command: "xcrun")
+  }
+
+  func run(arguments: [String]) throws -> Runner.Result {
+    if parsed.showOutput {
+      parsed.log("xcrun " + arguments.joined(separator: " "))
     }
-    
-    func run(arguments: [String]) throws -> Runner.Result {
-        if parsed.showOutput {
-            parsed.log("xcrun " + arguments.joined(separator: " "))
-        }
-        
-        let mode = parsed.showOutput ? Runner.Mode.tee : Runner.Mode.capture
-        return try sync(arguments: arguments, stdoutMode: mode, stderrMode: mode)
-    }
+
+    let mode = parsed.showOutput ? Runner.Mode.tee : Runner.Mode.capture
+    return try sync(arguments: arguments, stdoutMode: mode, stderrMode: mode)
+  }
 }

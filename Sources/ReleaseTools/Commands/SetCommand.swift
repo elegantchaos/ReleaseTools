@@ -3,29 +3,29 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import Foundation
 import ArgumentParser
+import Foundation
 
 struct SetCommand: ParsableCommand {
-    static var configuration = CommandConfiguration(
-        commandName: "set",
-        abstract: "Set an option for use by other commands."
+  static var configuration = CommandConfiguration(
+    commandName: "set",
+    abstract: "Set an option for use by other commands."
+  )
+
+  @Argument() var key: String
+  @Argument() var value: String
+  @OptionGroup() var platform: PlatformOption
+  @OptionGroup() var common: CommonOptions
+
+  func run() throws {
+    let parsed = try OptionParser(
+      requires: [.workspace],
+      options: common,
+      command: Self.configuration,
+      platform: platform,
+      setDefaultPlatform: false
     )
 
-    @Argument() var key: String
-    @Argument() var value: String
-    @OptionGroup() var platform: PlatformOption
-    @OptionGroup() var common: CommonOptions
-    
-    func run() throws {
-        let parsed = try OptionParser(
-            requires: [.workspace],
-            options: common,
-            command: Self.configuration,
-            platform: platform,
-            setDefaultPlatform: false
-        )
-        
-        parsed.setDefault(value, for: key)
-    }
+    parsed.setDefault(value, for: key)
+  }
 }

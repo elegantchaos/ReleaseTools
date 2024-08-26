@@ -3,12 +3,12 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import Runner
 import Foundation
+import Runner
 
 class GitRunner: Runner {
-    
-    init() {
-        super.init(command: "git")
-    }
+
+  init() {
+    super.init(command: "git")
+  }
 }

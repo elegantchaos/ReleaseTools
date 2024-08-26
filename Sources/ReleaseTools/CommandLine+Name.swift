@@ -5,9 +5,9 @@
 
 import Foundation
 
-public extension CommandLine {
-    static var name: String {
-        let url = URL(fileURLWithPath: arguments[0])
-        return url.lastPathComponent
-    }
+extension CommandLine {
+  public static var name: String {
+    let url = URL(fileURLWithPath: arguments[0])
+    return url.lastPathComponent
+  }
 }

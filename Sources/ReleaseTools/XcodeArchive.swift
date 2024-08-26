@@ -7,51 +7,54 @@ import Coercion
 import Foundation
 
 struct XcodeArchive {
-    let build: String
-    let version: String
-    let name: String
-    let shortName: String
-    let lowername: String
-    let identifier: String
-    let team: String
-    
-    init?(url: URL) {
-        let infoURL = url.appendingPathComponent("Info.plist")
-        guard let data = try? Data(contentsOf: infoURL), let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil), let info = plist as? [String:Any] else {
-            return nil
-        }
-        
-        guard
-            let appInfo = info["ApplicationProperties"] as? [String:Any],
-            let appPath = appInfo[asString: "ApplicationPath"],
-            let build = appInfo[asString: "CFBundleVersion"],
-            let version = appInfo[asString: "CFBundleShortVersionString"],
-            let identifier = appInfo[asString: "CFBundleIdentifier"],
-            let team = appInfo[asString: "Team"]
-    
-            else {
-                return nil
-        }
-        
-        self.init(version: version, build: build, path: appPath, identifier: identifier, team: team)
+  let build: String
+  let version: String
+  let name: String
+  let shortName: String
+  let lowername: String
+  let identifier: String
+  let team: String
+
+  init?(url: URL) {
+    let infoURL = url.appendingPathComponent("Info.plist")
+    guard let data = try? Data(contentsOf: infoURL),
+      let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
+      let info = plist as? [String: Any]
+    else {
+      return nil
     }
-    
-    init(version: String, build: String, path: String, identifier: String, team: String) {
-        self.build = build
-        self.version = version
-        let url = URL(fileURLWithPath: path)
-        self.name = url.lastPathComponent
-        self.shortName = url.deletingPathExtension().lastPathComponent
-        self.lowername = shortName.lowercased().replacingOccurrences(of: " ", with: "")
-        self.identifier = identifier
-        self.team = team
+
+    guard
+      let appInfo = info["ApplicationProperties"] as? [String: Any],
+      let appPath = appInfo[asString: "ApplicationPath"],
+      let build = appInfo[asString: "CFBundleVersion"],
+      let version = appInfo[asString: "CFBundleShortVersionString"],
+      let identifier = appInfo[asString: "CFBundleIdentifier"],
+      let team = appInfo[asString: "Team"]
+
+    else {
+      return nil
     }
-    
-    var versionedZipName: String {
-        return "\(lowername)-\(version)-\(build).zip"
-    }
-    
-    var unversionedZipName: String {
-        return "\(lowername).zip"
-    }
+
+    self.init(version: version, build: build, path: appPath, identifier: identifier, team: team)
+  }
+
+  init(version: String, build: String, path: String, identifier: String, team: String) {
+    self.build = build
+    self.version = version
+    let url = URL(fileURLWithPath: path)
+    self.name = url.lastPathComponent
+    self.shortName = url.deletingPathExtension().lastPathComponent
+    self.lowername = shortName.lowercased().replacingOccurrences(of: " ", with: "")
+    self.identifier = identifier
+    self.team = team
+  }
+
+  var versionedZipName: String {
+    return "\(lowername)-\(version)-\(build).zip"
+  }
+
+  var unversionedZipName: String {
+    return "\(lowername).zip"
+  }
 }

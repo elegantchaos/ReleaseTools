@@ -7,7 +7,8 @@ import Files
 import Foundation
 
 public struct Resources {
-    public static var scriptsPath: Folder {
-        return ThrowingManager.folder(for: Bundle.module.url(forResource: "Scripts", withExtension: nil)!)
-    }
+  public static var scriptsPath: Folder {
+    return ThrowingManager.folder(
+      for: Bundle.module.url(forResource: "Scripts", withExtension: nil)!)
+  }
 }

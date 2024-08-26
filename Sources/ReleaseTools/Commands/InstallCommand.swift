@@ -7,50 +7,50 @@ import ArgumentParser
 import Foundation
 
 enum InstallError: Error {
-    case couldntWriteStub
-    
-    public var description: String {
-        switch self {
-            case .couldntWriteStub: return "Couldn't write rt stub to \(InstallCommand.stubPath.path)."
-        }
+  case couldntWriteStub
+
+  public var description: String {
+    switch self {
+    case .couldntWriteStub: return "Couldn't write rt stub to \(InstallCommand.stubPath.path)."
     }
+  }
 }
 
 struct InstallCommand: ParsableCommand {
-    static var configuration = CommandConfiguration(
-        commandName: "install",
-        abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
-    )
-    
-    @OptionGroup() var options: CommonOptions
+  static var configuration = CommandConfiguration(
+    commandName: "install",
+    abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
+  )
 
-    static let stub = """
-                        #!/bin/sh
+  @OptionGroup() var options: CommonOptions
 
-                        MODE=debug
-                        PRODUCT=.build/$MODE/rt
+  static let stub = """
+    #!/bin/sh
 
-                        if [[ ! -e "$PRODUCT" ]]
-                        then
-                        swift build --product ReleaseTools --configuration $MODE
-                        fi
+    MODE=debug
+    PRODUCT=.build/$MODE/rt
 
-                        "$PRODUCT" "$@"
-                        """
-    
-    static let stubPath = URL(fileURLWithPath: "/usr/local/bin/rt")
+    if [[ ! -e "$PRODUCT" ]]
+    then
+    swift build --product ReleaseTools --configuration $MODE
+    fi
 
-    func run() throws {
-        do {
-            let parsed = try OptionParser(
-                options: options,
-                command: Self.configuration
-            )
-            
-            parsed.log("Installing stub to \(InstallCommand.stubPath.path).")
-            try InstallCommand.stub.write(to: InstallCommand.stubPath, atomically: true, encoding: .utf8)
-        } catch {
-            throw InstallError.couldntWriteStub
-        }
+    "$PRODUCT" "$@"
+    """
+
+  static let stubPath = URL(fileURLWithPath: "/usr/local/bin/rt")
+
+  func run() throws {
+    do {
+      let parsed = try OptionParser(
+        options: options,
+        command: Self.configuration
+      )
+
+      parsed.log("Installing stub to \(InstallCommand.stubPath.path).")
+      try InstallCommand.stub.write(to: InstallCommand.stubPath, atomically: true, encoding: .utf8)
+    } catch {
+      throw InstallError.couldntWriteStub
     }
+  }
 }
