@@ -8,7 +8,7 @@ import Foundation
 import Runner
 
 enum UploadError: Error {
-  case uploadingFailed(_ result: Runner.Result)
+  case uploadingFailed(_ result: Runner.RunningProcess)
   case savingUploadReceiptFailed(_ error: Error)
 
   public var description: String {
@@ -19,11 +19,13 @@ enum UploadError: Error {
   }
 }
 
-struct UploadCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "upload",
-    abstract: "Upload the archived app to Apple Connect portal for processing."
-  )
+struct UploadCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "upload",
+      abstract: "Upload the archived app to Apple Connect portal for processing."
+    )
+  }
 
   @OptionGroup() var scheme: SchemeOption
   @OptionGroup() var user: UserOption
@@ -32,7 +34,7 @@ struct UploadCommand: ParsableCommand {
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       requires: [.archive],
       options: options,
@@ -44,34 +46,33 @@ struct UploadCommand: ParsableCommand {
       platform: platform
     )
 
-    try Self.upload(parsed: parsed)
+    try await Self.upload(parsed: parsed)
   }
 
-  static func upload(parsed: OptionParser) throws {
+  static func upload(parsed: OptionParser) async throws {
     parsed.log("Uploading \(parsed.versionTag) to Apple Connect.")
     let xcrun = XCRunRunner(parsed: parsed)
-    let uploadResult: Runner.Result
+    let uploadResult: Runner.RunningProcess
     if parsed.apiKey.isEmpty {
       // use username & password
-      uploadResult = try xcrun.run(arguments: [
+      uploadResult = try xcrun.run([
         "altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD",
         "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform,
       ])
     } else {
       // use api key and issuer
-      uploadResult = try xcrun.run(arguments: [
+      uploadResult = try xcrun.run([
         "altool", "--upload-app", "--apiIssuer", parsed.apiIssuer, "--apiKey", parsed.apiKey,
         "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform,
       ])
     }
 
-    if uploadResult.status != 0 {
-      throw UploadError.uploadingFailed(uploadResult)
-    }
+    try await uploadResult.throwIfFailed(UploadError.uploadingFailed(uploadResult))
 
     parsed.log("Finished uploading.")
     do {
-      try uploadResult.stdout.write(
+      let output = await String(uploadResult.stdout)
+      try output.write(
         to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
     } catch {
       throw UploadError.savingUploadReceiptFailed(error)
@@ -79,11 +80,9 @@ struct UploadCommand: ParsableCommand {
 
     parsed.log("Tagging.")
     let git = GitRunner()
-    let tagResult = try git.sync(arguments: [
+    let tagResult = try git.run([
       "tag", parsed.versionTag, "-m", "Uploaded with \(CommandLine.name)",
     ])
-    if tagResult.status != 0 {
-      throw GeneralError.taggingFailed(tagResult)
-    }
+    try await tagResult.throwIfFailed(GeneralError.taggingFailed(tagResult))
   }
 }

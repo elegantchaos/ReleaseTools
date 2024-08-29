@@ -3,17 +3,18 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import ArgumentParser
 import Coercion
 import Foundation
 import Runner
 
+import protocol ArgumentParser.AsyncParsableCommand
+
 enum WaitForNotarizationError: Error {
-  case fetchingNotarizationStatusFailed(_ result: Runner.Result)
+  case fetchingNotarizationStatusFailed(_ result: Runner.RunningProcess)
   case fetchingNotarizationStatusThrew(_ error: Error)
   case loadingNotarizationReceiptFailed
   case notarizationFailed(_ output: String)
-  case exportingNotarizedAppFailed(_ result: Runner.Result)
+  case exportingNotarizedAppFailed(_ result: Runner.RunningProcess)
   case exportingNotarizedAppThrew(_ error: Error)
   case missingArchive
 
@@ -33,11 +34,13 @@ enum WaitForNotarizationError: Error {
   }
 }
 
-struct WaitForNotarizationCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "wait",
-    abstract: "Wait until notarization has completed."
-  )
+struct WaitForNotarizationCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "wait",
+      abstract: "Wait until notarization has completed."
+    )
+  }
 
   @Option(
     help:
@@ -48,7 +51,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       requires: [.archive],
       options: options,
@@ -61,21 +64,15 @@ struct WaitForNotarizationCommand: ParsableCommand {
       throw WaitForNotarizationError.loadingNotarizationReceiptFailed
     }
 
-    DispatchQueue.global(qos: .userInitiated).async {
-      parsed.log("Requesting notarization status...")
-      self.check(request: requestUUID, parsed: parsed)
-    }
-
-    try parsed.wait()
+    parsed.log("Requesting notarization status...")
+    await check(request: requestUUID, parsed: parsed)
 
     parsed.log("Tagging.")
     let git = GitRunner()
-    let tagResult = try git.sync(arguments: [
+    let tagResult = try git.run([
       "tag", parsed.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
     ])
-    if tagResult.status != 0 {
-      throw GeneralError.taggingFailed(tagResult)
-    }
+    try await tagResult.throwIfFailed(GeneralError.taggingFailed(tagResult))
   }
 
   func savedNotarizationReceipt(parsed: OptionParser) -> String? {
@@ -89,7 +86,7 @@ struct WaitForNotarizationCommand: ParsableCommand {
     return upload["RequestUUID"]
   }
 
-  func exportNotarized(parsed: OptionParser) {
+  func exportNotarized(parsed: OptionParser) async {
     parsed.log("Stapling notarized app.")
 
     do {
@@ -102,24 +99,20 @@ struct WaitForNotarizationCommand: ParsableCommand {
         try? fm.removeItem(at: stapledAppURL)
         try? fm.copyItem(at: parsed.exportedAppURL, to: stapledAppURL)
         let xcrun = XCRunRunner(parsed: parsed)
-        let result = try xcrun.run(arguments: ["stapler", "staple", stapledAppURL.path])
-        if result.status == 0 {
-          parsed.done()
-        } else {
-          parsed.fail(WaitForNotarizationError.exportingNotarizedAppFailed(result))
-        }
+        let result = try xcrun.run(["stapler", "staple", stapledAppURL.path])
+        try await result.throwIfFailed(WaitForNotarizationError.exportingNotarizedAppFailed(result))
       } else {
-        parsed.fail(WaitForNotarizationError.missingArchive)
+        throw WaitForNotarizationError.missingArchive
       }
     } catch {
-      parsed.fail(WaitForNotarizationError.exportingNotarizedAppThrew(error))
+      throw WaitForNotarizationError.exportingNotarizedAppThrew(error)
     }
   }
 
-  func check(request: String, parsed: OptionParser) {
+  func check(request: String, parsed: OptionParser) async {
     let xcrun = XCRunRunner(parsed: parsed)
     do {
-      let result = try xcrun.run(arguments: [
+      let result = try xcrun.run([
         "altool", "--notarization-info", request, "--username", parsed.user, "--password",
         "@keychain:AC_PASSWORD", "--output-format", "xml",
       ])

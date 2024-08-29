@@ -6,11 +6,13 @@
 import ArgumentParser
 import Foundation
 
-struct SetCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "set",
-    abstract: "Set an option for use by other commands."
-  )
+struct SetCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "set",
+      abstract: "Set an option for use by other commands."
+    )
+  }
 
   @Argument() var key: String
   @Argument() var value: String

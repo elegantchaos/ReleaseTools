@@ -25,18 +25,20 @@ enum ArchiveError: Error {
   }
 }
 
-struct ArchiveCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "archive",
-    abstract: "Make an archive for uploading, distribution, etc."
-  )
+struct ArchiveCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "archive",
+      abstract: "Make an archive for uploading, distribution, etc."
+    )
+  }
 
   @Option(help: "Additional xcconfig file to use when building") var xcconfig: String?
   @OptionGroup() var scheme: SchemeOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       options: options,
       command: Self.configuration,
@@ -44,15 +46,15 @@ struct ArchiveCommand: ParsableCommand {
       platform: platform
     )
 
-    try Self.archive(parsed: parsed, xcconfig: xcconfig)
+    try await Self.archive(parsed: parsed, xcconfig: xcconfig)
   }
 
-  static func archive(parsed: OptionParser, xcconfig: String? = nil) throws {
+  static func archive(parsed: OptionParser, xcconfig: String? = nil) async throws {
     parsed.showOutput = true  // TEMPORARY OVERRIDE THE OPTION BECAUSE WE HANG WITHOUT IT
 
     parsed.log("Updating Version Info")
     let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
-    let build = try UpdateBuildCommand.generateHeader(
+    let build = try await UpdateBuildCommand.generateHeader(
       parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)
     parsed.log("Archiving scheme \(parsed.scheme).")
 
@@ -78,9 +80,7 @@ struct ArchiveCommand: ParsableCommand {
       break
     }
 
-    let result = try xcode.run(arguments: args)
-    if result.status != 0 {
-      throw ArchiveError.archiveFailed(result.stderr)
-    }
+    let result = try xcode.run(args)
+    try await result.throwIfFailed(ArchiveError.archiveFailed(await String(result.stderr)))
   }
 }

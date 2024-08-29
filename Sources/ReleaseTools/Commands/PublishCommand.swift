@@ -8,8 +8,8 @@ import Foundation
 import Runner
 
 enum PublishError: Error {
-  case commitFailed(_ result: Runner.Result)
-  case pushFailed(_ result: Runner.Result)
+  case commitFailed(_ result: Runner.RunningProcess)
+  case pushFailed(_ result: Runner.RunningProcess)
 
   public var description: String {
     switch self {
@@ -20,18 +20,20 @@ enum PublishError: Error {
   }
 }
 
-struct PublishCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "publish",
-    abstract: "Commit and push any changes made to the website repo."
-  )
+struct PublishCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "publish",
+      abstract: "Commit and push any changes made to the website repo."
+    )
+  }
 
   @OptionGroup() var website: WebsiteOption
   @OptionGroup() var updates: UpdatesOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       requires: [.archive],
       options: options,
@@ -43,21 +45,15 @@ struct PublishCommand: ParsableCommand {
     git.cwd = website.websiteURL
 
     parsed.log("Committing updates.")
-    var result = try git.sync(arguments: ["add", updates.path])
-    if result.status != 0 {
-      throw PublishError.commitFailed(result)
-    }
+    var result = try git.run(["add", updates.path])
+    try await result.throwIfFailed(PublishError.commitFailed(result))
 
     let message = "v\(parsed.archive.version), build \(parsed.archive.build)"
-    result = try git.sync(arguments: ["commit", "-a", "-m", message])
-    if result.status != 0 {
-      throw PublishError.commitFailed(result)
-    }
+    result = try git.run(["commit", "-a", "-m", message])
+    try await result.throwIfFailed(PublishError.commitFailed(result))
 
     parsed.log("Pushing updates.")
-    let pushResult = try git.sync(arguments: ["push"])
-    if pushResult.status != 0 {
-      throw PublishError.pushFailed(result)
-    }
+    let pushResult = try git.run(["push"])
+    try await pushResult.throwIfFailed(PublishError.pushFailed(pushResult))
   }
 }

@@ -8,7 +8,7 @@ import Files
 import Foundation
 import Resources
 
-struct BootstrapCommand: ParsableCommand {
+struct BootstrapCommand: AsyncParsableCommand {
   enum Error: Swift.Error {
     case couldntCopyConfigs(error: Swift.Error)
 
@@ -19,25 +19,27 @@ struct BootstrapCommand: ParsableCommand {
     }
   }
 
-  static var configuration = CommandConfiguration(
-    commandName: "bootstrap",
-    abstract: "Copy script files into the current project."
-  )
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "bootstrap",
+      abstract: "Copy script files into the current project."
+    )
+  }
 
   @OptionGroup() var options: CommonOptions
 
-  static let localConfigFolder = ThrowingManager.default.current.folder(".rt")
-  static let localScriptsFolder = ThrowingManager.default.current.folder("Extras/Scripts")
-
-  func run() throws {
+  func run() async throws {
     do {
+      let locations = FileManager.default.locations
+      let localScriptsFolder = locations.current.folder("Extras/Scripts")
+
       let parsed = try OptionParser(
         options: options,
         command: Self.configuration
       )
 
-      parsed.log("Copying scripts to \(Self.localScriptsFolder).")
-      try Resources.scriptsPath.merge(into: Self.localScriptsFolder)
+      parsed.log("Copying scripts to \(localScriptsFolder).")
+      try Resources.scriptsPath.merge(into: localScriptsFolder)
 
     } catch {
       throw Error.couldntCopyConfigs(error: error)

@@ -16,11 +16,13 @@ enum InstallError: Error {
   }
 }
 
-struct InstallCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "install",
-    abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
-  )
+struct InstallCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "install",
+      abstract: "Install a stub in /usr/local/bin to allow you to invoke the tool more easily."
+    )
+  }
 
   @OptionGroup() var options: CommonOptions
 

@@ -13,12 +13,12 @@ class XCRunRunner: Runner {
     super.init(command: "xcrun")
   }
 
-  func run(arguments: [String]) throws -> Runner.Result {
+  func run(_ arguments: [String]) throws -> RunningProcess {
     if parsed.showOutput {
       parsed.log("xcrun " + arguments.joined(separator: " "))
     }
 
-    let mode = parsed.showOutput ? Runner.Mode.tee : Runner.Mode.capture
-    return try sync(arguments: arguments, stdoutMode: mode, stderrMode: mode)
+    let mode: Runner.Mode = parsed.showOutput ? .both : .capture
+    return try run(arguments, stdoutMode: mode, stderrMode: mode)
   }
 }

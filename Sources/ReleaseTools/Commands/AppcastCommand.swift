@@ -3,15 +3,16 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import ArgumentParser
 import Foundation
 import Runner
 
+import protocol ArgumentParser.AsyncParsableCommand
+
 enum AppcastError: Error, CustomStringConvertible {
   case buildAppcastGeneratorFailed(_ output: String)
-  case appcastGeneratorFailed(_ result: Runner.Result)
-  case keyGenerationFailed(_ result: Runner.Result)
-  case keyImportFailed(_ result: Runner.Result)
+  case appcastGeneratorFailed(_ result: Runner.RunningProcess)
+  case keyGenerationFailed(_ result: Runner.RunningProcess)
+  case keyImportFailed(_ result: Runner.RunningProcess)
   case generatedKeys(_ name: String)
 
   public var description: String {
@@ -30,11 +31,13 @@ enum AppcastError: Error, CustomStringConvertible {
   }
 }
 
-struct AppcastCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "appcast",
-    abstract: "Update the Sparkle appcast to include the zip created by the compress command."
-  )
+struct AppcastCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "appcast",
+      abstract: "Update the Sparkle appcast to include the zip created by the compress command."
+    )
+  }
 
   @Option(
     help: "Path the to the keychain to get the appcast key from. Defaults to the login keychain.")
@@ -44,7 +47,7 @@ struct AppcastCommand: ParsableCommand {
   @OptionGroup() var updates: UpdatesOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       options: options,
       command: Self.configuration,
@@ -62,42 +65,39 @@ struct AppcastCommand: ParsableCommand {
     let fm = FileManager.default
     let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)
     let buildURL = rootURL.appendingPathComponent(".build")
-    let result = try xcode.run(arguments: [
+    let result = try xcode.run([
       "build", "-workspace", parsed.workspace, "-scheme", "generate_appcast",
       "BUILD_DIR=\(buildURL.path)",
     ])
-    if result.status != 0 {
-      throw AppcastError.buildAppcastGeneratorFailed(result.stderr)
-    }
+    try await result.throwIfFailed(AppcastError.buildAppcastGeneratorFailed(await String(result.stderr)))
 
     let workspaceName = URL(fileURLWithPath: parsed.workspace).deletingPathExtension()
       .lastPathComponent
     let keyName = "\(workspaceName) Sparkle Key"
 
     let generator = Runner(for: URL(fileURLWithPath: ".build/Release/generate_appcast"))
-    let genResult = try generator.sync(arguments: ["-n", keyName, "-k", keyChainPath, updates.path])
-    if genResult.status != 0 {
-      if !genResult.stdout.contains("Unable to load DSA private key") {
-        throw AppcastError.appcastGeneratorFailed(genResult)
+    let genResult = try generator.run(["-n", keyName, "-k", keyChainPath, updates.path])
+    for await state in genResult.state {
+      if state != .succeeded {
+        let output = await String(genResult.stdout)
+        if !output.contains("Unable to load DSA private key") {
+          throw AppcastError.appcastGeneratorFailed(genResult)
+        }
       }
 
       parsed.log("Could not find Sparkle key - generating one.")
 
       let keygen = Runner(for: URL(fileURLWithPath: "Dependencies/Sparkle/bin/generate_keys"))
-      let keygenResult = try keygen.sync(arguments: [])
-      if keygenResult.status != 0 {
-        throw AppcastError.keyGenerationFailed(keygenResult)
-      }
+      let keygenResult = try keygen.run([])
+      try await keygenResult.throwIfFailed(AppcastError.keyGenerationFailed(keygenResult))
 
       parsed.log("Importing Key.")
 
       let security = Runner(for: URL(fileURLWithPath: "/usr/bin/security"))
-      let importResult = try security.sync(arguments: [
+      let importResult = try security.run([
         "import", "dsa_priv.pem", "-a", "labl", "\(parsed.scheme) Sparkle Key",
       ])
-      if importResult.status != 0 {
-        throw AppcastError.keyImportFailed(importResult)
-      }
+      try await importResult.throwIfFailed(AppcastError.keyImportFailed(importResult))
 
       parsed.log("Moving Public Key.")
 

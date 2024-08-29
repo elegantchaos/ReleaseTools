@@ -10,10 +10,10 @@ import Resources
 import Runner
 
 enum UpdateBuildError: Error {
-  case gettingBuildFailed(_ result: Runner.Result)
-  case gettingCommitFailed(_ result: Runner.Result)
+  case gettingBuildFailed(_ result: Runner.RunningProcess)
+  case gettingCommitFailed(_ result: Runner.RunningProcess)
   case writingConfigFailed
-  case updatingIndexFailed(_ result: Runner.Result)
+  case updatingIndexFailed(_ result: Runner.RunningProcess)
 
   public var description: String {
     switch self {
@@ -27,11 +27,13 @@ enum UpdateBuildError: Error {
   }
 }
 
-struct UpdateBuildCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "update-build",
-    abstract: "Update an .xcconfig file to contain the latest build number."
-  )
+struct UpdateBuildCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "update-build",
+      abstract: "Update an .xcconfig file to contain the latest build number."
+    )
+  }
 
   @Option(help: "The .xcconfig file to update.") var config: String?
   @Option(help: "The header file to generate.") var header: String?
@@ -41,44 +43,38 @@ struct UpdateBuildCommand: ParsableCommand {
 
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       options: options,
       command: Self.configuration
     )
 
     if let header = header, let repo = repo {
-      try Self.generateHeader(parsed: parsed, header: header, repo: repo)
+      try await Self.generateHeader(parsed: parsed, header: header, repo: repo)
     } else if let plist = plist, let dest = plistDest, let repo = repo {
-      try Self.generatePlist(parsed: parsed, source: plist, dest: dest, repo: repo)
+      try await Self.generatePlist(parsed: parsed, source: plist, dest: dest, repo: repo)
     } else {
-      try Self.generateConfig(parsed: parsed, config: config)
+      try await Self.generateConfig(parsed: parsed, config: config)
     }
   }
 
-  static func getBuild(in url: URL, using git: GitRunner) throws -> (String, String) {
+  static func getBuild(in url: URL, using git: GitRunner) async throws -> (String, String) {
     git.cwd = url
     chdir(url.path)
 
-    var result = try git.sync(arguments: ["rev-list", "--count", "HEAD"])
-    if result.status != 0 {
-      throw UpdateBuildError.gettingBuildFailed(result)
-    }
+    var result = try git.run(["rev-list", "--count", "HEAD"])
+    try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed(result))
 
-    let build = result.stdout.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    let build = await String(result.stdout).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
-    result = try git.sync(arguments: ["rev-list", "--max-count", "1", "HEAD"])
-    if result.status != 0 {
-      throw UpdateBuildError.gettingCommitFailed(result)
-    }
-
-    let commit = result.stdout.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    result = try git.run(["rev-list", "--max-count", "1", "HEAD"])
+    try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed(result))
+    let commit = await String(result.stdout).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
     return (build, commit)
   }
 
-  static func generatePlist(parsed: OptionParser, source: String, dest: String, repo: String) throws
-  {
+  static func generatePlist(parsed: OptionParser, source: String, dest: String, repo: String) async throws {
     let plistURL = URL(fileURLWithPath: source)
     let destURL = URL(fileURLWithPath: dest)
     let repoURL = URL(fileURLWithPath: repo)
@@ -86,7 +82,7 @@ struct UpdateBuildCommand: ParsableCommand {
     let info = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
 
     let git = GitRunner()
-    let (build, commit) = try getBuild(in: repoURL, using: git)
+    let (build, commit) = try await getBuild(in: repoURL, using: git)
 
     if var info = info as? [String: Any] {
       print(info)
@@ -107,12 +103,12 @@ struct UpdateBuildCommand: ParsableCommand {
     }
   }
 
-  static func generateHeader(parsed: OptionParser, header: String, repo: String) throws -> String {
+  static func generateHeader(parsed: OptionParser, header: String, repo: String) async throws -> String {
     let headerURL = URL(fileURLWithPath: header)
     let repoURL = URL(fileURLWithPath: repo)
 
     let git = GitRunner()
-    let (build, commit) = try getBuild(in: repoURL, using: git)
+    let (build, commit) = try await getBuild(in: repoURL, using: git)
     parsed.log("Setting build number to \(build).")
     let header =
       "#define BUILD \(build)\n#define CURRENT_PROJECT_VERSION \(build)\n#define COMMIT \(commit)"
@@ -122,7 +118,7 @@ struct UpdateBuildCommand: ParsableCommand {
     return build
   }
 
-  static func generateConfig(parsed: OptionParser, config: String?) throws {
+  static func generateConfig(parsed: OptionParser, config: String?) async throws {
 
     let configURL: URL
     if let config = config {
@@ -135,7 +131,7 @@ struct UpdateBuildCommand: ParsableCommand {
     }
 
     let git = GitRunner()
-    let (build, commit) = try getBuild(in: configURL.deletingLastPathComponent(), using: git)
+    let (build, commit) = try await getBuild(in: configURL.deletingLastPathComponent(), using: git)
     let new = "BUILD_NUMBER = \(build)\nBUILD_COMMIT = \(commit)"
 
     if let existing = try? String(contentsOf: configURL), existing == new {
@@ -148,11 +144,8 @@ struct UpdateBuildCommand: ParsableCommand {
         throw UpdateBuildError.writingConfigFailed
       }
 
-      let result = try git.sync(arguments: ["update-index", "--assume-unchanged", configURL.path])
-      if result.status != 0 {
-        throw UpdateBuildError.updatingIndexFailed(result)
-      }
-
+      let result = try git.run(["update-index", "--assume-unchanged", configURL.path])
+      try await result.throwIfFailed(UpdateBuildError.updatingIndexFailed(result))
     }
   }
 }

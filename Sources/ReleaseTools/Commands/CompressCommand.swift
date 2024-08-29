@@ -17,11 +17,13 @@ enum CompressError: Error {
   }
 }
 
-struct CompressCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "compress",
-    abstract: "Compress the output of the export command for distribution."
-  )
+struct CompressCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "compress",
+      abstract: "Compress the output of the export command for distribution."
+    )
+  }
 
   @OptionGroup() var scheme: SchemeOption
   @OptionGroup() var platform: PlatformOption
@@ -29,7 +31,7 @@ struct CompressCommand: ParsableCommand {
   @OptionGroup() var updates: UpdatesOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       requires: [.archive],
       options: options,
@@ -43,9 +45,7 @@ struct CompressCommand: ParsableCommand {
     let destination = updates.url.appendingPathComponent(parsed.archive.versionedZipName)
 
     let result = try ditto.zip(stapledAppURL, as: destination)
-    if result.status != 0 {
-      throw CompressError.compressFailed(result.stderr)
-    }
+    try await result.throwIfFailed(CompressError.compressFailed(await String(result.stderr)))
 
     parsed.log(
       "Saving copy of archive to \(website.websiteURL.path) as \(parsed.archive.unversionedZipName)."

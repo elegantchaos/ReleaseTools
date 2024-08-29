@@ -2,9 +2,8 @@
   "lldb.library": "/Applications/Xcode-16.1.0-Beta.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
   "lldb.launch.expressions": "native",
   "swift.debugger.useDebugAdapterFromToolchain": true,
+  "swift.backgroundCompilation": true,
+  "swift.sourcekit-lsp.backgroundIndexing": true,
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
-}{
-  "lldb.library": "/Applications/Xcode-15.4.0.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
-  "lldb.launch.expressions": "native"
 }

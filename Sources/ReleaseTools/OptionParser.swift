@@ -8,14 +8,14 @@ import Files
 import Foundation
 import Runner
 
-enum GeneralError: Error, CustomStringConvertible {
+enum GeneralError: Error, CustomStringConvertible, Sendable {
   case infoUnreadable(_ path: String)
   case missingWorkspace
   case noDefaultUser
   case apiKeyAndIssuer
   case userOrApiKey
   case noDefaultScheme(_ platform: String)
-  case taggingFailed(_ result: Runner.Result)
+  case taggingFailed(_ result: Runner.RunningProcess)
 
   public var description: String {
     switch self {
@@ -262,21 +262,21 @@ class OptionParser {
     }
   }
 
-  func wait() throws {
-    semaphore = DispatchSemaphore(value: 0)
-    semaphore?.wait()
+  // func wait() throws {
+  //   semaphore = DispatchSemaphore(value: 0)
+  //   semaphore?.wait()
 
-    if let error = error {
-      throw error
-    }
-  }
+  //   if let error = error {
+  //     throw error
+  //   }
+  // }
 
-  func done() {
-    semaphore?.signal()
-  }
+  // func done() {
+  //   semaphore?.signal()
+  // }
 
   func fail(_ error: Error) {
     self.error = error
-    semaphore?.signal()
+    // semaphore?.signal()
   }
 }

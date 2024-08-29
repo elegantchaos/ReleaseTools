@@ -6,12 +6,14 @@
 import ArgumentParser
 import Foundation
 
-struct UnsetCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "unset",
-    abstract:
-      "Clear an option that was stored for use by other commands using \(CommandLine.name) set."
-  )
+struct UnsetCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "unset",
+      abstract:
+        "Clear an option that was stored for use by other commands using \(CommandLine.name) set."
+    )
+  }
 
   @Argument() var key: String
   @OptionGroup() var platform: PlatformOption

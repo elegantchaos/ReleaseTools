@@ -1,4 +1,4 @@
-// swift-tools-version:5.9
+// swift-tools-version:6.0
 
 import PackageDescription
 
@@ -6,7 +6,7 @@ let package = Package(
   name: "ReleaseTools",
 
   platforms: [
-    .macOS(.v10_15)
+    .macOS(.v12)
   ],
 
   products: [
@@ -15,13 +15,13 @@ let package = Package(
   ],
 
   dependencies: [
-    .package(url: "https://github.com/apple/swift-argument-parser", from: "0.3.2"),
     .package(url: "https://github.com/elegantchaos/Coercion.git", from: "1.1.2"),
     .package(url: "https://github.com/elegantchaos/Files.git", from: "1.2.0"),
     .package(url: "https://github.com/elegantchaos/Logger.git", from: "1.6.0"),
-    .package(url: "https://github.com/elegantchaos/Runner.git", from: "1.3.3"),
+    .package(url: "https://github.com/elegantchaos/Runner.git", from: "2.0.5"),
     .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.3.0"),
-    .package(url: "https://github.com/elegantchaos/Versionator.git", from: "1.0.3"),
+    .package(url: "https://github.com/elegantchaos/Versionator.git", from: "2.0.2"),
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "0.5.0"),
   ],
 
   targets: [

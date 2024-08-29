@@ -14,24 +14,28 @@ class XCodeBuildRunner: Runner {
     super.init(command: "xcodebuild")
   }
 
-  func schemes(workspace: String) throws -> [String] {
-    let result = try sync(arguments: ["-workspace", workspace, "-list", "-json"])
-    if result.status == 0, let data = result.stdout.data(using: .utf8) {
-      let decoder = JSONDecoder()
-      let schemes = try decoder.decode(SchemesSpec.self, from: data)
-      return schemes.workspace.schemes
-    } else {
-      print(result.stderr)
-      return []
+  func schemes(workspace: String) async throws -> [String] {
+    let result = try run(["-workspace", workspace, "-list", "-json"])
+    let output = await Data(result.stdout)
+    for await state in result.state {
+      if state == .succeeded {
+        let decoder = JSONDecoder()
+        let schemes = try decoder.decode(SchemesSpec.self, from: output)
+        return schemes.workspace.schemes
+      } else {
+        print(result.stderr)
+      }
     }
+
+    return []
   }
 
-  func run(arguments: [String]) throws -> Runner.Result {
+  func run(_ arguments: [String]) throws -> RunningProcess {
     if parsed.showOutput {
       parsed.log("xcodebuild " + arguments.joined(separator: " "))
     }
 
-    let mode = parsed.showOutput ? Runner.Mode.tee : Runner.Mode.capture
-    return try sync(arguments: arguments, stdoutMode: mode, stderrMode: mode)
+    let mode: Runner.Mode = parsed.showOutput ? .both : .capture
+    return try run(arguments, stdoutMode: mode, stderrMode: mode)
   }
 }

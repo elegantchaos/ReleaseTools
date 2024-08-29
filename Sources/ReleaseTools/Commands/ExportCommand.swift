@@ -18,18 +18,20 @@ enum ExportError: Error {
   }
 }
 
-struct ExportCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "export",
-    abstract: "Export an executable from the output of the archive command."
-  )
+struct ExportCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "export",
+      abstract: "Export an executable from the output of the archive command."
+    )
+  }
 
   @Flag(help: "Export for distribution outside of the appstore.") var distribution = false
   @OptionGroup() var scheme: SchemeOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       options: options,
       command: Self.configuration,
@@ -37,10 +39,10 @@ struct ExportCommand: ParsableCommand {
       platform: platform
     )
 
-    try Self.export(parsed: parsed, distribution: distribution)
+    try await Self.export(parsed: parsed, distribution: distribution)
   }
 
-  static func export(parsed: OptionParser, distribution: Bool = false) throws {
+  static func export(parsed: OptionParser, distribution: Bool = false) async throws {
     parsed.log(
       "Generating export options for \(distribution ? "direct" : "appstore") distribution.")
     do {
@@ -59,13 +61,12 @@ struct ExportCommand: ParsableCommand {
     parsed.log("Exporting \(parsed.scheme).")
     let xcode = XCodeBuildRunner(parsed: parsed)
     try? FileManager.default.removeItem(at: parsed.exportURL)
-    let result = try xcode.run(arguments: [
+    let result = try xcode.run([
       "-exportArchive", "-archivePath", parsed.archiveURL.path, "-exportPath",
       parsed.exportURL.path, "-exportOptionsPlist", parsed.exportOptionsURL.path,
       "-allowProvisioningUpdates",
     ])
-    if result.status != 0 {
-      throw ExportError.exportFailed(result.stderr)
-    }
+
+    try await result.throwIfFailed(ExportError.exportFailed(await String(result.stderr)))
   }
 }

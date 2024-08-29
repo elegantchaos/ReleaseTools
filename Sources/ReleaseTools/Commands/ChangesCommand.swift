@@ -17,18 +17,20 @@ enum ChangesError: Error {
   }
 }
 
-struct ChangesCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "changes",
-    abstract: "Show the change log since a previous version."
-  )
+struct ChangesCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "changes",
+      abstract: "Show the change log since a previous version."
+    )
+  }
 
   @Argument(help: "An older version/commit to compare against.") var version: String
   @Argument(help: "A newer version/commit to compare against the older version. Defaults to HEAD.")
   var other: String?
   @OptionGroup() var common: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       requires: [.workspace],
       options: common,
@@ -45,8 +47,9 @@ struct ChangesCommand: ParsableCommand {
     }
 
     do {
-      let result = try git.sync(arguments: arguments)
-      try result.stdout.write(to: parsed.changesURL, atomically: true, encoding: .utf8)
+      let result = try git.run(arguments)
+      let output = await String(result.stdout)
+      try output.write(to: parsed.changesURL, atomically: true, encoding: .utf8)
       NSWorkspace.shared.open(parsed.changesURL)
     } catch {
       throw ChangesError.couldntFetchLog(error: error)

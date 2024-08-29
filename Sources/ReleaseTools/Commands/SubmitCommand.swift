@@ -12,19 +12,21 @@ import Runner
 /// - export
 /// - upload
 
-struct SubmitCommand: ParsableCommand {
+struct SubmitCommand: AsyncParsableCommand {
 
-  static var configuration = CommandConfiguration(
-    commandName: "submit",
-    abstract: "Archive, export and upload the app to Apple Connect portal for processing."
-  )
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "submit",
+      abstract: "Archive, export and upload the app to Apple Connect portal for processing."
+    )
+  }
 
   @OptionGroup() var scheme: SchemeOption
   @OptionGroup() var user: UserOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
     let parsed = try OptionParser(
       requires: [.archive],
       options: options,
@@ -35,9 +37,9 @@ struct SubmitCommand: ParsableCommand {
     )
 
     // TODO: set scheme if not supplied?
-    try ArchiveCommand.archive(parsed: parsed)
-    try ExportCommand.export(parsed: parsed)
-    try UploadCommand.upload(parsed: parsed)
+    try await ArchiveCommand.archive(parsed: parsed)
+    try await ExportCommand.export(parsed: parsed)
+    try await UploadCommand.upload(parsed: parsed)
     // TODO: open page in app portal?
   }
 }

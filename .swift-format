@@ -11,7 +11,7 @@
   "lineBreakBeforeControlFlowKeywords": false,
   "lineBreakBeforeEachArgument": false,
   "lineBreakBeforeEachGenericRequirement": false,
-  "lineLength": 200,
+  "lineLength": 300,
   "maximumBlankLines": 1,
   "multiElementCollectionTrailingCommas": true,
   "noAssignmentInExpressions": {

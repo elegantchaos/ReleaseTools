@@ -7,9 +7,11 @@ import ArgumentParser
 import Foundation
 import Runner
 
-enum NotarizeError: Error {
-  case compressingFailed(_ result: Runner.Result)
-  case notarizingFailed(_ result: Runner.Result)
+enum NotarizeError: Error, Sendable {
+  case compressingFailed(_ result: Runner.RunningProcess)
+  case notarizingFailed(
+    _ result: Runner.RunningProcess
+  )
   case savingNotarizationReceiptFailed(_ error: Error)
 
   public var description: String {
@@ -25,18 +27,20 @@ enum NotarizeError: Error {
 extension Result {
 }
 
-struct NotarizeCommand: ParsableCommand {
-  static var configuration = CommandConfiguration(
-    commandName: "notarize",
-    abstract: "Notarize the compressed archive."
-  )
+struct NotarizeCommand: AsyncParsableCommand {
+  static var configuration: CommandConfiguration {
+    CommandConfiguration(
+      commandName: "notarize",
+      abstract: "Notarize the compressed archive."
+    )
+  }
 
   @OptionGroup() var scheme: SchemeOption
   @OptionGroup() var user: UserOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
-  func run() throws {
+  func run() async throws {
 
     let parsed = try OptionParser(
       requires: [.archive],
@@ -51,24 +55,21 @@ struct NotarizeCommand: ParsableCommand {
     let ditto = DittoRunner(parsed: parsed)
 
     let zipResult = try ditto.zip(parsed.exportedAppURL, as: parsed.exportedZipURL)
-    if zipResult.status != 0 {
-      throw NotarizeError.compressingFailed(zipResult)
-    }
+    try await zipResult.throwIfFailed(NotarizeError.compressingFailed(zipResult))
 
     parsed.log("Uploading \(parsed.versionTag) to notarization service.")
     let xcrun = XCRunRunner(parsed: parsed)
-    let result = try xcrun.run(arguments: [
+    let result = try xcrun.run([
       "altool", "--notarize-app", "--primary-bundle-id", parsed.archive.identifier, "--username",
       parsed.user, "--password", "@keychain:AC_PASSWORD", "--team-id", parsed.archive.team,
       "--file", parsed.exportedZipURL.path, "--output-format", "xml",
     ])
-    if result.status != 0 {
-      throw NotarizeError.notarizingFailed(result)
-    }
+    try await result.throwIfFailed(NotarizeError.notarizingFailed(result))
 
     parsed.log("Requested notarization.")
     do {
-      try result.stdout.write(to: parsed.notarizingReceiptURL, atomically: true, encoding: .utf8)
+      let output = await String(result.stdout)
+      try output.write(to: parsed.notarizingReceiptURL, atomically: true, encoding: .utf8)
     } catch {
       throw NotarizeError.savingNotarizationReceiptFailed(error)
     }
