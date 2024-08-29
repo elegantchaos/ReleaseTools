@@ -64,4 +64,6 @@ struct UpdatesOption: ParsableArguments {
 struct CommonOptions: ParsableArguments {
   @Flag(help: "Show the external commands that we're executing, and the output from them.") var showOutput = false
   @Flag(help: "Show extra logging.") var verbose = false
+  @Option(help: "The workspace we're operating on.")
+  var workspace: String?
 }

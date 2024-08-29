@@ -155,7 +155,7 @@ class OptionParser {
 
     // if we've specified the scheme or user, we also need the workspace
     if requirements.contains(.workspace) || scheme != nil || user != nil {
-      if let workspace = defaultWorkspace {
+      if let workspace = options.workspace ?? defaultWorkspace {
         self.workspace = workspace
       } else {
         throw GeneralError.missingWorkspace

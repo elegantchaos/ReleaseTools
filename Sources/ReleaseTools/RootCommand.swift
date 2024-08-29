@@ -25,6 +25,7 @@ import Runner
 struct RootCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
+      commandName: "rt",
       abstract: "Assorted tools for iOS/macOS releases.",
       subcommands: [
         AppcastCommand.self,
