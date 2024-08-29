@@ -3,8 +3,9 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import ArgumentParser
 import Foundation
+
+import protocol ArgumentParser.AsyncParsableCommand
 
 struct GetCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {

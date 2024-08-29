@@ -3,65 +3,66 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import ArgumentParser
 import Foundation
 
+import protocol ArgumentParser.AsyncParsableCommand
+
 struct SchemeOption: ParsableArguments {
-    @Option(help: "The scheme we're building.")
-    var scheme: String?
+  @Option(help: "The scheme we're building.")
+  var scheme: String?
 }
 
 struct UserOption: ParsableArguments {
-    @Option(help: "The App Store Connect user we're notarizing as.")
-    var user: String?
+  @Option(help: "The App Store Connect user we're notarizing as.")
+  var user: String?
 }
 
 struct ApiKeyOption: ParsableArguments {
-    @Option(name: .customLong("--api-key"), help: "The App Store Connect api key ID we're using.")
-    var key: String?
+  @Option(name: .customLong("--api-key"), help: "The App Store Connect api key ID we're using.")
+  var key: String?
 }
 
 struct ApiIssuerOption: ParsableArguments {
-    @Option(name: .customLong("--api-issuer"), help: "The App Store Connect issuer ID we're using.")
-    var issuer: String?
+  @Option(name: .customLong("--api-issuer"), help: "The App Store Connect issuer ID we're using.")
+  var issuer: String?
 }
 
 struct PlatformOption: ParsableArguments {
-    @Option(help: "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS.")
-    var platform: String?
+  @Option(help: "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS.")
+  var platform: String?
 }
 
 struct WebsiteOption: ParsableArguments {
-    @Option(help: "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`.")
-    var website: String?
+  @Option(help: "The local path to the repository containing the website, where the appcast and zip archives live. Defaults to `Dependencies/Website`.")
+  var website: String?
 
-    var websiteURL: URL {
-        if let path = website {
-            return URL(fileURLWithPath: path)
-        } else {
-            return URL(fileURLWithPath: "Dependencies/Website/")
-        }
+  var websiteURL: URL {
+    if let path = website {
+      return URL(fileURLWithPath: path)
+    } else {
+      return URL(fileURLWithPath: "Dependencies/Website/")
     }
+  }
 }
 
 struct UpdatesOption: ParsableArguments {
-    @Option(help: "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`.")
-    var updates: String?
+  @Option(help: "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`.")
+  var updates: String?
 
-    var url: URL {
-        if let path = updates {
-            return URL(fileURLWithPath: path)
-        } else {
-            return URL(fileURLWithPath: "Dependencies/Website/updates")
-        }
+  var url: URL {
+    if let path = updates {
+      return URL(fileURLWithPath: path)
+    } else {
+      return URL(fileURLWithPath: "Dependencies/Website/updates")
     }
-    
-    var path: String {
-        return url.path
-    }
+  }
+
+  var path: String {
+    return url.path
+  }
 }
 
 struct CommonOptions: ParsableArguments {
-    @Flag(help: "Show the external commands that we're executing, and the output from them.") var showOutput = false
-    @Flag(help: "Show extra logging.") var verbose = false
+  @Flag(help: "Show the external commands that we're executing, and the output from them.") var showOutput = false
+  @Flag(help: "Show extra logging.") var verbose = false
 }

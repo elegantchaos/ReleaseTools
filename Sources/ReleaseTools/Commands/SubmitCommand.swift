@@ -3,9 +3,10 @@
 //  All code (c) 2022 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import ArgumentParser
 import Foundation
 import Runner
+
+import protocol ArgumentParser.AsyncParsableCommand
 
 /// Performs the following commands in order:
 /// - archive

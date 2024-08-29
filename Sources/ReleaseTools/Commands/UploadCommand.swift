@@ -3,9 +3,10 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import ArgumentParser
 import Foundation
 import Runner
+
+import protocol ArgumentParser.AsyncParsableCommand
 
 enum UploadError: Error {
   case uploadingFailed(_ result: Runner.RunningProcess)

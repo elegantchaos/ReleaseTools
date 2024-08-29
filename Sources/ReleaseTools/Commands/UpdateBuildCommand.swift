@@ -3,11 +3,12 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import ArgumentParser
 import Files
 import Foundation
 import Resources
 import Runner
+
+import protocol ArgumentParser.AsyncParsableCommand
 
 enum UpdateBuildError: Error {
   case gettingBuildFailed(_ result: Runner.RunningProcess)

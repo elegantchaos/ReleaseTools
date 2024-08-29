@@ -21,7 +21,7 @@ let package = Package(
     .package(url: "https://github.com/elegantchaos/Runner.git", from: "2.0.5"),
     .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.3.0"),
     .package(url: "https://github.com/elegantchaos/Versionator.git", from: "2.0.2"),
-    .package(url: "https://github.com/apple/swift-argument-parser", from: "0.5.0"),
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
   ],
 
   targets: [
