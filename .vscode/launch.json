@@ -6,7 +6,9 @@
       "sourceLanguages": [
         "swift"
       ],
-      "args": ["--version"],
+      "args": [
+        "--version"
+      ],
       "cwd": "${workspaceFolder:ReleaseTools}",
       "name": "Debug rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
