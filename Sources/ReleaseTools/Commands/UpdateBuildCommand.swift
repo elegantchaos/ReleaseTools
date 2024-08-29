@@ -50,7 +50,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     )
 
     if let header = header, let repo = repo {
-      try await Self.generateHeader(parsed: parsed, header: header, repo: repo)
+      _ = try await Self.generateHeader(parsed: parsed, header: header, repo: repo)
     } else if let plist = plist, let dest = plistDest, let repo = repo {
       try await Self.generatePlist(parsed: parsed, source: plist, dest: dest, repo: repo)
     } else {
@@ -103,7 +103,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     }
   }
 
-  static func generateHeader(parsed: OptionParser, header: String, repo: String) async throws {
+  static func generateHeader(parsed: OptionParser, header: String, repo: String) async throws -> String {
     let headerURL = URL(fileURLWithPath: header)
     let repoURL = URL(fileURLWithPath: repo)
 
@@ -115,6 +115,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     try? FileManager.default.createDirectory(
       at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
     try header.write(to: headerURL, atomically: true, encoding: .utf8)
+    return build
   }
 
   static func generateConfig(parsed: OptionParser, config: String?) async throws {
