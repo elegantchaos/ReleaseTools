@@ -10,3 +10,4 @@
 # Swift Package Manager
 Packages/
 .build
+.index-build
