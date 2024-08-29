@@ -3,11 +3,10 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Coercion
 import Foundation
 import Runner
-
-import protocol ArgumentParser.AsyncParsableCommand
 
 enum WaitForNotarizationError: Error {
   case fetchingNotarizationStatusFailed(_ result: Runner.RunningProcess)
@@ -51,6 +50,9 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
+  /// Time to wait before checking the notarization status again.
+  static let retryDelay = 30
+
   func run() async throws {
     let parsed = try OptionParser(
       requires: [.archive],
@@ -65,7 +67,15 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     }
 
     parsed.log("Requesting notarization status...")
-    await check(request: requestUUID, parsed: parsed)
+    do {
+      while !(try await check(request: requestUUID, parsed: parsed)) {
+        parsed.log("Will retry in \(Self.retryDelay) seconds...")
+        try await Task.sleep(for: .seconds(Self.retryDelay))
+        parsed.log("Retrying fetch of notarization status...")
+      }
+    } catch {
+      throw WaitForNotarizationError.fetchingNotarizationStatusThrew(error)
+    }
 
     parsed.log("Tagging.")
     let git = GitRunner()
@@ -86,7 +96,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     return upload["RequestUUID"]
   }
 
-  func exportNotarized(parsed: OptionParser) async {
+  func exportNotarized(parsed: OptionParser) async throws {
     parsed.log("Stapling notarized app.")
 
     do {
@@ -109,65 +119,52 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     }
   }
 
-  func check(request: String, parsed: OptionParser) async {
+  func check(request: String, parsed: OptionParser) async throws -> Bool {
     let xcrun = XCRunRunner(parsed: parsed)
-    do {
-      let result = try xcrun.run([
-        "altool", "--notarization-info", request, "--username", parsed.user, "--password",
-        "@keychain:AC_PASSWORD", "--output-format", "xml",
-      ])
-      if result.status != 0 {
-        parsed.fail(WaitForNotarizationError.fetchingNotarizationStatusFailed(result))
-      }
+    let result = try xcrun.run([
+      "altool", "--notarization-info", request, "--username", parsed.user, "--password",
+      "@keychain:AC_PASSWORD", "--output-format", "xml",
+    ])
+    try await result.throwIfFailed(WaitForNotarizationError.fetchingNotarizationStatusFailed(result))
 
-      parsed.log("Received response.")
-      if let data = result.stdout.data(using: .utf8),
-        let receipt = try? PropertyListSerialization.propertyList(
-          from: data, options: [], format: nil) as? [String: Any],
-        let info = receipt["notarization-info"] as? [String: Any],
-        let status = info[asString: "Status"]
-      {
-        parsed.log("Status was \(status).")
-        if status == "success" {
-          exportNotarized(parsed: parsed)
-          return
-        } else if status == "invalid" {
-          let message = (info[asString: "Status Message"]) ?? ""
-          var output = "\(message).\n"
-          if let logFile = info[asString: "LogFileURL"],
-            let url = URL(string: logFile),
-            let data = try? Data(contentsOf: url),
-            let log = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-          {
-            let summary = (log[asString: "statusSummary"]) ?? ""
-            output.append("\(summary).\n")
-            if let issues = log["issues"] as? [[String: Any]] {
-              var count = 1
-              for issue in issues {
-                let message = issue[asString: "message"] ?? ""
-                let path = issue[asString: "path"] ?? ""
-                let name = URL(fileURLWithPath: path).lastPathComponent
-                let severity = issue[asString: "severity"] ?? ""
-                output.append("\n#\(count) \(name) (\(severity)):\n\(message)\n\(path)\n")
-                count += 1
-              }
+    parsed.log("Received response.")
+    let data = await Data(result.stdout)
+    if let receipt = try? PropertyListSerialization.propertyList(
+      from: data, options: [], format: nil) as? [String: Any],
+      let info = receipt["notarization-info"] as? [String: Any],
+      let status = info[asString: "Status"]
+    {
+      parsed.log("Status was \(status).")
+      if status == "success" {
+        try await exportNotarized(parsed: parsed)
+        return true
+      } else if status == "invalid" {
+        let message = (info[asString: "Status Message"]) ?? ""
+        var output = "\(message).\n"
+        if let logFile = info[asString: "LogFileURL"],
+          let url = URL(string: logFile),
+          let data = try? Data(contentsOf: url),
+          let log = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+        {
+          let summary = (log[asString: "statusSummary"]) ?? ""
+          output.append("\(summary).\n")
+          if let issues = log["issues"] as? [[String: Any]] {
+            var count = 1
+            for issue in issues {
+              let message = issue[asString: "message"] ?? ""
+              let path = issue[asString: "path"] ?? ""
+              let name = URL(fileURLWithPath: path).lastPathComponent
+              let severity = issue[asString: "severity"] ?? ""
+              output.append("\n#\(count) \(name) (\(severity)):\n\(message)\n\(path)\n")
+              count += 1
             }
           }
-
-          parsed.fail(WaitForNotarizationError.notarizationFailed(output))
         }
+
+        parsed.fail(WaitForNotarizationError.notarizationFailed(output))
       }
-    } catch {
-      parsed.fail(WaitForNotarizationError.fetchingNotarizationStatusThrew(error))
     }
 
-    let delay = 30
-    let nextCheck = DispatchTime.now() + .seconds(delay)
-    parsed.log("Will retry in \(delay) seconds...")
-    DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: nextCheck) {
-      parsed.log("Retrying fetch of notarization status...")
-      self.check(request: request, parsed: parsed)
-    }
-
+    return false
   }
 }

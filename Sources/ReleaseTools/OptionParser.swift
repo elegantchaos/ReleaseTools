@@ -3,11 +3,10 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Files
 import Foundation
 import Runner
-
-import protocol ArgumentParser.AsyncParsableCommand
 
 enum GeneralError: Error, CustomStringConvertible, Sendable {
   case infoUnreadable(_ path: String)

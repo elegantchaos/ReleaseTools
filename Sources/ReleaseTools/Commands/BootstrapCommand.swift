@@ -3,11 +3,10 @@
 //  All code (c) 2021 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Files
 import Foundation
 import Resources
-
-import protocol ArgumentParser.AsyncParsableCommand
 
 struct BootstrapCommand: AsyncParsableCommand {
   enum Error: Swift.Error {

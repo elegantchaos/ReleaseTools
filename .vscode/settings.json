@@ -3,7 +3,8 @@
   "lldb.launch.expressions": "native",
   "swift.debugger.useDebugAdapterFromToolchain": true,
   "swift.backgroundCompilation": true,
-  "swift.sourcekit-lsp.backgroundIndexing": true,
+  "swift.sourcekit-lsp.backgroundIndexing": false,
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
+  "apple-swift-format.enable": true,
 }

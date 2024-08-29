@@ -4,9 +4,8 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import AppKit
+import ArgumentParser
 import Foundation
-
-import protocol ArgumentParser.AsyncParsableCommand
 
 enum ChangesError: Error {
   case couldntFetchLog(error: Error)

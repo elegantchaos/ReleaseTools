@@ -3,10 +3,9 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Foundation
 import Runner
-
-import protocol ArgumentParser.AsyncParsableCommand
 
 enum NotarizeError: Error, Sendable {
   case compressingFailed(_ result: Runner.RunningProcess)

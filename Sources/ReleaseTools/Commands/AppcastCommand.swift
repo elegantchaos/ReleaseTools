@@ -3,10 +3,9 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Foundation
 import Runner
-
-import protocol ArgumentParser.AsyncParsableCommand
 
 enum AppcastError: Error, CustomStringConvertible {
   case buildAppcastGeneratorFailed(_ output: String)

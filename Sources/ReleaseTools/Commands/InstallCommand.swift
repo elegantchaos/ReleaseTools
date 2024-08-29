@@ -3,9 +3,8 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Foundation
-
-import protocol ArgumentParser.AsyncParsableCommand
 
 enum InstallError: Error {
   case couldntWriteStub

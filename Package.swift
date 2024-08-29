@@ -6,7 +6,7 @@ let package = Package(
   name: "ReleaseTools",
 
   platforms: [
-    .macOS(.v12)
+    .macOS(.v13)
   ],
 
   products: [

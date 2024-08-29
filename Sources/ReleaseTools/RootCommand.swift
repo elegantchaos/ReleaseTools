@@ -3,12 +3,10 @@
 //  All code (c) 2018 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Foundation
 import Logger
 import Runner
-
-import protocol ArgumentParser.AsyncMain
-import protocol ArgumentParser.AsyncParsableCommand
 
 // class Shell {
 //   var semaphore: DispatchSemaphore? = nil
@@ -24,10 +22,6 @@ import protocol ArgumentParser.AsyncParsableCommand
 // let sharedShell = Shell()
 
 @main
-struct Main: AsyncMain {
-  typealias Command = RootCommand
-}
-
 struct RootCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -58,7 +52,7 @@ struct RootCommand: AsyncParsableCommand {
 
   mutating func run() async throws {
     if version {
-      print(VersionatorVersion.git)
+      print("Release tools \(VersionatorVersion.git)")
     } else {
       throw CleanExit.helpRequest(self)
     }

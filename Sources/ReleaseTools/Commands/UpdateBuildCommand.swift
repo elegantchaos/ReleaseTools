@@ -3,12 +3,11 @@
 //  All code (c) 2019 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Files
 import Foundation
 import Resources
 import Runner
-
-import protocol ArgumentParser.AsyncParsableCommand
 
 enum UpdateBuildError: Error {
   case gettingBuildFailed(_ result: Runner.RunningProcess)
@@ -104,7 +103,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     }
   }
 
-  static func generateHeader(parsed: OptionParser, header: String, repo: String) async throws -> String {
+  static func generateHeader(parsed: OptionParser, header: String, repo: String) async throws {
     let headerURL = URL(fileURLWithPath: header)
     let repoURL = URL(fileURLWithPath: repo)
 
@@ -116,7 +115,6 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     try? FileManager.default.createDirectory(
       at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
     try header.write(to: headerURL, atomically: true, encoding: .utf8)
-    return build
   }
 
   static func generateConfig(parsed: OptionParser, config: String?) async throws {
