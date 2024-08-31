@@ -11,3 +11,6 @@
 Packages/
 .build
 .index-build
+
+# Temp workaround for swift bug which drops generated deps in the source tree
+/Version.generated.*

@@ -1,6 +1,15 @@
 {
-  "originHash" : "c2dd8b3a13b22626bdf54e0714df7abbae080ce71991455d881c1092898abf6d",
+  "originHash" : "a999b6b7777e3b9079938bbb4c8c6387bcf52be035b1930d84d5d51ae9ec4651",
   "pins" : [
+    {
+      "identity" : "chaosbytestreams",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/ChaosByteStreams",
+      "state" : {
+        "revision" : "bb2be531b8b3d1410ba6b40a860b6bf8060e8fa3",
+        "version" : "1.0.0"
+      }
+    },
     {
       "identity" : "coercion",
       "kind" : "remoteSourceControl",
