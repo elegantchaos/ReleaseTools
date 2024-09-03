@@ -39,6 +39,18 @@ import PackagePlugin
       tool: "ActionBuilderTool", arguments: arguments, context: context, cwd: context.package.directoryURL)
 
     Diagnostics.remark(output)
-
   }
 }
+
+#if canImport(XcodeProjectPlugin)
+  import XcodeProjectPlugin
+
+  extension ReleaseToolsPlugin: XcodeCommandPlugin {
+    func performCommand(context: XcodePluginContext, arguments: [String]) throws {
+      let output = try await run(
+        tool: "ActionBuilderTool", arguments: arguments, context: context, cwd: context.package.directoryURL)
+
+      Diagnostics.remark(output)
+    }
+  }
+#endif
