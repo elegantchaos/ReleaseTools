@@ -34,7 +34,7 @@ import PackagePlugin
   }
 
   func performCommand(context: PackagePlugin.PluginContext, arguments: [String]) async throws {
-    let tool = try context.tool(named: "rt")
+    let tool = try context.tool(named: "ReleaseTools")
     let output = try await run(
       tool: tool, arguments: arguments, cwd: context.package.directoryURL)
 
@@ -64,7 +64,7 @@ import PackagePlugin
 
   extension ReleaseToolsPlugin: XcodeCommandPlugin {
     func performCommand(context: XcodePluginContext, arguments: [String]) throws {
-      let tool = try context.tool(named: "rt")
+      let tool = try context.tool(named: "ReleaseTools")
 
       let output = try runSync(tool: tool, arguments: arguments, cwd: context.xcodeProject.directoryURL)
       Diagnostics.remark(output)
