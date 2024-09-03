@@ -12,7 +12,7 @@ let package = Package(
   products: [
     .executable(name: "rt", targets: ["ReleaseTools"]),
     .library(name: "Resources", targets: ["Resources"]),
-    .plugin(name: "ReleaseToolsPlugin", targets: ["ReleaseToolsPlugin"]),
+    .plugin(name: "rt-plugin", targets: ["ReleaseToolsPlugin"]),
   ],
 
   dependencies: [
