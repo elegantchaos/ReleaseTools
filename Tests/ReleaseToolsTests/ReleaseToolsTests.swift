@@ -1,8 +1,7 @@
 import Runner
-import XCTest
-import XCTestExtensions
+import Testing
 
-final class ReleaseToolTests: XCTestCase {
+@Test func name() async throws {
   // func testNoArguments() async throws {
   //   let rt = Runner(for: productsDirectory.appendingPathComponent("rt"))
   //   let result = try! rt.run([])
@@ -10,5 +9,4 @@ final class ReleaseToolTests: XCTestCase {
   //     XCTAssertEqual(state, .succeeded)
   //   }
   //   XCTAssertTrue(await String(result.stdout).contains("USAGE: command [--version] <subcommand>"))
-  // }
 }
