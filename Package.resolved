@@ -1,5 +1,5 @@
 {
-  "originHash" : "a999b6b7777e3b9079938bbb4c8c6387bcf52be035b1930d84d5d51ae9ec4651",
+  "originHash" : "0e13796fea18482095d6b7051cfd8bbbc4bb68f91fcdf7f0434eb18b18a1c116",
   "pins" : [
     {
       "identity" : "chaosbytestreams",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/Logger.git",
       "state" : {
-        "revision" : "8ceabf0985b5255f7be42e023a3f63a7779a9145",
-        "version" : "1.6.0"
+        "branch" : "v2-wip",
+        "revision" : "f167c34fc0727a704cc871bef0867fc83b360d28"
       }
     },
     {
