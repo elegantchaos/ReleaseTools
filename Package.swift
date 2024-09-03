@@ -12,6 +12,7 @@ let package = Package(
   products: [
     .executable(name: "rt", targets: ["ReleaseTools"]),
     .library(name: "Resources", targets: ["Resources"]),
+    .plugin(name: "ReleaseToolsPlugin", targets: ["ReleaseToolsPlugin"]),
   ],
 
   dependencies: [
@@ -20,7 +21,6 @@ let package = Package(
     .package(url: "https://github.com/elegantchaos/Logger.git", from: "1.6.0"),
     .package(url: "https://github.com/elegantchaos/Runner.git", from: "2.0.5"),
     .package(url: "https://github.com/elegantchaos/ChaosByteStreams", from: "1.0.0"),
-    .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.3.0"),
     .package(url: "https://github.com/elegantchaos/Versionator.git", from: "2.0.2"),
     .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
   ],
@@ -52,9 +52,26 @@ let package = Package(
       ]
     ),
 
+    .plugin(
+      name: "ReleaseToolsPlugin",
+      capability: .command(
+        intent: .custom(
+          verb: "rt",
+          description: "Manages archiving and uploading releases."
+        ),
+        permissions: [
+          .writeToPackageDirectory(reason: "Builds and archives releases.")
+        ]
+      ),
+
+      dependencies: [
+        "ReleaseTools"
+      ]
+    ),
+
     .testTarget(
       name: "ReleaseToolsTests",
-      dependencies: ["ReleaseTools", "XCTestExtensions"]
+      dependencies: ["ReleaseTools"]
     ),
   ]
 )
