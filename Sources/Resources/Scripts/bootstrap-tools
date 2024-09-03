@@ -36,7 +36,7 @@ fi
 
 set -euo pipefail  # (add an x to flags to enable debugging)
 
-LOCALTOOLS="$PWD/../ReleaseTools"
+LOCALTOOLS="$PWD/../ReleaseTools-disabled" # TODO: re-enable this when we have a stable release
 if [[ -e "$LOCALTOOLS" ]]
 then
     RT="$LOCALTOOLS/.build/debug/rt"
@@ -65,13 +65,13 @@ then
         else
             pushd "$RTSRC" > /dev/null
             git fetch
-            git checkout main
+            git checkout swift6 # TODO: change back to main when we have a stable release
             git pull
         fi
         echo "Updating release tools."
     fi
 
-    swift run builder build ..
+    swift run rt --version
     popd > /dev/null
     "$RT" bootstrap
 fi
