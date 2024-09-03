@@ -1,88 +1,87 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "Builder",
-        "repositoryURL": "https://github.com/elegantchaos/Builder.git",
-        "state": {
-          "branch": null,
-          "revision": "2c62722be9ed28035242a05f6abcc154a514ca9e",
-          "version": "1.2.3"
-        }
-      },
-      {
-        "package": "BuilderConfiguration",
-        "repositoryURL": "https://github.com/elegantchaos/BuilderConfiguration.git",
-        "state": {
-          "branch": null,
-          "revision": "c21cebac262244d920894bba2351ff65c1378bf2",
-          "version": "1.1.5"
-        }
-      },
-      {
-        "package": "Coercion",
-        "repositoryURL": "https://github.com/elegantchaos/Coercion.git",
-        "state": {
-          "branch": null,
-          "revision": "df699ebd4707bcfd99fcad4b9f6c09ddc1208af9",
-          "version": "1.1.3"
-        }
-      },
-      {
-        "package": "Files",
-        "repositoryURL": "https://github.com/elegantchaos/Files.git",
-        "state": {
-          "branch": null,
-          "revision": "ccb417b5b4f2d473964594a7c906a50a62c8530c",
-          "version": "1.2.2"
-        }
-      },
-      {
-        "package": "Logger",
-        "repositoryURL": "https://github.com/elegantchaos/Logger.git",
-        "state": {
-          "branch": null,
-          "revision": "a5cfb4ede43a0f4782afb2aea3175a04f206efcf",
-          "version": "1.8.1"
-        }
-      },
-      {
-        "package": "Matchable",
-        "repositoryURL": "https://github.com/elegantchaos/Matchable.git",
-        "state": {
-          "branch": null,
-          "revision": "d53e807009960aafbd54f6229c2542f906628b38",
-          "version": "1.0.7"
-        }
-      },
-      {
-        "package": "Runner",
-        "repositoryURL": "https://github.com/elegantchaos/Runner.git",
-        "state": {
-          "branch": null,
-          "revision": "65420eb4e534a58c8fb1bf18e344bc86edb42c65",
-          "version": "1.3.2"
-        }
-      },
-      {
-        "package": "swift-argument-parser",
-        "repositoryURL": "https://github.com/apple/swift-argument-parser",
-        "state": {
-          "branch": null,
-          "revision": "6b2aa2748a7881eebb9f84fb10c01293e15b52ca",
-          "version": "0.5.0"
-        }
-      },
-      {
-        "package": "XCTestExtensions",
-        "repositoryURL": "https://github.com/elegantchaos/XCTestExtensions.git",
-        "state": {
-          "branch": null,
-          "revision": "39694671be8bea1ab0bbd87114705b2a92567a8e",
-          "version": "1.5.0"
-        }
+  "originHash" : "4d3ddef0a76a3d4887a7b1677ec1f57b4271269d4b2cc37d8e19d1226c12928f",
+  "pins" : [
+    {
+      "identity" : "chaosbytestreams",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/ChaosByteStreams",
+      "state" : {
+        "revision" : "bb2be531b8b3d1410ba6b40a860b6bf8060e8fa3",
+        "version" : "1.0.0"
       }
-    ]
-  },
-  "version": 1
+    },
+    {
+      "identity" : "coercion",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/Coercion.git",
+      "state" : {
+        "revision" : "df699ebd4707bcfd99fcad4b9f6c09ddc1208af9",
+        "version" : "1.1.3"
+      }
+    },
+    {
+      "identity" : "files",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/Files.git",
+      "state" : {
+        "revision" : "ccb417b5b4f2d473964594a7c906a50a62c8530c",
+        "version" : "1.2.2"
+      }
+    },
+    {
+      "identity" : "logger",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/Logger.git",
+      "state" : {
+        "revision" : "a5cfb4ede43a0f4782afb2aea3175a04f206efcf",
+        "version" : "1.8.1"
+      }
+    },
+    {
+      "identity" : "matchable",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/Matchable.git",
+      "state" : {
+        "revision" : "d53e807009960aafbd54f6229c2542f906628b38",
+        "version" : "1.0.7"
+      }
+    },
+    {
+      "identity" : "runner",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/Runner.git",
+      "state" : {
+        "revision" : "4695591be15ed365323fb0b130bd21545f0aa91e",
+        "version" : "2.0.6"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "41982a3656a71c768319979febd796c6fd111d5c",
+        "version" : "1.5.0"
+      }
+    },
+    {
+      "identity" : "versionator",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/Versionator.git",
+      "state" : {
+        "revision" : "6d1cdddce7990f660c4f3b96c5a24be8dcce9007",
+        "version" : "2.0.2"
+      }
+    },
+    {
+      "identity" : "xctestextensions",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/XCTestExtensions.git",
+      "state" : {
+        "revision" : "39694671be8bea1ab0bbd87114705b2a92567a8e",
+        "version" : "1.5.0"
+      }
+    }
+  ],
+  "version" : 3
 }
