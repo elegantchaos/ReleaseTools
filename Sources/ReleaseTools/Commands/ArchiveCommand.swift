@@ -5,6 +5,7 @@
 
 import ArgumentParser
 import Foundation
+import Runner
 
 struct WorkspaceSpec: Decodable {
   let name: String
@@ -56,7 +57,7 @@ struct ArchiveCommand: AsyncParsableCommand {
     let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
     let build = try await UpdateBuildCommand.generateHeader(
       parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)
-    parsed.log("Archiving scheme \(parsed.scheme).")
+    parsed.log("Archiving scheme \(parsed.scheme)...")
 
     let xcode = XCodeBuildRunner(parsed: parsed)
     var args = [
@@ -80,7 +81,10 @@ struct ArchiveCommand: AsyncParsableCommand {
       break
     }
 
-    let result = try xcode.run(args)
+    let outMode: Runner.Mode = parsed.verbose ? .forward : .capture
+    let errMode: Runner.Mode = parsed.verbose ? .both : .capture
+    let result = try xcode.run(args, stdoutMode: .capture, stderrMode: errMode)
     try await result.throwIfFailed(ArchiveError.archiveFailed(await String(result.stderr)))
+    parsed.log("Archived scheme \(parsed.scheme).")
   }
 }

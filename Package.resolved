@@ -1,15 +1,6 @@
 {
-  "originHash" : "0e13796fea18482095d6b7051cfd8bbbc4bb68f91fcdf7f0434eb18b18a1c116",
+  "originHash" : "ca7a99771d4d7141601704ce3004c64b6a89115f3b921a03ff7d4f6155cde63d",
   "pins" : [
-    {
-      "identity" : "chaosbytestreams",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/elegantchaos/ChaosByteStreams",
-      "state" : {
-        "revision" : "bb2be531b8b3d1410ba6b40a860b6bf8060e8fa3",
-        "version" : "1.0.0"
-      }
-    },
     {
       "identity" : "coercion",
       "kind" : "remoteSourceControl",
@@ -42,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/Runner.git",
       "state" : {
-        "revision" : "223dacb837a655634eb38900bd731bd05ee1ba42",
-        "version" : "2.0.5"
+        "revision" : "4695591be15ed365323fb0b130bd21545f0aa91e",
+        "version" : "2.0.6"
       }
     },
     {
