@@ -8,19 +8,9 @@ import Foundation
 import Logger
 import Runner
 
-// class Shell {
-//   var semaphore: DispatchSemaphore? = nil
-//   var error: Error? = nil
-//   var showOutput: Bool = false
-
-//   func log(_ message: String) {
-//     print(message)
-//   }
-
-// }
-
-// let sharedShell = Shell()
-
+/// Root command that's run if no subcommand is specified.
+///
+/// Handles the `--version` flag, or shows the help if no arguments are provided.
 @main
 struct RootCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
@@ -57,16 +47,23 @@ struct RootCommand: AsyncParsableCommand {
     } else {
       throw CleanExit.helpRequest(self)
     }
-    Logger.defaultManager.flush()
+  }
+
+  /// Main entrypoint.
+  /// Note that this is overridden from the default implementation in `AsyncParsableCommand`,
+  /// to allow us to flush the log after running the command.
+  public static func main(_ arguments: [String]?) async {
+    do {
+      var command = try parseAsRoot(arguments)
+      if var asyncCommand = command as? AsyncParsableCommand {
+        try await asyncCommand.run()
+      } else {
+        try command.run()
+        Manager.shared.flush()
+      }
+    } catch {
+      Manager.shared.flush()
+      exit(withError: error)
+    }
   }
 }
-
-// do {
-//   var command = try Command.parseAsRoot()
-//   try command.run()
-//   Logger.defaultManager.flush()
-//   Command.exit()
-// } catch {
-//   Logger.defaultManager.flush()
-//   Command.exit(withError: error)
-// }
