@@ -8,13 +8,22 @@ import Foundation
 import Runner
 
 enum UploadError: Error {
-  case uploadingFailed
   case savingUploadReceiptFailed(Error)
 
   public var description: String {
     switch self {
-    case .uploadingFailed: return "Uploading failed."
-    case .savingUploadReceiptFailed(let error): return "Saving upload receipt failed.\n\(error)"
+      case .savingUploadReceiptFailed(let error): return "Saving upload receipt failed.\n\(error)"
+    }
+  }
+}
+
+enum UploadRunnerError: RunnerError {
+  case uploadingFailed
+
+  func description(for session: Runner.Session) async -> String {
+    async let stderr = String(session.stderr)
+    switch self {
+      case .uploadingFailed: return "Uploading failed.\n\(await stderr)"
     }
   }
 }
@@ -67,7 +76,7 @@ struct UploadCommand: AsyncParsableCommand {
       ])
     }
 
-    try await uploadResult.throwIfFailed(UploadError.uploadingFailed)
+    try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
 
     parsed.log("Finished uploading.")
     do {

@@ -1,5 +1,5 @@
 {
-  "originHash" : "92178e92fabf6a8864901844cc48754f97a15bf30fdb9c05fdab9f08af800e57",
+  "originHash" : "e5a8a0c5504f820e0bf8dbbd92ac72ff05ef8f1a3d78f18b21a465ed1b9d1fe2",
   "pins" : [
     {
       "identity" : "chaosbytestreams",
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/Runner.git",
       "state" : {
-        "revision" : "31c1b80190630f7887eb1a0442c9618cbaad7d17",
-        "version" : "2.0.9"
+        "revision" : "8034c25c136733d25da0c10f1ff27f1cecd1ab7a",
+        "version" : "2.0.10"
       }
     },
     {

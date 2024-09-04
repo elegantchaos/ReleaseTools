@@ -20,7 +20,6 @@ enum ArchiveError: RunnerError {
   case archiveFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stdout = String(session.stdout)
     async let stderr = String(session.stderr)
     switch self {
       case .archiveFailed: return "Archiving failed.\n\n\(await stderr)"

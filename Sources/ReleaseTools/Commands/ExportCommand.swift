@@ -5,15 +5,25 @@
 
 import ArgumentParser
 import Foundation
+import Runner
 
 enum ExportError: Error {
-  case exportFailed
   case writingOptionsFailed(Error)
 
   public var description: String {
     switch self {
-    case .exportFailed: return "Exporting failed."
-    case .writingOptionsFailed(let error): return "Writing export options file failed.\n\(error)"
+      case .writingOptionsFailed(let error): return "Writing export options file failed.\n\(error)"
+    }
+  }
+}
+
+enum ExportRunnerError: RunnerError {
+  case exportFailed
+
+  func description(for session: Runner.Session) async -> String {
+    async let stderr = String(session.stderr)
+    switch self {
+      case .exportFailed: return "Exporting failed.\n\(await stderr)"
     }
   }
 }
@@ -67,6 +77,6 @@ struct ExportCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
     ])
 
-    try await result.throwIfFailed(ExportError.exportFailed)
+    try await result.throwIfFailed(ExportRunnerError.exportFailed)
   }
 }

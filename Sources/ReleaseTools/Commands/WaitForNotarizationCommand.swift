@@ -9,30 +9,40 @@ import Foundation
 import Runner
 
 enum WaitForNotarizationError: Error {
-  case fetchingNotarizationStatusFailed
   case fetchingNotarizationStatusThrew(Error)
-  case loadingNotarizationReceiptFailed
   case notarizationFailed(String)
-  case exportingNotarizedAppFailed
   case exportingNotarizedAppThrew(Error)
   case missingArchive
+  case loadingNotarizationReceiptFailed
 
   public var description: String {
     switch self {
-    case .fetchingNotarizationStatusFailed:
-      return "Fetching notarization status failed."
-    case .fetchingNotarizationStatusThrew(let error):
-      return "Fetching notarization status failed.\n\(error)"
-    case .loadingNotarizationReceiptFailed: return "Loading notarization receipt failed."
-    case .notarizationFailed: return "Notarization failed."
-    case .exportingNotarizedAppFailed:
-      return "Exporting notarized app failed."
-    case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
-    case .missingArchive: return "Exporting notarized app couldn't find archive."
+      case .fetchingNotarizationStatusThrew(let error):
+        return "Fetching notarization status failed.\n\(error)"
+      case .notarizationFailed:
+        return "Notarization failed."
+      case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
+      case .missingArchive: return "Exporting notarized app couldn't find archive."
+      case .loadingNotarizationReceiptFailed:
+        return "Loading notarization receipt failed."
     }
   }
 }
 
+enum WaitForNotarizationRunnerError: RunnerError {
+  case fetchingNotarizationStatusFailed
+  case exportingNotarizedAppFailed
+
+  func description(for session: Runner.Session) async -> String {
+    async let stderr = String(session.stderr)
+    switch self {
+      case .fetchingNotarizationStatusFailed:
+        return "Fetching notarization status failed.\n\(await stderr)"
+      case .exportingNotarizedAppFailed:
+        return "Exporting notarized app failed.\n\(await stderr)"
+    }
+  }
+}
 struct WaitForNotarizationCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -110,7 +120,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
         try? fm.copyItem(at: parsed.exportedAppURL, to: stapledAppURL)
         let xcrun = XCRunRunner(parsed: parsed)
         let result = try xcrun.run(["stapler", "staple", stapledAppURL.path])
-        try await result.throwIfFailed(WaitForNotarizationError.exportingNotarizedAppFailed)
+        try await result.throwIfFailed(WaitForNotarizationRunnerError.exportingNotarizedAppFailed)
       } else {
         throw WaitForNotarizationError.missingArchive
       }
@@ -125,7 +135,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       "altool", "--notarization-info", request, "--username", parsed.user, "--password",
       "@keychain:AC_PASSWORD", "--output-format", "xml",
     ])
-    try await result.throwIfFailed(WaitForNotarizationError.fetchingNotarizationStatusFailed)
+    try await result.throwIfFailed(WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed)
 
     parsed.log("Received response.")
     let data = await Data(result.stdout)

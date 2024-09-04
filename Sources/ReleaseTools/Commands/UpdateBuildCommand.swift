@@ -10,19 +10,19 @@ import Foundation
 import Resources
 import Runner
 
-enum UpdateBuildError: Error {
+enum UpdateBuildError: RunnerError {
   case gettingBuildFailed
   case gettingCommitFailed
   case writingConfigFailed
   case updatingIndexFailed
 
-  public var description: String {
+  func description(for session: Runner.Session) async -> String {
+    async let stderr = String(session.stderr)
     switch self {
-    case .gettingBuildFailed:
-      return "Failed to get the build number from git."
-    case .gettingCommitFailed: return "Failed to get the commit from git."
-    case .writingConfigFailed: return "Failed to write the config file."
-    case .updatingIndexFailed: return "Failed to tell git to ignore the config file."
+      case .gettingBuildFailed: return "Failed to get the build number from git.\n\n\(await stderr)"
+      case .gettingCommitFailed: return "Failed to get the commit from git.\n\n\(await stderr)"
+      case .writingConfigFailed: return "Failed to write the config file.\n\n\(await stderr)"
+      case .updatingIndexFailed: return "Failed to tell git to ignore the config file.\n\n\(await stderr)"
     }
   }
 }

@@ -7,25 +7,32 @@ import ArgumentParser
 import Foundation
 import Runner
 
-enum AppcastError: Error, CustomStringConvertible {
-  case buildAppcastGeneratorFailed
-  case appcastGeneratorFailed
-  case keyGenerationFailed
-  case keyImportFailed
+enum GenerationError: Error, CustomStringConvertible {
   case generatedKeys(_ name: String)
 
   public var description: String {
     switch self {
-    case .buildAppcastGeneratorFailed:
-      return "Failed to build the generate_appcast tool."
-    case .appcastGeneratorFailed: return "Failed to generate the appcast."
-    case .keyGenerationFailed: return "Failed to generate appcast keys."
-    case .keyImportFailed: return "Failed to import appcast keys."
-    case .generatedKeys(let name):
-      return """
-        The appcast private key was missing, so we've generated one.
-        Open the keychain, rename the key `Imported Private Key` as `\(name)`, then try running this command again.
-        """
+      case .generatedKeys(let name):
+        return """
+          The appcast private key was missing, so we've generated one.
+          Open the keychain, rename the key `Imported Private Key` as `\(name)`, then try running this command again.
+          """
+    }
+  }
+}
+enum AppcastError: RunnerError {
+  case buildAppcastGeneratorFailed
+  case appcastGeneratorFailed
+  case keyGenerationFailed
+  case keyImportFailed
+
+  func description(for session: Runner.Session) async -> String {
+    async let stderr = String(session.stderr)
+    switch self {
+      case .buildAppcastGeneratorFailed: return "Failed to build the generate_appcast tool.\n\n\(await stderr)"
+      case .appcastGeneratorFailed: return "Failed to generate the appcast.\n\n\(await stderr)"
+      case .keyGenerationFailed: return "Failed to generate appcast keys.\n\n\(await stderr)"
+      case .keyImportFailed: return "Failed to import appcast keys.\n\n\(await stderr)"
     }
   }
 }
@@ -76,6 +83,9 @@ struct AppcastCommand: AsyncParsableCommand {
 
     let generator = Runner(for: URL(fileURLWithPath: ".build/Release/generate_appcast"))
     let genResult = try generator.run(["-n", keyName, "-k", keyChainPath, updates.path])
+
+    try await genResult.throwIfFailed(!(await String(genResult.stdout)).contains("Unable to load DSA private key") ? AppcastError.appcastGeneratorFailed : nil)
+
     for await state in genResult.state {
       if state != .succeeded {
         let output = await String(genResult.stdout)
@@ -109,7 +119,7 @@ struct AppcastCommand: AsyncParsableCommand {
 
       try? fm.removeItem(at: rootURL.appendingPathComponent("dsa_priv.pem"))
 
-      throw AppcastError.generatedKeys(keyName)
+      throw GenerationError.generatedKeys(keyName)
     }
 
     try? fm.removeItem(at: updates.url.appendingPathComponent(".tmp"))
