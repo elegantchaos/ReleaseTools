@@ -3,11 +3,12 @@
     {
       "type": "swift-lldb",
       "request": "launch",
-      "sourceLanguages": [
-        "swift"
+      "args": [
+        "archive",
+        "--platform=macOS",
+        "--verbose"
       ],
-      "args": [],
-      "cwd": "${workspaceFolder:ReleaseTools}",
+      "cwd": "${workspaceFolder:ReleaseTools}/../stack/",
       "name": "Debug rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt"
@@ -15,38 +16,11 @@
     {
       "type": "swift-lldb",
       "request": "launch",
-      "sourceLanguages": [
-        "swift"
-      ],
       "args": [],
       "cwd": "${workspaceFolder:ReleaseTools}",
       "name": "Release rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/release/rt",
       "preLaunchTask": "swift: Build Release rt"
     },
-    {
-      "type": "swift-lldb",
-      "request": "launch",
-      "sourceLanguages": [
-        "swift"
-      ],
-      "args": [],
-      "cwd": "${workspaceFolder:ReleaseTools}",
-      "name": "Debug Configure",
-      "program": "${workspaceFolder:ReleaseTools}/.build/debug/Configure",
-      "preLaunchTask": "swift: Build Debug Configure"
-    },
-    {
-      "type": "swift-lldb",
-      "request": "launch",
-      "sourceLanguages": [
-        "swift"
-      ],
-      "args": [],
-      "cwd": "${workspaceFolder:ReleaseTools}",
-      "name": "Release Configure",
-      "program": "${workspaceFolder:ReleaseTools}/.build/release/Configure",
-      "preLaunchTask": "swift: Build Release Configure"
-    }
   ]
 }
