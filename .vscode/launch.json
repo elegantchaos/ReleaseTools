@@ -3,12 +3,8 @@
     {
       "type": "swift-lldb",
       "request": "launch",
-      "args": [
-        "archive",
-        "--platform=macOS",
-        "--verbose"
-      ],
-      "cwd": "${workspaceFolder:ReleaseTools}/../stack/",
+      "args": [],
+      "cwd": "${workspaceFolder:ReleaseTools}",
       "name": "Debug rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt"
@@ -21,6 +17,19 @@
       "name": "Release rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/release/rt",
       "preLaunchTask": "swift: Build Release rt"
+    },
+    {
+      "type": "swift-lldb",
+      "request": "launch",
+      "args": [
+        "archive",
+        "--platform=macOS",
+        "--show-output"
+      ],
+      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
+      "name": "Debug -- Stack",
+      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
+      "preLaunchTask": "swift: Build Debug rt"
     },
   ]
 }

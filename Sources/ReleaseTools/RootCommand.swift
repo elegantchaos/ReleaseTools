@@ -66,4 +66,8 @@ struct RootCommand: AsyncParsableCommand {
       exit(withError: error)
     }
   }
+
+  /// Error label - adds some extra newlines to separate the error message from the rest of the output.
+  public static var _errorLabel: String { "\n\nError" }
+
 }
