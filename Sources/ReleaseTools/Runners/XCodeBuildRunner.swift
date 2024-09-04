@@ -30,7 +30,7 @@ class XCodeBuildRunner: Runner {
     return []
   }
 
-  func run(_ arguments: [String]) throws -> RunningProcess {
+  func run(_ arguments: [String]) throws -> Session {
     if parsed.showOutput {
       parsed.log("xcodebuild " + arguments.joined(separator: " "))
     }

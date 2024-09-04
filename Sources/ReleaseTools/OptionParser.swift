@@ -15,7 +15,7 @@ enum GeneralError: Error, CustomStringConvertible, Sendable {
   case apiKeyAndIssuer
   case userOrApiKey
   case noDefaultScheme(_ platform: String)
-  case taggingFailed(_ result: Runner.RunningProcess)
+  case taggingFailed
 
   public var description: String {
     switch self {
@@ -23,7 +23,7 @@ enum GeneralError: Error, CustomStringConvertible, Sendable {
 
     case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
 
-    case .taggingFailed(let result): return "Tagging failed.\n\(result)"
+    case .taggingFailed: return "Tagging failed."
 
     case .noDefaultUser:
       return """

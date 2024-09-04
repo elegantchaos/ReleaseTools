@@ -13,7 +13,7 @@ class XCRunRunner: Runner {
     super.init(command: "xcrun")
   }
 
-  func run(_ arguments: [String]) throws -> RunningProcess {
+  func run(_ arguments: [String]) throws -> Session {
     if parsed.showOutput {
       parsed.log("xcrun " + arguments.joined(separator: " "))
     }
