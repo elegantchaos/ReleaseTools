@@ -9,24 +9,24 @@ import Foundation
 import Runner
 
 enum WaitForNotarizationError: Error {
-  case fetchingNotarizationStatusFailed(_ result: Runner.RunningProcess)
-  case fetchingNotarizationStatusThrew(_ error: Error)
+  case fetchingNotarizationStatusFailed
+  case fetchingNotarizationStatusThrew(Error)
   case loadingNotarizationReceiptFailed
-  case notarizationFailed(_ output: String)
-  case exportingNotarizedAppFailed(_ result: Runner.RunningProcess)
-  case exportingNotarizedAppThrew(_ error: Error)
+  case notarizationFailed(String)
+  case exportingNotarizedAppFailed
+  case exportingNotarizedAppThrew(Error)
   case missingArchive
 
   public var description: String {
     switch self {
-    case .fetchingNotarizationStatusFailed(let result):
-      return "Fetching notarization status failed.\n\(result)"
+    case .fetchingNotarizationStatusFailed:
+      return "Fetching notarization status failed."
     case .fetchingNotarizationStatusThrew(let error):
       return "Fetching notarization status failed.\n\(error)"
     case .loadingNotarizationReceiptFailed: return "Loading notarization receipt failed."
-    case .notarizationFailed(let output): return "Notarization failed.\n\(output)"
-    case .exportingNotarizedAppFailed(let result):
-      return "Exporting notarized app failed.\n\(result)"
+    case .notarizationFailed: return "Notarization failed."
+    case .exportingNotarizedAppFailed:
+      return "Exporting notarized app failed."
     case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
     case .missingArchive: return "Exporting notarized app couldn't find archive."
     }
@@ -82,7 +82,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     let tagResult = try git.run([
       "tag", parsed.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
     ])
-    try await tagResult.throwIfFailed(GeneralError.taggingFailed(tagResult))
+    try await tagResult.throwIfFailed(GeneralError.taggingFailed)
   }
 
   func savedNotarizationReceipt(parsed: OptionParser) -> String? {
@@ -110,7 +110,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
         try? fm.copyItem(at: parsed.exportedAppURL, to: stapledAppURL)
         let xcrun = XCRunRunner(parsed: parsed)
         let result = try xcrun.run(["stapler", "staple", stapledAppURL.path])
-        try await result.throwIfFailed(WaitForNotarizationError.exportingNotarizedAppFailed(result))
+        try await result.throwIfFailed(WaitForNotarizationError.exportingNotarizedAppFailed)
       } else {
         throw WaitForNotarizationError.missingArchive
       }
@@ -125,7 +125,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       "altool", "--notarization-info", request, "--username", parsed.user, "--password",
       "@keychain:AC_PASSWORD", "--output-format", "xml",
     ])
-    try await result.throwIfFailed(WaitForNotarizationError.fetchingNotarizationStatusFailed(result))
+    try await result.throwIfFailed(WaitForNotarizationError.fetchingNotarizationStatusFailed)
 
     parsed.log("Received response.")
     let data = await Data(result.stdout)

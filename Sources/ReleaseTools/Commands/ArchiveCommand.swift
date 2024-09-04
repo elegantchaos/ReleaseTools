@@ -16,12 +16,14 @@ struct SchemesSpec: Decodable {
   let workspace: WorkspaceSpec
 }
 
-enum ArchiveError: Error {
-  case archiveFailed(_ output: String)
+enum ArchiveError: RunnerError {
+  case archiveFailed
 
-  public var description: String {
+  func description(for session: Runner.Session) async -> String {
+    async let stdout = String(session.stdout)
+    async let stderr = String(session.stderr)
     switch self {
-    case .archiveFailed(let output): return "Archiving failed.\n\(output)"
+      case .archiveFailed: return "Archiving failed.\n\n\(await stderr)"
     }
   }
 }
@@ -51,8 +53,6 @@ struct ArchiveCommand: AsyncParsableCommand {
   }
 
   static func archive(parsed: OptionParser, xcconfig: String? = nil) async throws {
-    parsed.showOutput = true  // TEMPORARY OVERRIDE THE OPTION BECAUSE WE HANG WITHOUT IT
-
     parsed.log("Updating Version Info")
     let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
     let build = try await UpdateBuildCommand.generateHeader(
@@ -71,20 +71,20 @@ struct ArchiveCommand: AsyncParsableCommand {
     }
 
     switch parsed.platform {
-    case "iOS":
-      args.append(contentsOf: ["-destination", "generic/platform=iOS"])
-    case "tvOS":
-      args.append(contentsOf: ["-destination", "generic/platform=tvOS"])
-    case "watchOS":
-      args.append(contentsOf: ["-destination", "generic/platform=watchOS"])
-    default:
-      break
+      case "iOS":
+        args.append(contentsOf: ["-destination", "generic/platform=iOS"])
+      case "tvOS":
+        args.append(contentsOf: ["-destination", "generic/platform=tvOS"])
+      case "watchOS":
+        args.append(contentsOf: ["-destination", "generic/platform=watchOS"])
+      default:
+        break
     }
 
-    let outMode: Runner.Mode = parsed.verbose ? .forward : .capture
-    let errMode: Runner.Mode = parsed.verbose ? .both : .capture
-    let result = try xcode.run(args, stdoutMode: .capture, stderrMode: errMode)
-    try await result.throwIfFailed(ArchiveError.archiveFailed(await String(result.stderr)))
+    let outMode: Runner.Mode = parsed.showOutput ? .both : .capture
+    let errMode: Runner.Mode = parsed.showOutput ? .both : .capture
+    let result = try xcode.run(args, stdoutMode: outMode, stderrMode: errMode)
+    try await result.throwIfFailed(ArchiveError.archiveFailed)
     parsed.log("Archived scheme \(parsed.scheme).")
   }
 }

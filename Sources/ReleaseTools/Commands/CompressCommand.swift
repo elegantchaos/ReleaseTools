@@ -8,11 +8,11 @@ import Foundation
 import Runner
 
 enum CompressError: Error {
-  case compressFailed(_ output: String)
+  case compressFailed
 
   public var description: String {
     switch self {
-    case .compressFailed(let output): return "Compressing failed.\n\(output)"
+    case .compressFailed: return "Compressing failed."
     }
   }
 }
@@ -45,7 +45,7 @@ struct CompressCommand: AsyncParsableCommand {
     let destination = updates.url.appendingPathComponent(parsed.archive.versionedZipName)
 
     let result = try ditto.zip(stapledAppURL, as: destination)
-    try await result.throwIfFailed(CompressError.compressFailed(await String(result.stderr)))
+    try await result.throwIfFailed(CompressError.compressFailed)
 
     parsed.log(
       "Saving copy of archive to \(website.websiteURL.path) as \(parsed.archive.unversionedZipName)."

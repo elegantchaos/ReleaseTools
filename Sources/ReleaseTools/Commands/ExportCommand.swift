@@ -7,12 +7,12 @@ import ArgumentParser
 import Foundation
 
 enum ExportError: Error {
-  case exportFailed(_ output: String)
-  case writingOptionsFailed(_ output: Error)
+  case exportFailed
+  case writingOptionsFailed(Error)
 
   public var description: String {
     switch self {
-    case .exportFailed(let output): return "Exporting failed.\n\(output)"
+    case .exportFailed: return "Exporting failed."
     case .writingOptionsFailed(let error): return "Writing export options file failed.\n\(error)"
     }
   }
@@ -67,6 +67,6 @@ struct ExportCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
     ])
 
-    try await result.throwIfFailed(ExportError.exportFailed(await String(result.stderr)))
+    try await result.throwIfFailed(ExportError.exportFailed)
   }
 }

@@ -8,19 +8,19 @@ import Foundation
 import Runner
 
 enum AppcastError: Error, CustomStringConvertible {
-  case buildAppcastGeneratorFailed(_ output: String)
-  case appcastGeneratorFailed(_ result: Runner.RunningProcess)
-  case keyGenerationFailed(_ result: Runner.RunningProcess)
-  case keyImportFailed(_ result: Runner.RunningProcess)
+  case buildAppcastGeneratorFailed
+  case appcastGeneratorFailed
+  case keyGenerationFailed
+  case keyImportFailed
   case generatedKeys(_ name: String)
 
   public var description: String {
     switch self {
-    case .buildAppcastGeneratorFailed(let output):
-      return "Failed to build the generate_appcast tool.\n\(output)"
-    case .appcastGeneratorFailed(let result): return "Failed to generate the appcast.\n\(result)"
-    case .keyGenerationFailed(let result): return "Failed to generate appcast keys.\n\(result)"
-    case .keyImportFailed(let result): return "Failed to import appcast keys.\n\(result)"
+    case .buildAppcastGeneratorFailed:
+      return "Failed to build the generate_appcast tool."
+    case .appcastGeneratorFailed: return "Failed to generate the appcast."
+    case .keyGenerationFailed: return "Failed to generate appcast keys."
+    case .keyImportFailed: return "Failed to import appcast keys."
     case .generatedKeys(let name):
       return """
         The appcast private key was missing, so we've generated one.
@@ -68,7 +68,7 @@ struct AppcastCommand: AsyncParsableCommand {
       "build", "-workspace", parsed.workspace, "-scheme", "generate_appcast",
       "BUILD_DIR=\(buildURL.path)",
     ])
-    try await result.throwIfFailed(AppcastError.buildAppcastGeneratorFailed(await String(result.stderr)))
+    try await result.throwIfFailed(AppcastError.buildAppcastGeneratorFailed)
 
     let workspaceName = URL(fileURLWithPath: parsed.workspace).deletingPathExtension()
       .lastPathComponent
@@ -80,7 +80,7 @@ struct AppcastCommand: AsyncParsableCommand {
       if state != .succeeded {
         let output = await String(genResult.stdout)
         if !output.contains("Unable to load DSA private key") {
-          throw AppcastError.appcastGeneratorFailed(genResult)
+          throw AppcastError.appcastGeneratorFailed
         }
       }
 
@@ -88,7 +88,7 @@ struct AppcastCommand: AsyncParsableCommand {
 
       let keygen = Runner(for: URL(fileURLWithPath: "Dependencies/Sparkle/bin/generate_keys"))
       let keygenResult = try keygen.run([])
-      try await keygenResult.throwIfFailed(AppcastError.keyGenerationFailed(keygenResult))
+      try await keygenResult.throwIfFailed(AppcastError.keyGenerationFailed)
 
       parsed.log("Importing Key.")
 
@@ -96,7 +96,7 @@ struct AppcastCommand: AsyncParsableCommand {
       let importResult = try security.run([
         "import", "dsa_priv.pem", "-a", "labl", "\(parsed.scheme) Sparkle Key",
       ])
-      try await importResult.throwIfFailed(AppcastError.keyImportFailed(importResult))
+      try await importResult.throwIfFailed(AppcastError.keyImportFailed)
 
       parsed.log("Moving Public Key.")
 

@@ -8,12 +8,12 @@ import Foundation
 import Runner
 
 enum UploadError: Error {
-  case uploadingFailed(_ result: Runner.RunningProcess)
-  case savingUploadReceiptFailed(_ error: Error)
+  case uploadingFailed
+  case savingUploadReceiptFailed(Error)
 
   public var description: String {
     switch self {
-    case .uploadingFailed(let result): return "Uploading failed.\n\(result)"
+    case .uploadingFailed: return "Uploading failed."
     case .savingUploadReceiptFailed(let error): return "Saving upload receipt failed.\n\(error)"
     }
   }
@@ -52,7 +52,7 @@ struct UploadCommand: AsyncParsableCommand {
   static func upload(parsed: OptionParser) async throws {
     parsed.log("Uploading \(parsed.versionTag) to Apple Connect.")
     let xcrun = XCRunRunner(parsed: parsed)
-    let uploadResult: Runner.RunningProcess
+    let uploadResult: Runner.Session
     if parsed.apiKey.isEmpty {
       // use username & password
       uploadResult = try xcrun.run([
@@ -67,7 +67,7 @@ struct UploadCommand: AsyncParsableCommand {
       ])
     }
 
-    try await uploadResult.throwIfFailed(UploadError.uploadingFailed(uploadResult))
+    try await uploadResult.throwIfFailed(UploadError.uploadingFailed)
 
     parsed.log("Finished uploading.")
     do {
@@ -83,6 +83,6 @@ struct UploadCommand: AsyncParsableCommand {
     let tagResult = try git.run([
       "tag", parsed.versionTag, "-m", "Uploaded with \(CommandLine.name)",
     ])
-    try await tagResult.throwIfFailed(GeneralError.taggingFailed(tagResult))
+    try await tagResult.throwIfFailed(GeneralError.taggingFailed)
   }
 }

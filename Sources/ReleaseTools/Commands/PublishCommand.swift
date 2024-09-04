@@ -8,14 +8,14 @@ import Foundation
 import Runner
 
 enum PublishError: Error {
-  case commitFailed(_ result: Runner.RunningProcess)
-  case pushFailed(_ result: Runner.RunningProcess)
+  case commitFailed
+  case pushFailed
 
   public var description: String {
     switch self {
-    case .commitFailed(let result):
-      return "Failed to commit the appcast feed and updates.\n\(result)"
-    case .pushFailed(let result): return "Failed to push the appcast feed and updates.\n\(result)"
+    case .commitFailed:
+      return "Failed to commit the appcast feed and updates."
+    case .pushFailed: return "Failed to push the appcast feed and updates."
     }
   }
 }
@@ -46,14 +46,14 @@ struct PublishCommand: AsyncParsableCommand {
 
     parsed.log("Committing updates.")
     var result = try git.run(["add", updates.path])
-    try await result.throwIfFailed(PublishError.commitFailed(result))
+    try await result.throwIfFailed(PublishError.commitFailed)
 
     let message = "v\(parsed.archive.version), build \(parsed.archive.build)"
     result = try git.run(["commit", "-a", "-m", message])
-    try await result.throwIfFailed(PublishError.commitFailed(result))
+    try await result.throwIfFailed(PublishError.commitFailed)
 
     parsed.log("Pushing updates.")
     let pushResult = try git.run(["push"])
-    try await pushResult.throwIfFailed(PublishError.pushFailed(pushResult))
+    try await pushResult.throwIfFailed(PublishError.pushFailed)
   }
 }

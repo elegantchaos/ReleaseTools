@@ -11,19 +11,18 @@ import Resources
 import Runner
 
 enum UpdateBuildError: Error {
-  case gettingBuildFailed(_ result: Runner.RunningProcess)
-  case gettingCommitFailed(_ result: Runner.RunningProcess)
+  case gettingBuildFailed
+  case gettingCommitFailed
   case writingConfigFailed
-  case updatingIndexFailed(_ result: Runner.RunningProcess)
+  case updatingIndexFailed
 
   public var description: String {
     switch self {
-    case .gettingBuildFailed(let result):
-      return "Failed to get the build number from git.\n\(result)"
-    case .gettingCommitFailed(let result): return "Failed to get the commit from git.\n\(result)"
+    case .gettingBuildFailed:
+      return "Failed to get the build number from git."
+    case .gettingCommitFailed: return "Failed to get the commit from git."
     case .writingConfigFailed: return "Failed to write the config file."
-    case .updatingIndexFailed(let result):
-      return "Failed to tell git to ignore the config file.\n\(result)"
+    case .updatingIndexFailed: return "Failed to tell git to ignore the config file."
     }
   }
 }
@@ -64,12 +63,12 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     chdir(url.path)
 
     var result = try git.run(["rev-list", "--count", "HEAD"])
-    try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed(result))
+    try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
 
     let build = await String(result.stdout).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
     result = try git.run(["rev-list", "--max-count", "1", "HEAD"])
-    try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed(result))
+    try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
     let commit = await String(result.stdout).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
     return (build, commit)
@@ -146,7 +145,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
       }
 
       let result = try git.run(["update-index", "--assume-unchanged", configURL.path])
-      try await result.throwIfFailed(UpdateBuildError.updatingIndexFailed(result))
+      try await result.throwIfFailed(UpdateBuildError.updatingIndexFailed)
     }
   }
 }
