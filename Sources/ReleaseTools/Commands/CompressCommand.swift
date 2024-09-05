@@ -45,7 +45,7 @@ struct CompressCommand: AsyncParsableCommand {
     let ditto = DittoRunner(parsed: parsed)
     let destination = updates.url.appendingPathComponent(parsed.archive.versionedZipName)
 
-    let result = try ditto.zip(stapledAppURL, as: destination)
+    let result = ditto.zip(stapledAppURL, as: destination)
     try await result.throwIfFailed(CompressError.compressFailed)
 
     parsed.log(

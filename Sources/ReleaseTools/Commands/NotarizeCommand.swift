@@ -58,12 +58,12 @@ struct NotarizeCommand: AsyncParsableCommand {
     parsed.log("Creating archive for notarization.")
     let ditto = DittoRunner(parsed: parsed)
 
-    let zipResult = try ditto.zip(parsed.exportedAppURL, as: parsed.exportedZipURL)
+    let zipResult = ditto.zip(parsed.exportedAppURL, as: parsed.exportedZipURL)
     try await zipResult.throwIfFailed(NotarizeRunnerError.compressingFailed)
 
     parsed.log("Uploading \(parsed.versionTag) to notarization service.")
     let xcrun = XCRunRunner(parsed: parsed)
-    let result = try xcrun.run([
+    let result = xcrun.run([
       "altool", "--notarize-app", "--primary-bundle-id", parsed.archive.identifier, "--username",
       parsed.user, "--password", "@keychain:AC_PASSWORD", "--team-id", parsed.archive.team,
       "--file", parsed.exportedZipURL.path, "--output-format", "xml",

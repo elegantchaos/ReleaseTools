@@ -89,7 +89,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
 
     parsed.log("Tagging.")
     let git = GitRunner()
-    let tagResult = try git.run([
+    let tagResult = git.run([
       "tag", parsed.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)
@@ -119,7 +119,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
         try? fm.removeItem(at: stapledAppURL)
         try? fm.copyItem(at: parsed.exportedAppURL, to: stapledAppURL)
         let xcrun = XCRunRunner(parsed: parsed)
-        let result = try xcrun.run(["stapler", "staple", stapledAppURL.path])
+        let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
         try await result.throwIfFailed(WaitForNotarizationRunnerError.exportingNotarizedAppFailed)
       } else {
         throw WaitForNotarizationError.missingArchive
@@ -131,14 +131,14 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
 
   func check(request: String, parsed: OptionParser) async throws -> Bool {
     let xcrun = XCRunRunner(parsed: parsed)
-    let result = try xcrun.run([
+    let result = xcrun.run([
       "altool", "--notarization-info", request, "--username", parsed.user, "--password",
       "@keychain:AC_PASSWORD", "--output-format", "xml",
     ])
     try await result.throwIfFailed(WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed)
 
     parsed.log("Received response.")
-    let data = await Data(result.stdout)
+    let data = await Data(await result.stdout)
     if let receipt = try? PropertyListSerialization.propertyList(
       from: data, options: [], format: nil) as? [String: Any],
       let info = receipt["notarization-info"] as? [String: Any],

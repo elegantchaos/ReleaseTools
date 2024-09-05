@@ -45,15 +45,15 @@ struct PublishCommand: AsyncParsableCommand {
     git.cwd = website.websiteURL
 
     parsed.log("Committing updates.")
-    var result = try git.run(["add", updates.path])
+    var result = git.run(["add", updates.path])
     try await result.throwIfFailed(PublishError.commitFailed)
 
     let message = "v\(parsed.archive.version), build \(parsed.archive.build)"
-    result = try git.run(["commit", "-a", "-m", message])
+    result = git.run(["commit", "-a", "-m", message])
     try await result.throwIfFailed(PublishError.commitFailed)
 
     parsed.log("Pushing updates.")
-    let pushResult = try git.run(["push"])
+    let pushResult = git.run(["push"])
     try await pushResult.throwIfFailed(PublishError.pushFailed)
   }
 }

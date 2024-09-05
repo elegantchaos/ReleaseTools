@@ -12,7 +12,7 @@ enum ChangesError: Error {
 
   public var description: String {
     switch self {
-    case .couldntFetchLog(let error): return "Couldn't fetch the git log.\n\(error)"
+      case .couldntFetchLog(let error): return "Couldn't fetch the git log.\n\(error)"
     }
   }
 }
@@ -47,7 +47,7 @@ struct ChangesCommand: AsyncParsableCommand {
     }
 
     do {
-      let result = try git.run(arguments)
+      let result = git.run(arguments)
       let output = await String(result.stdout)
       try output.write(to: parsed.changesURL, atomically: true, encoding: .utf8)
       NSWorkspace.shared.open(parsed.changesURL)

@@ -71,7 +71,7 @@ struct ExportCommand: AsyncParsableCommand {
     parsed.log("Exporting \(parsed.scheme).")
     let xcode = XCodeBuildRunner(parsed: parsed)
     try? FileManager.default.removeItem(at: parsed.exportURL)
-    let result = try xcode.run([
+    let result = xcode.run([
       "-exportArchive", "-archivePath", parsed.archiveURL.path, "-exportPath",
       parsed.exportURL.path, "-exportOptionsPlist", parsed.exportOptionsURL.path,
       "-allowProvisioningUpdates",

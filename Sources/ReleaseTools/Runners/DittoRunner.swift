@@ -13,17 +13,17 @@ class DittoRunner: Runner {
     super.init(command: "ditto")
   }
 
-  func run(_ arguments: [String]) throws -> Session {
+  func run(_ arguments: [String]) -> Session {
     if parsed.showOutput {
       parsed.log("ditto " + arguments.joined(separator: " "))
     }
 
-    let mode = parsed.showOutput ? Runner.Mode.both : Runner.Mode.capture
-    return try run(arguments, stdoutMode: mode, stderrMode: mode)
+    let mode: ProcessStream.Mode = parsed.showOutput ? .both : .capture
+    return run(arguments, stdoutMode: mode, stderrMode: mode)
   }
 
-  func zip(_ url: URL, as zipURL: URL) throws -> Session {
+  func zip(_ url: URL, as zipURL: URL) -> Session {
     parsed.log("Compressing \(url.lastPathComponent) to \(zipURL.path).")
-    return try run(["-c", "-k", "--sequesterRsrc", "--keepParent", url.path, zipURL.path])
+    return run(["-c", "-k", "--sequesterRsrc", "--keepParent", url.path, zipURL.path])
   }
 }

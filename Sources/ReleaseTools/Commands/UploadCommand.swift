@@ -64,13 +64,13 @@ struct UploadCommand: AsyncParsableCommand {
     let uploadResult: Runner.Session
     if parsed.apiKey.isEmpty {
       // use username & password
-      uploadResult = try xcrun.run([
+      uploadResult = xcrun.run([
         "altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD",
         "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform,
       ])
     } else {
       // use api key and issuer
-      uploadResult = try xcrun.run([
+      uploadResult = xcrun.run([
         "altool", "--upload-app", "--apiIssuer", parsed.apiIssuer, "--apiKey", parsed.apiKey,
         "--file", parsed.exportedIPAURL.path, "--output-format", "xml", "--type", parsed.platform,
       ])
@@ -89,7 +89,7 @@ struct UploadCommand: AsyncParsableCommand {
 
     parsed.log("Tagging.")
     let git = GitRunner()
-    let tagResult = try git.run([
+    let tagResult = git.run([
       "tag", parsed.versionTag, "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)

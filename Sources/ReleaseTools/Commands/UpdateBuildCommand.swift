@@ -62,12 +62,12 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     git.cwd = url
     chdir(url.path)
 
-    var result = try git.run(["rev-list", "--count", "HEAD"])
+    var result = git.run(["rev-list", "--count", "HEAD"])
     try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
 
     let build = await String(result.stdout).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
-    result = try git.run(["rev-list", "--max-count", "1", "HEAD"])
+    result = git.run(["rev-list", "--max-count", "1", "HEAD"])
     try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
     let commit = await String(result.stdout).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
@@ -144,7 +144,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
         throw UpdateBuildError.writingConfigFailed
       }
 
-      let result = try git.run(["update-index", "--assume-unchanged", configURL.path])
+      let result = git.run(["update-index", "--assume-unchanged", configURL.path])
       try await result.throwIfFailed(UpdateBuildError.updatingIndexFailed)
     }
   }

@@ -13,12 +13,12 @@ class XCRunRunner: Runner {
     super.init(command: "xcrun")
   }
 
-  func run(_ arguments: [String]) throws -> Session {
+  func run(_ arguments: [String]) -> Session {
     if parsed.showOutput {
       parsed.log("xcrun " + arguments.joined(separator: " "))
     }
 
-    let mode: Runner.Mode = parsed.showOutput ? .both : .capture
-    return try run(arguments, stdoutMode: mode, stderrMode: mode)
+    let mode: ProcessStream.Mode = parsed.showOutput ? .both : .capture
+    return run(arguments, stdoutMode: mode, stderrMode: mode)
   }
 }

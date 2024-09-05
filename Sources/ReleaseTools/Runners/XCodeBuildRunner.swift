@@ -15,7 +15,7 @@ class XCodeBuildRunner: Runner {
   }
 
   func schemes(workspace: String) async throws -> [String] {
-    let result = try run(["-workspace", workspace, "-list", "-json"])
+    let result = run(["-workspace", workspace, "-list", "-json"])
     let output = await Data(result.stdout)
     for await state in result.state {
       if state == .succeeded {
@@ -23,19 +23,19 @@ class XCodeBuildRunner: Runner {
         let schemes = try decoder.decode(SchemesSpec.self, from: output)
         return schemes.workspace.schemes
       } else {
-        print(result.stderr)
+        print(await result.stderr)
       }
     }
 
     return []
   }
 
-  func run(_ arguments: [String]) throws -> Session {
+  func run(_ arguments: [String]) -> Session {
     if parsed.showOutput {
       parsed.log("\n> xcodebuild \(arguments.joined(separator: " "))\n")
     }
 
-    let mode: Runner.Mode = parsed.showOutput ? .both : .capture
-    return try run(arguments, stdoutMode: mode, stderrMode: mode)
+    let mode: ProcessStream.Mode = parsed.showOutput ? .both : .capture
+    return run(arguments, stdoutMode: mode, stderrMode: mode)
   }
 }

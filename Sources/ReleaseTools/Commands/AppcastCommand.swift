@@ -71,7 +71,7 @@ struct AppcastCommand: AsyncParsableCommand {
     let fm = FileManager.default
     let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)
     let buildURL = rootURL.appendingPathComponent(".build")
-    let result = try xcode.run([
+    let result = xcode.run([
       "build", "-workspace", parsed.workspace, "-scheme", "generate_appcast",
       "BUILD_DIR=\(buildURL.path)",
     ])
@@ -82,7 +82,7 @@ struct AppcastCommand: AsyncParsableCommand {
     let keyName = "\(workspaceName) Sparkle Key"
 
     let generator = Runner(for: URL(fileURLWithPath: ".build/Release/generate_appcast"))
-    let genResult = try generator.run(["-n", keyName, "-k", keyChainPath, updates.path])
+    let genResult = generator.run(["-n", keyName, "-k", keyChainPath, updates.path])
 
     try await genResult.throwIfFailed(!(await String(genResult.stdout)).contains("Unable to load DSA private key") ? AppcastError.appcastGeneratorFailed : nil)
 
@@ -97,13 +97,13 @@ struct AppcastCommand: AsyncParsableCommand {
       parsed.log("Could not find Sparkle key - generating one.")
 
       let keygen = Runner(for: URL(fileURLWithPath: "Dependencies/Sparkle/bin/generate_keys"))
-      let keygenResult = try keygen.run([])
+      let keygenResult = keygen.run([])
       try await keygenResult.throwIfFailed(AppcastError.keyGenerationFailed)
 
       parsed.log("Importing Key.")
 
       let security = Runner(for: URL(fileURLWithPath: "/usr/bin/security"))
-      let importResult = try security.run([
+      let importResult = security.run([
         "import", "dsa_priv.pem", "-a", "labl", "\(parsed.scheme) Sparkle Key",
       ])
       try await importResult.throwIfFailed(AppcastError.keyImportFailed)
