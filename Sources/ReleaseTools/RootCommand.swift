@@ -52,15 +52,15 @@ struct RootCommand: AsyncParsableCommand {
   /// Main entrypoint.
   /// Note that this is overridden from the default implementation in `AsyncParsableCommand`,
   /// to allow us to flush the log after running the command.
-  public static func main(_ arguments: [String]?) async {
+  public static func main() async {
     do {
-      var command = try parseAsRoot(arguments)
+      var command = try parseAsRoot(nil)
       if var asyncCommand = command as? AsyncParsableCommand {
         try await asyncCommand.run()
       } else {
         try command.run()
-        Manager.shared.flush()
       }
+      Manager.shared.flush()
     } catch {
       Manager.shared.flush()
       exit(withError: error)
