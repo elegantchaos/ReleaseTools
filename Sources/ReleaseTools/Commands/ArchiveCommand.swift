@@ -80,9 +80,7 @@ struct ArchiveCommand: AsyncParsableCommand {
         break
     }
 
-    let outMode: Runner.Mode = parsed.showOutput ? .both : .capture
-    let errMode: Runner.Mode = parsed.showOutput ? .both : .capture
-    let result = try xcode.run(args, stdoutMode: outMode, stderrMode: errMode)
+    let result = try xcode.run(args)
     try await result.throwIfFailed(ArchiveError.archiveFailed)
     parsed.log("Archived scheme \(parsed.scheme).")
   }
