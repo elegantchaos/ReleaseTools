@@ -32,7 +32,7 @@ class XCodeBuildRunner: Runner {
 
   func run(_ arguments: [String]) throws -> Session {
     if parsed.showOutput {
-      parsed.log("xcodebuild " + arguments.joined(separator: " "))
+      parsed.log("\n> xcodebuild \(arguments.joined(separator: " "))\n")
     }
 
     let mode: Runner.Mode = parsed.showOutput ? .both : .capture
