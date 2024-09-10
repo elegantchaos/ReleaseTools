@@ -27,7 +27,19 @@
         "--show-output"
       ],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
-      "name": "Debug -- Stack",
+      "name": "Debug -- archive Stack",
+      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
+      "preLaunchTask": "swift: Build Debug rt"
+    },
+    {
+      "type": "swift-lldb",
+      "request": "launch",
+      "args": [
+        "export",
+        "--platform=macOS",
+      ],
+      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
+      "name": "Debug -- export Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt"
     },

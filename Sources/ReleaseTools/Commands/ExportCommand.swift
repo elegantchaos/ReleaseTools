@@ -68,7 +68,7 @@ struct ExportCommand: AsyncParsableCommand {
       throw ExportError.writingOptionsFailed(error)
     }
 
-    parsed.log("Exporting \(parsed.scheme).")
+    parsed.log("Exporting \(parsed.scheme)...")
     let xcode = XCodeBuildRunner(parsed: parsed)
     try? FileManager.default.removeItem(at: parsed.exportURL)
     let result = xcode.run([
@@ -78,5 +78,6 @@ struct ExportCommand: AsyncParsableCommand {
     ])
 
     try await result.throwIfFailed(ExportRunnerError.exportFailed)
+    parsed.log("Exported \(parsed.scheme).")
   }
 }
