@@ -23,7 +23,7 @@ class XCodeBuildRunner: Runner {
         let schemes = try decoder.decode(SchemesSpec.self, from: output)
         return schemes.workspace.schemes
       } else {
-        print(await result.stderr)
+        print(await result.stderr.string)
       }
     }
 
