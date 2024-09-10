@@ -7,12 +7,12 @@ import ArgumentParser
 import Foundation
 import Runner
 
-enum PublishError: RunnerError {
+enum PublishError: Runner.Error {
   case commitFailed
   case pushFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
+    async let stderr = session.stderr.string
     switch self {
       case .commitFailed: return "Failed to commit the appcast feed and updates.\n\n\(await stderr)"
       case .pushFailed: return "Failed to push the appcast feed and updates.\n\n\(await stderr)"

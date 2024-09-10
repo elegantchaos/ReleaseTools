@@ -16,13 +16,12 @@ struct SchemesSpec: Decodable {
   let workspace: WorkspaceSpec
 }
 
-enum ArchiveError: RunnerError {
+enum ArchiveError: Runner.Error {
   case archiveFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
     switch self {
-      case .archiveFailed: return "Archiving failed.\n\n\(await stderr)"
+      case .archiveFailed: return "Archiving failed.\n\n\(await session.stderr.string)"
     }
   }
 }

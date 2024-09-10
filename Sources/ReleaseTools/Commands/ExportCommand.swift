@@ -17,11 +17,11 @@ enum ExportError: Error {
   }
 }
 
-enum ExportRunnerError: RunnerError {
+enum ExportRunnerError: Runner.Error {
   case exportFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
+    async let stderr = session.stderr.string
     switch self {
       case .exportFailed: return "Exporting failed.\n\(await stderr)"
     }

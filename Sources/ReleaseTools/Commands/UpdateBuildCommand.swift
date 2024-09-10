@@ -10,14 +10,14 @@ import Foundation
 import Resources
 import Runner
 
-enum UpdateBuildError: RunnerError {
+enum UpdateBuildError: Runner.Error {
   case gettingBuildFailed
   case gettingCommitFailed
   case writingConfigFailed
   case updatingIndexFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
+    async let stderr = session.stderr.string
     switch self {
       case .gettingBuildFailed: return "Failed to get the build number from git.\n\n\(await stderr)"
       case .gettingCommitFailed: return "Failed to get the commit from git.\n\n\(await stderr)"
@@ -65,11 +65,11 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     var result = git.run(["rev-list", "--count", "HEAD"])
     try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
 
-    let build = await String(result.stdout).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    let build = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
     result = git.run(["rev-list", "--max-count", "1", "HEAD"])
     try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
-    let commit = await String(result.stdout).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    let commit = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
     return (build, commit)
   }

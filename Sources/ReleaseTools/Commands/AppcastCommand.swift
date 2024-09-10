@@ -20,14 +20,14 @@ enum GenerationError: Error, CustomStringConvertible {
     }
   }
 }
-enum AppcastError: RunnerError {
+enum AppcastError: Runner.Error {
   case buildAppcastGeneratorFailed
   case appcastGeneratorFailed
   case keyGenerationFailed
   case keyImportFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
+    async let stderr = session.stderr.string
     switch self {
       case .buildAppcastGeneratorFailed: return "Failed to build the generate_appcast tool.\n\n\(await stderr)"
       case .appcastGeneratorFailed: return "Failed to generate the appcast.\n\n\(await stderr)"
@@ -84,11 +84,11 @@ struct AppcastCommand: AsyncParsableCommand {
     let generator = Runner(for: URL(fileURLWithPath: ".build/Release/generate_appcast"))
     let genResult = generator.run(["-n", keyName, "-k", keyChainPath, updates.path])
 
-    try await genResult.throwIfFailed(!(await String(genResult.stdout)).contains("Unable to load DSA private key") ? AppcastError.appcastGeneratorFailed : nil)
+    try await genResult.throwIfFailed(!(await genResult.stdout.string).contains("Unable to load DSA private key") ? AppcastError.appcastGeneratorFailed : nil)
 
     for await state in genResult.state {
       if state != .succeeded {
-        let output = await String(genResult.stdout)
+        let output = await genResult.stdout.string
         if !output.contains("Unable to load DSA private key") {
           throw AppcastError.appcastGeneratorFailed
         }

@@ -29,12 +29,12 @@ enum WaitForNotarizationError: Error {
   }
 }
 
-enum WaitForNotarizationRunnerError: RunnerError {
+enum WaitForNotarizationRunnerError: Runner.Error {
   case fetchingNotarizationStatusFailed
   case exportingNotarizedAppFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
+    async let stderr = session.stderr.string
     switch self {
       case .fetchingNotarizationStatusFailed:
         return "Fetching notarization status failed.\n\(await stderr)"
@@ -90,6 +90,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     parsed.log("Tagging.")
     let git = GitRunner()
     let tagResult = git.run([
+    let tagResult = git.run([
       "tag", parsed.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)
@@ -138,7 +139,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     try await result.throwIfFailed(WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed)
 
     parsed.log("Received response.")
-    let data = await Data(await result.stdout)
+    let data = await result.stdout.data
     if let receipt = try? PropertyListSerialization.propertyList(
       from: data, options: [], format: nil) as? [String: Any],
       let info = receipt["notarization-info"] as? [String: Any],

@@ -18,7 +18,7 @@ class DittoRunner: Runner {
       parsed.log("ditto " + arguments.joined(separator: " "))
     }
 
-    let mode: ProcessStream.Mode = parsed.showOutput ? .both : .capture
+    let mode: Runner.Output.Mode = parsed.showOutput ? .both : .capture
     return run(arguments, stdoutMode: mode, stderrMode: mode)
   }
 

@@ -18,12 +18,12 @@ enum NotarizeError: Error {
   }
 }
 
-enum NotarizeRunnerError: RunnerError {
+enum NotarizeRunnerError: Runner.Error {
   case compressingFailed
   case notarizingFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
+    async let stderr = session.stderr.string
     switch self {
       case .compressingFailed: return "Compressing failed.\n\(await stderr)"
       case .notarizingFailed: return "Notarizing failed.\n\(await stderr)"
@@ -72,7 +72,7 @@ struct NotarizeCommand: AsyncParsableCommand {
 
     parsed.log("Requested notarization.")
     do {
-      let output = await String(result.stdout)
+      let output = await result.stdout.string
       try output.write(to: parsed.notarizingReceiptURL, atomically: true, encoding: .utf8)
     } catch {
       throw NotarizeError.savingNotarizationReceiptFailed(error)

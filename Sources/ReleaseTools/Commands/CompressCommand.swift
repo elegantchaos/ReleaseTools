@@ -7,11 +7,11 @@ import ArgumentParser
 import Foundation
 import Runner
 
-enum CompressError: RunnerError {
+enum CompressError: Runner.Error {
   case compressFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
+    async let stderr = session.stderr.string
     switch self {
       case .compressFailed: return "Compressing failed.\n\(await stderr)"
     }

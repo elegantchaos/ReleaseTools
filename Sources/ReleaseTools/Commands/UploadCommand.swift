@@ -17,11 +17,11 @@ enum UploadError: Error {
   }
 }
 
-enum UploadRunnerError: RunnerError {
+enum UploadRunnerError: Runner.Error {
   case uploadingFailed
 
   func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
+    async let stderr = session.stderr.string
     switch self {
       case .uploadingFailed: return "Uploading failed.\n\(await stderr)"
     }
@@ -80,7 +80,7 @@ struct UploadCommand: AsyncParsableCommand {
 
     parsed.log("Finished uploading.")
     do {
-      let output = await String(uploadResult.stdout)
+      let output = await uploadResult.stdout.string
       try output.write(
         to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
     } catch {

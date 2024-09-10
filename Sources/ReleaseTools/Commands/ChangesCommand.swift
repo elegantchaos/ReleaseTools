@@ -48,7 +48,7 @@ struct ChangesCommand: AsyncParsableCommand {
 
     do {
       let result = git.run(arguments)
-      let output = await String(result.stdout)
+      let output = await result.stdout.string
       try output.write(to: parsed.changesURL, atomically: true, encoding: .utf8)
       NSWorkspace.shared.open(parsed.changesURL)
     } catch {
