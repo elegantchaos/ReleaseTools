@@ -5,27 +5,20 @@
 #  All code (c) 2020 - present day, Elegant Chaos Limited.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-# This script builds the rt command line tool and xcconfig files into local locations
-# (`.build/tools.rt` and `.rt/` respectively), so that the rest of the scripts/targets
-# can find them.
+# This script builds the rt command line tool into `.build/tools/rt`,
+# so that other scripts or build phases can find it.
+# If the --rebuild flag is passed, it will force a rebuild, and then run
+# `rt bootstrap` to update the rt scripts (including this one) to their
+# latest versions.
 #
-# It needs to be run once to bootstrap everything. After that, it should be run during
-# each build.
-
-# Instructions for use of this script:
+# Note that this script is set up to work as a SPM command plugin, but 
+# running it that way is currently unreliable.
+#
+# Instead it is recommended that you:
 # - copy this script into the client project
-# - make a tools target in the client project
-# - set this to be a dependency of the main target, so that it is built first
-# - add a run script phase to the tools target which
-#   - runs the local copy of this script
-#   - runs the rt update-build command
+# - run it once to bootstrap the tools
+# - run the `upload` script to upload your app to testflight / the app store
 
-# The local build phase can update the build number with the following lines:
-# source "$PROJECT_DIR/Extras/Scripts/bootstrap-tools"
-# "$RT" update-build --header "$BUILT_PRODUCTS_DIR/RTInfo.h" --repo "$SOURCE_ROOT"
-
-# TODO: use `swift build --show-bin-path ...` to find the path to the built executable
-# TODO: add a configuration setting, and switch to release by default?
 
 REBUILD=false
 if [[ "$1" == "--rebuild" ]]
@@ -36,7 +29,7 @@ fi
 
 set -euo pipefail  # (add an x to flags to enable debugging)
 
-LOCALTOOLS="$PWD/../ReleaseTools-disabled" # TODO: re-enable this when we have a stable release
+LOCALTOOLS="$PWD/../ReleaseTools"
 if [[ -e "$LOCALTOOLS" ]]
 then
     RT="$LOCALTOOLS/.build/debug/rt"
@@ -65,7 +58,7 @@ then
         else
             pushd "$RTSRC" > /dev/null
             git fetch
-            git checkout swift6 # TODO: change back to main when we have a stable release
+            git checkout main
             git pull
         fi
         echo "Updating release tools."

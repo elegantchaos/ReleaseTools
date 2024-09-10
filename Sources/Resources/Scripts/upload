@@ -16,4 +16,4 @@ $RT archive --platform=iOS --show-output 2> /dev/null | xcpretty
 $RT export --platform=iOS
 $RT upload --platform=iOS
 
-#open "https://appstoreconnect.apple.com/apps/1519213388/testflight/ios/"
+#open "https://appstoreconnect.apple.com/apps/<your-app-id-here>/testflight/ios/"
