@@ -19,61 +19,61 @@ enum GeneralError: Error, CustomStringConvertible, Sendable {
 
   public var description: String {
     switch self {
-    case .infoUnreadable(let path): return "Couldn't read archive info.plist.\n\(path)"
+      case .infoUnreadable(let path): return "Couldn't read archive info.plist.\n\(path)"
 
-    case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
+      case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
 
-    case .taggingFailed: return "Tagging failed."
+      case .taggingFailed: return "Tagging failed."
 
-    case .noDefaultUser:
-      return """
-        No user specified.
-        Either supply a value with --user <user>, or set a default value using:
+      case .noDefaultUser:
+        return """
+          No user specified.
+          Either supply a value with --user <user>, or set a default value using:
 
-          \(CommandLine.name) set user <user>.
+            \(CommandLine.name) set user <user>.
 
-        A corresponding app-specific password should be stored in your keychain.
-        See https://support.apple.com/en-us/HT204397 for more details.
-        """
+          A corresponding app-specific password should be stored in your keychain.
+          See https://support.apple.com/en-us/HT204397 for more details.
+          """
 
-    case .apiKeyAndIssuer:
-      return """
-        You need to supply both --api-key and --api-issuer together.
-        Either supply both values on the command line, or set default values using:
+      case .apiKeyAndIssuer:
+        return """
+          You need to supply both --api-key and --api-issuer together.
+          Either supply both values on the command line, or set default values using:
 
-          \(CommandLine.name) set api-key <key>
-          \(CommandLine.name) set api-issuer <issuer>
+            \(CommandLine.name) set api-key <key>
+            \(CommandLine.name) set api-issuer <issuer>
 
-        A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
-        See https://appstoreconnect.apple.com/access/api to generate a key.
-        """
+          A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
+          See https://appstoreconnect.apple.com/access/api to generate a key.
+          """
 
-    case .userOrApiKey:
-      return """
-        You need to supply either --user, or --api-key and --api-issuer together.
-        If you are using --user, either supply it on the command line, or set a
-        default value using:
+      case .userOrApiKey:
+        return """
+          You need to supply either --user, or --api-key and --api-issuer together.
+          If you are using --user, either supply it on the command line, or set a
+          default value using:
 
-          \(CommandLine.name) set user <user>
+            \(CommandLine.name) set user <user>
 
-        A corresponding app-specific password should be stored in your keychain.
-        See https://support.apple.com/en-us/HT204397 for more details.
+          A corresponding app-specific password should be stored in your keychain.
+          See https://support.apple.com/en-us/HT204397 for more details.
 
-        If you are using an api key, either supply both --api-key and --api-issuer
-        on the command line, or set default values using:
+          If you are using an api key, either supply both --api-key and --api-issuer
+          on the command line, or set default values using:
 
-          \(CommandLine.name) set api-key <key>
-          \(CommandLine.name) set api-issuer <issuer>
+            \(CommandLine.name) set api-key <key>
+            \(CommandLine.name) set api-issuer <issuer>
 
-        A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
-        See https://appstoreconnect.apple.com/access/api to generate a key.
-        """
+          A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
+          See https://appstoreconnect.apple.com/access/api to generate a key.
+          """
 
-    case .noDefaultScheme(let platform):
-      return """
-        No scheme specified for \(platform).
-        Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
-        """
+      case .noDefaultScheme(let platform):
+        return """
+          No scheme specified for \(platform).
+          Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
+          """
     }
   }
 }
@@ -163,7 +163,7 @@ class OptionParser {
     }
 
     if scheme != nil {
-      if let scheme = scheme?.scheme ?? getDefault(for: "scheme") {
+      if let scheme = scheme?.scheme ?? defaultScheme {
         self.scheme = scheme
       } else {
         throw GeneralError.noDefaultScheme(self.platform)
@@ -219,17 +219,28 @@ class OptionParser {
     }
   }
 
+  /// Read a default value from the settings.
+  /// We look for a platform-specific value first, and fall back on a general value if that doesn't exist.
   func getDefault(for key: String) -> String? {
     // try platform specific key first, if the platform has been specified
     if !platform.isEmpty,
-      let value = UserDefaults.standard.string(forKey: defaultKey(for: key, platform: platform))
+      let platformValue = UserDefaults.standard.string(forKey: defaultKey(for: key, platform: platform))
     {
-      return value
+      return platformValue
     }
 
     // fall back on general key
-    if let scheme = UserDefaults.standard.string(forKey: defaultKey(for: key, platform: "")) {
-      return scheme
+    if let generalValue = UserDefaults.standard.string(forKey: defaultKey(for: key, platform: "")) {
+      return generalValue
+    }
+
+    return nil
+  }
+
+  /// If no scheme is supplied, we'll try to guess one based on the workspace.
+  var defaultScheme: String? {
+    if let value = getDefault(for: "scheme") {
+      return value
     }
 
     if let ws = defaultWorkspace {

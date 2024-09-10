@@ -43,5 +43,17 @@
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt"
     },
+    {
+      "type": "swift-lldb",
+      "request": "launch",
+      "args": [
+        "upload",
+        "--platform=macOS",
+      ],
+      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
+      "name": "Debug -- upload Stack",
+      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
+      "preLaunchTask": "swift: Build Debug rt"
+    },
   ]
 }
