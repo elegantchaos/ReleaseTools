@@ -5,6 +5,11 @@
 #  All code (c) 2020 - present day, Elegant Chaos Limited.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+# Make a copy of this script in your project's Extras/Scripts/ folder, 
+# call it `upload`, and customise it as needed.
+#
+# When you update ReleaseTools in your project, it will update this template
+# script, but it won't overwrite your customised version.
 source "Extras/Scripts/bootstrap-tools"
 
 echo " "
