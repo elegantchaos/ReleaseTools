@@ -5,14 +5,19 @@
 #  All code (c) 2020 - present day, Elegant Chaos Limited.
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-source "bootstrap-tools"
+source "Extras/Scripts/bootstrap-tools"
 
 echo " "
 echo "*************"
 echo "Uploading iOS  "
 echo "*************"
 
-$RT archive --platform=iOS --show-output 2> /dev/null | xcpretty
+if [[ "$(which xcpretty)" != "" ]]; then
+    $RT archive --platform=iOS --show-output | xcpretty
+else
+    $RT archive --platform=iOS 
+fi
+
 $RT export --platform=iOS
 $RT upload --platform=iOS
 
