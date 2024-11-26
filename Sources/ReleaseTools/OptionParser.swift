@@ -160,7 +160,7 @@ class OptionParser {
       // ... on the command line
       buildOffset = offset
 
-    } else if setting = getDefault(for: "offset"), let offset = UInt(setting) {
+    } else if let setting = getDefault(for: "offset"), let offset = UInt(setting) {
       // ... or as a default setting
       buildOffset = offset
     }
