@@ -96,6 +96,7 @@ class OptionParser {
   var apiIssuer: String = ""
   var package: String = ""
   var workspace: String = ""
+  var buildOffset: UInt = 0
   var archive: XcodeArchive!
 
   let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -143,6 +144,7 @@ class OptionParser {
     apiKey: ApiKeyOption? = nil,
     apiIssuer: ApiIssuerOption? = nil,
     platform: PlatformOption? = nil,
+    buildOptions: BuildOptions? = nil,
     setDefaultPlatform: Bool = true
   ) throws {
 
@@ -151,6 +153,16 @@ class OptionParser {
     package = rootURL.lastPathComponent
     if let platform = platform {
       self.platform = platform.platform ?? (setDefaultPlatform ? "macOS" : "")
+    }
+
+    // remember the build offset if it was supplied
+    if let buildOptions, let offset = buildOptions.offset {
+      // ... on the command line
+      buildOffset = offset
+
+    } else if setting = getDefault(for: "offset"), let offset = UInt(setting) {
+      // ... or as a default setting
+      buildOffset = offset
     }
 
     // if we've specified the scheme or user, we also need the workspace

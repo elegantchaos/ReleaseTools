@@ -42,11 +42,13 @@ struct UpdateBuildCommand: AsyncParsableCommand {
   @Option(help: "The git repo to derive the build number from.") var repo: String?
 
   @OptionGroup() var options: CommonOptions
+  @OptionGroup() var buildOptions: BuildOptions
 
   func run() async throws {
     let parsed = try OptionParser(
       options: options,
-      command: Self.configuration
+      command: Self.configuration,
+      buildOptions: buildOptions
     )
 
     if let header = header, let repo = repo {
@@ -58,14 +60,19 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     }
   }
 
-  static func getBuild(in url: URL, using git: GitRunner) async throws -> (String, String) {
+  static func getBuild(in url: URL, using git: GitRunner, offset: UInt) async throws -> (String, String) {
     git.cwd = url
     chdir(url.path)
 
     var result = git.run(["rev-list", "--count", "HEAD"])
     try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
 
-    let build = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    var build = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+
+    // apply an offset to the build number if required
+    if offset > 0, let number = UInt(build) {
+      build = String(number + offset)
+    }
 
     result = git.run(["rev-list", "--max-count", "1", "HEAD"])
     try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
@@ -82,7 +89,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     let info = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
 
     let git = GitRunner()
-    let (build, commit) = try await getBuild(in: repoURL, using: git)
+    let (build, commit) = try await getBuild(in: repoURL, using: git, offset: parsed.buildOffset)
 
     if var info = info as? [String: Any] {
       print(info)
@@ -108,7 +115,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     let repoURL = URL(fileURLWithPath: repo)
 
     let git = GitRunner()
-    let (build, commit) = try await getBuild(in: repoURL, using: git)
+    let (build, commit) = try await getBuild(in: repoURL, using: git, offset: parsed.buildOffset)
     parsed.log("Setting build number to \(build).")
     let header =
       "#define BUILD \(build)\n#define CURRENT_PROJECT_VERSION \(build)\n#define COMMIT \(commit)"
@@ -131,7 +138,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     }
 
     let git = GitRunner()
-    let (build, commit) = try await getBuild(in: configURL.deletingLastPathComponent(), using: git)
+    let (build, commit) = try await getBuild(in: configURL.deletingLastPathComponent(), using: git, offset: parsed.buildOffset)
     let new = "BUILD_NUMBER = \(build)\nBUILD_COMMIT = \(commit)"
 
     if let existing = try? String(contentsOf: configURL), existing == new {

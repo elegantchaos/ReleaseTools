@@ -67,3 +67,7 @@ struct CommonOptions: ParsableArguments {
   @Option(help: "The workspace we're operating on.")
   var workspace: String?
 }
+
+struct BuildOptions: ParsableArguments {
+  @Option(name: .customLong("offset"), help: "Integer offset to apply to the build number.") var offset: UInt?
+}

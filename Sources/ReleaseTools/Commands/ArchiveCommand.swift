@@ -38,13 +38,15 @@ struct ArchiveCommand: AsyncParsableCommand {
   @OptionGroup() var scheme: SchemeOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
+  @OptionGroup() var buildOptions: BuildOptions
 
   func run() async throws {
     let parsed = try OptionParser(
       options: options,
       command: Self.configuration,
       scheme: scheme,
-      platform: platform
+      platform: platform,
+      buildOptions: buildOptions
     )
 
     try await Self.archive(parsed: parsed, xcconfig: xcconfig)
