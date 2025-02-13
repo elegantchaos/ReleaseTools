@@ -60,7 +60,14 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     }
   }
 
+  /// Return the build number to use for the next build, and the commit tag.
   static func getBuild(in url: URL, using git: GitRunner, offset: UInt) async throws -> (String, String) {
+    return try await getBuildSequential(in: url, using: git)
+  }
+
+  /// Return the build number to use for the next build, and the commit tag.
+  /// We calculate the build number by counting the commits in the repo.
+  static func getBuildByCommits(in url: URL, using git: GitRunner, offset: UInt) async throws -> (String, String) {
     git.cwd = url
     chdir(url.path)
 
@@ -74,6 +81,38 @@ struct UpdateBuildCommand: AsyncParsableCommand {
       build = String(number + offset)
     }
 
+    result = git.run(["rev-list", "--max-count", "1", "HEAD"])
+    try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
+    let commit = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+
+    return (build, commit)
+  }
+
+  /// Return the build number to use for the next build, and the commit tag.
+  /// We calculate the build number by searching the repo tags for the highest existing build number,
+  /// and adding 1 to it.
+  static func getBuildSequential(in url: URL, using git: GitRunner) async throws -> (String, String) {
+    git.cwd = url
+    chdir(url.path)
+
+    // get highest existing build in any version tag for this platform
+    let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
+    // typealias Match = Regex<(Substring, version: Substring, build: Substring, platform: Substring)>.Match
+    var result = git.run(["tag"])
+    try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
+    var maxBuild = 0
+    for await tag in await result.stdout.lines {
+      if let parsed = tag.firstMatch(of: pattern) {
+        if parsed.platform == parsed.platform, let build = Int(parsed.build) {
+          maxBuild = max(maxBuild, build)
+        }
+      }
+    }
+
+    // add 1 for the new build number
+    let build = "\(maxBuild + 1)"
+
+    // get current commit
     result = git.run(["rev-list", "--max-count", "1", "HEAD"])
     try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
     let commit = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
