@@ -167,12 +167,14 @@ class OptionParser {
     }
 
     // remember the commit counting setting if it was supplied
-    if let buildOptions {
-      // ... on the command line
-      incrementBuildTag = buildOptions.incrementTag
-    } else if let setting = getDefault(for: "increment-tag") {
-      // ... or as a default setting
+    if let setting = getDefault(for: "increment-tag") {
+      // ... as a default setting
       incrementBuildTag = setting == "true"
+    }
+
+    if let buildOptions, buildOptions.incrementTag {
+      // ... a true value on the command line takes precedence
+      incrementBuildTag = true
     }
 
     // if we've specified the scheme or user, we also need the workspace
