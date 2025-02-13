@@ -1,8 +1,23 @@
 {
+  "swift.actionAfterBuildError": "Focus Problems",
   "swift.debugger.useDebugAdapterFromToolchain": true,
+  "swift.autoGenerateLaunchConfigurations": false,
+  "swift.sourcekit-lsp.backgroundIndexing": "on",
   "swift.backgroundCompilation": true,
-  "swift.sourcekit-lsp.backgroundIndexing": false,
-  "editor.formatOnSave": true,
-  "editor.formatOnPaste": true,
-  "apple-swift-format.enable": true,
+  "swift.showBuildStatus": "progress",
+  "swift.buildPath": ".build/vscode-build",
+  "swift.diagnosticsStyle": "default",
+  "swift.diagnosticsCollection": "keepSwiftc",
+  "[swift]": {
+    "editor.defaultFormatter": "swiftlang.swift-vscode",
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+  },
+  "editor.tabSize": 2,
+  "editor.useTabStops": false,
+  "git.ignoreLimitWarning": true,
+  "npm.autoDetect": "off",
+  "explorer.excludeGitIgnore": true,
+  "search.useIgnoreFiles": true,
+  "swift.searchSubfoldersForPackages": true
 }

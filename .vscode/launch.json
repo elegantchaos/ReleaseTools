@@ -1,5 +1,6 @@
 {
   "configurations": [
+    
     {
       "type": "swift-lldb",
       "request": "launch",
@@ -24,7 +25,7 @@
       "args": [
         "archive",
         "--platform=macOS",
-        "--show-output"
+        "--increment-tag"
       ],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "Debug -- archive Stack",
@@ -35,7 +36,7 @@
       "type": "swift-lldb",
       "request": "launch",
       "args": [
-        "export",
+        "archive",
         "--platform=macOS",
       ],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
@@ -47,7 +48,7 @@
       "type": "swift-lldb",
       "request": "launch",
       "args": [
-        "upload",
+        "build",
         "--platform=macOS",
       ],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
