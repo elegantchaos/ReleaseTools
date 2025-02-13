@@ -11,6 +11,7 @@ import Resources
 import Runner
 
 enum UpdateBuildError: Runner.Error {
+  case fetchingTagsFailed
   case gettingBuildFailed
   case gettingCommitFailed
   case writingConfigFailed
@@ -19,6 +20,7 @@ enum UpdateBuildError: Runner.Error {
   func description(for session: Runner.Session) async -> String {
     async let stderr = session.stderr.string
     switch self {
+      case .fetchingTagsFailed: return "Failed to fetch tags from git.\n\n\(await stderr)"
       case .gettingBuildFailed: return "Failed to get the build number from git.\n\n\(await stderr)"
       case .gettingCommitFailed: return "Failed to get the commit from git.\n\n\(await stderr)"
       case .writingConfigFailed: return "Failed to write the config file.\n\n\(await stderr)"

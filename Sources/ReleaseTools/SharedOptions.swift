@@ -70,5 +70,5 @@ struct CommonOptions: ParsableArguments {
 
 struct BuildOptions: ParsableArguments {
   @Option(name: .customLong("offset"), help: "Integer offset to apply to the build number.") var offset: UInt?
-  @Flag(help: "Calculate builds by counting commits. If false, we instead look for the highest existing build tag, and increment it.") var countCommits: Bool = true
+  @Flag(help: "Calculate builds by looking for the highest existing build tag, and incrementing it. If this is false, we instead calculate the build number by counting the commits.") var incrementTag: Bool = false
 }

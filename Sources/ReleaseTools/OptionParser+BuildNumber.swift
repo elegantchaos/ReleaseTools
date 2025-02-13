@@ -13,7 +13,7 @@ extension OptionParser {
     chdir(url.path)
 
     // get next build number
-    let build = countCommits ? try await getBuildByCommits(using: git, offset: buildOffset) : try await getBuildSequential(using: git, platform: platform)
+    let build = incrementBuildTag ? try await getBuildByIncrementingTag(using: git, platform: platform) : try await getBuildByCommits(using: git, offset: buildOffset)
 
     // get current commit
     let result = git.run(["rev-list", "--max-count", "1", "HEAD"])
@@ -38,18 +38,32 @@ extension OptionParser {
   /// Return the build number to use for the next build.
   /// We calculate the build number by searching the repo tags for the
   /// highest existing build number, and adding 1 to it.
-  private func getBuildSequential(using git: GitRunner, platform: String) async throws -> UInt {
+  private func getBuildByIncrementingTag(using git: GitRunner, platform: String) async throws -> UInt {
+    // make sure the tags are up to date
+    let fetchResult = git.run(["fetch", "--tags"])
+    try await fetchResult.throwIfFailed(UpdateBuildError.fetchingTagsFailed)
+
     // get highest existing build in any version tag for this platform
     let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
-    let result = git.run(["tag"])
-    try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
+    let tagsResult = git.run(["tag"])
+    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
     var maxBuild: UInt = 0
-    for await tag in await result.stdout.lines {
+    var maxTag: String?
+    for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: pattern) {
         if parsed.platform == platform, let build = UInt(parsed.build) {
-          maxBuild = max(maxBuild, build)
+          if build > maxBuild {
+            maxBuild = build
+            maxTag = tag
+          }
         }
       }
+    }
+
+    if let maxTag {
+      log("Highest existing tag for \(platform) was \(maxTag).")
+    } else {
+      log("No existing tags found for \(platform).")
     }
 
     // add 1 for the new build number

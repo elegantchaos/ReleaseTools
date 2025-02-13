@@ -53,7 +53,7 @@ struct ArchiveCommand: AsyncParsableCommand {
   }
 
   static func archive(parsed: OptionParser, xcconfig: String? = nil) async throws {
-    parsed.log("Updating Version Info")
+    parsed.log("Updating VersionInfo.h...")
     let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
     let build = try await UpdateBuildCommand.generateHeader(
       parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)

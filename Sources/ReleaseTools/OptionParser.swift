@@ -97,7 +97,7 @@ class OptionParser {
   var package: String = ""
   var workspace: String = ""
   var buildOffset: UInt = 0
-  var countCommits: Bool = true
+  var incrementBuildTag: Bool = true
   var archive: XcodeArchive!
 
   let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -169,10 +169,10 @@ class OptionParser {
     // remember the commit counting setting if it was supplied
     if let buildOptions {
       // ... on the command line
-      countCommits = buildOptions.countCommits
-    } else if let setting = getDefault(for: "count-commits") {
+      incrementBuildTag = buildOptions.incrementTag
+    } else if let setting = getDefault(for: "increment-tag") {
       // ... or as a default setting
-      countCommits = setting == "true"
+      incrementBuildTag = setting == "true"
     }
 
     // if we've specified the scheme or user, we also need the workspace
