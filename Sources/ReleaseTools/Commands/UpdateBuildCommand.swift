@@ -60,66 +60,6 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     }
   }
 
-  /// Return the build number to use for the next build, and the commit tag.
-  static func getBuild(in url: URL, using git: GitRunner, offset: UInt) async throws -> (String, String) {
-    return try await getBuildSequential(in: url, using: git)
-  }
-
-  /// Return the build number to use for the next build, and the commit tag.
-  /// We calculate the build number by counting the commits in the repo.
-  static func getBuildByCommits(in url: URL, using git: GitRunner, offset: UInt) async throws -> (String, String) {
-    git.cwd = url
-    chdir(url.path)
-
-    var result = git.run(["rev-list", "--count", "HEAD"])
-    try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
-
-    var build = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-
-    // apply an offset to the build number if required
-    if offset > 0, let number = UInt(build) {
-      build = String(number + offset)
-    }
-
-    result = git.run(["rev-list", "--max-count", "1", "HEAD"])
-    try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
-    let commit = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-
-    return (build, commit)
-  }
-
-  /// Return the build number to use for the next build, and the commit tag.
-  /// We calculate the build number by searching the repo tags for the highest existing build number,
-  /// and adding 1 to it.
-  static func getBuildSequential(in url: URL, using git: GitRunner) async throws -> (String, String) {
-    git.cwd = url
-    chdir(url.path)
-
-    // get highest existing build in any version tag for this platform
-    let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
-    // typealias Match = Regex<(Substring, version: Substring, build: Substring, platform: Substring)>.Match
-    var result = git.run(["tag"])
-    try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
-    var maxBuild = 0
-    for await tag in await result.stdout.lines {
-      if let parsed = tag.firstMatch(of: pattern) {
-        if parsed.platform == parsed.platform, let build = Int(parsed.build) {
-          maxBuild = max(maxBuild, build)
-        }
-      }
-    }
-
-    // add 1 for the new build number
-    let build = "\(maxBuild + 1)"
-
-    // get current commit
-    result = git.run(["rev-list", "--max-count", "1", "HEAD"])
-    try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
-    let commit = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-
-    return (build, commit)
-  }
-
   static func generatePlist(parsed: OptionParser, source: String, dest: String, repo: String) async throws {
     let plistURL = URL(fileURLWithPath: source)
     let destURL = URL(fileURLWithPath: dest)
@@ -128,7 +68,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     let info = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
 
     let git = GitRunner()
-    let (build, commit) = try await getBuild(in: repoURL, using: git, offset: parsed.buildOffset)
+    let (build, commit) = try await parsed.nextBuildNumberAndCommit(in: repoURL, using: git)
 
     if var info = info as? [String: Any] {
       print(info)
@@ -154,7 +94,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     let repoURL = URL(fileURLWithPath: repo)
 
     let git = GitRunner()
-    let (build, commit) = try await getBuild(in: repoURL, using: git, offset: parsed.buildOffset)
+    let (build, commit) = try await parsed.nextBuildNumberAndCommit(in: repoURL, using: git)
     parsed.log("Setting build number to \(build).")
     let header =
       "#define BUILD \(build)\n#define CURRENT_PROJECT_VERSION \(build)\n#define COMMIT \(commit)"
@@ -177,7 +117,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     }
 
     let git = GitRunner()
-    let (build, commit) = try await getBuild(in: configURL.deletingLastPathComponent(), using: git, offset: parsed.buildOffset)
+    let (build, commit) = try await parsed.nextBuildNumberAndCommit(in: configURL.deletingLastPathComponent(), using: git)
     let new = "BUILD_NUMBER = \(build)\nBUILD_COMMIT = \(commit)"
 
     if let existing = try? String(contentsOf: configURL), existing == new {
