@@ -8,10 +8,12 @@ import Foundation
 
 enum InstallError: Error {
   case couldntWriteStub
+}
 
-  public var description: String {
+extension InstallError: LocalizedError {
+  public var errorDescription: String? {
     switch self {
-    case .couldntWriteStub: return "Couldn't write rt stub to \(InstallCommand.stubPath.path)."
+      case .couldntWriteStub: return "Couldn't write rt stub to \(InstallCommand.stubPath.path)."
     }
   }
 }

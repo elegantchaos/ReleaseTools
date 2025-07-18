@@ -14,14 +14,15 @@ enum WaitForNotarizationError: Error {
   case exportingNotarizedAppThrew(Error)
   case missingArchive
   case loadingNotarizationReceiptFailed
-
-  public var description: String {
-    switch self {
-      case .fetchingNotarizationStatusThrew(let error):
-        return "Fetching notarization status failed.\n\(error)"
-      case .notarizationFailed:
-        return "Notarization failed."
-      case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
+}
+extension WaitForNotarizationError: LocalizedError {
+    public var errorDescription: String? {
+      switch self {
+        case .fetchingNotarizationStatusThrew(let error):
+          return "Fetching notarization status failed.\n\(error)"
+        case .notarizationFailed:
+          return "Notarization failed."
+        case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
       case .missingArchive: return "Exporting notarized app couldn't find archive."
       case .loadingNotarizationReceiptFailed:
         return "Loading notarization receipt failed."

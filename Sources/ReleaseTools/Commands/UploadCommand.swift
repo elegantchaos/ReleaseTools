@@ -17,10 +17,10 @@ extension UploadError: LocalizedError {
   public var errorDescription: String? {
     switch self {
       case .savingUploadReceiptFailed(let error):
-        return "Saving upload receipt failed.\n\(error)"
+        return "Saving upload receipt failed.\n\(error.localizedDescription)"
 
       case .decodingUploadReceiptFailed(let error):
-        return "Decoding upload receipt failed.\n\(error)"
+        return "Decoding upload receipt failed.\n\(error.localizedDescription)"
 
       case .uploadingFailedWithErrors(let errors):
         var log = "Upload was rejected with errors."

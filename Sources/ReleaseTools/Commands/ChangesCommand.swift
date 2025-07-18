@@ -9,10 +9,12 @@ import Foundation
 
 enum ChangesError: Error {
   case couldntFetchLog(error: Error)
+}
 
-  public var description: String {
+extension ChangesError: LocalizedError {
+  public var errorDescription: String? {
     switch self {
-      case .couldntFetchLog(let error): return "Couldn't fetch the git log.\n\(error)"
+      case .couldntFetchLog(let error): return "Couldn't fetch the git log.\n\(error.localizedDescription)"
     }
   }
 }

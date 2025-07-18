@@ -9,10 +9,13 @@ import Runner
 
 enum ExportError: Error {
   case writingOptionsFailed(Error)
+}
 
-  public var description: String {
+extension ExportError: LocalizedError {
+  /// A description of the error.
+  public var errorDescription: String? {
     switch self {
-      case .writingOptionsFailed(let error): return "Writing export options file failed.\n\(error)"
+      case .writingOptionsFailed(let error): return "Writing export options file failed.\n\(error.localizedDescription)"
     }
   }
 }

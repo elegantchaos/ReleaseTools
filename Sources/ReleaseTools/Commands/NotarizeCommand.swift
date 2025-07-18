@@ -9,11 +9,14 @@ import Runner
 
 enum NotarizeError: Error {
   case savingNotarizationReceiptFailed(Error)
+}
 
-  public var description: String {
+extension NotarizeError: LocalizedError {
+  /// A description of the error.
+  public var errorDescription: String? {
     switch self {
       case .savingNotarizationReceiptFailed(let error):
-        return "Saving notarization receipt failed.\n\(error)"
+        return "Saving notarization receipt failed.\n\(error.localizedDescription)"
     }
   }
 }
