@@ -23,7 +23,7 @@ extension UploadError: LocalizedError {
         return "Decoding upload receipt failed.\n\(error.localizedDescription)"
 
       case .uploadingFailedWithErrors(let errors):
-        var log = "Upload was rejected with errors."
+        var log = "Upload was rejected with errors.\n"
         for error in errors {
           log += "\n\(error.message) (\(error.code)):\n"
           if let userInfo = error.userInfo {
