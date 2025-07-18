@@ -72,5 +72,5 @@ then
 fi
 
 RTV=`"$RT" --version`
-echo "Using release tools $RTV."
+echo "Using $RTV."
 
