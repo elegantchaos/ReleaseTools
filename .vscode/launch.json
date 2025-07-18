@@ -2,7 +2,7 @@
   "configurations": [
     
     {
-      "type": "swift-lldb",
+      "type": "swift",
       "request": "launch",
       "args": [],
       "cwd": "${workspaceFolder:ReleaseTools}",
@@ -11,7 +11,7 @@
       "preLaunchTask": "swift: Build Debug rt"
     },
     {
-      "type": "swift-lldb",
+      "type": "swift",
       "request": "launch",
       "args": [],
       "cwd": "${workspaceFolder:ReleaseTools}",
@@ -20,7 +20,7 @@
       "preLaunchTask": "swift: Build Release rt"
     },
     {
-      "type": "swift-lldb",
+      "type": "swift",
       "request": "launch",
       "args": [
         "archive",
@@ -33,7 +33,7 @@
       "preLaunchTask": "swift: Build Debug rt"
     },
     {
-      "type": "swift-lldb",
+      "type": "swift",
       "request": "launch",
       "args": [
         "archive",
@@ -45,11 +45,11 @@
       "preLaunchTask": "swift: Build Debug rt"
     },
     {
-      "type": "swift-lldb",
+      "type": "swift",
       "request": "launch",
       "args": [
-        "build",
-        "--platform=macOS",
+        "upload",
+        "--platform=iOS",
       ],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "Debug -- upload Stack",
