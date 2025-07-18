@@ -43,7 +43,8 @@ struct RootCommand: AsyncParsableCommand {
 
   mutating func run() async throws {
     if version {
-      print("ReleaseTools \(VersionatorVersion.git)")
+      let string = VersionatorVersion.git.contains("-0-") ? VersionatorVersion.full : VersionatorVersion.git
+      print("ReleaseTools \(string)")
     } else {
       throw CleanExit.helpRequest(self)
     }
