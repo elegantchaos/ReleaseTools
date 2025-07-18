@@ -12,18 +12,17 @@
 # script, but it won't overwrite your customised version.
 source "Extras/Scripts/bootstrap-tools"
 
+set -euo pipefail  # (add an x to flags to enable debugging)
+
 echo " "
 echo "*************"
 echo "Uploading iOS  "
 echo "*************"
 
-if [[ "$(which xcpretty)" != "" ]]; then
-    $RT archive --platform=iOS --show-output | xcpretty
-else
-    $RT archive --platform=iOS 
-fi
+$RT set increment-tag true
 
+$RT archive --platform=iOS --show-output | xcbeautify --disable-logging
 $RT export --platform=iOS
 $RT upload --platform=iOS
 
-#open "https://appstoreconnect.apple.com/apps/<your-app-id-here>/testflight/ios/"
+open "https://appstoreconnect.apple.com/apps/<your-app-id-here>/testflight/ios/"

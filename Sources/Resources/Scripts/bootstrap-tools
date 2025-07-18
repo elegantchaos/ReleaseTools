@@ -19,6 +19,8 @@
 # - run it once to bootstrap the tools
 # - run the `upload` script to upload your app to testflight / the app store
 
+HOMEBREW_NO_AUTO_UPDATE=true
+brew install xcbeautify --quiet
 
 REBUILD=false
 if [[ "$1" == "--rebuild" ]]
