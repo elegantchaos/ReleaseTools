@@ -23,7 +23,7 @@ extension UploadError: LocalizedError {
         return "Decoding upload receipt failed.\n\(error.localizedDescription)"
 
       case .uploadingFailedWithErrors(let errors):
-        var log = "Upload was rejected with errors.\n"
+        var log = "Upload was rejected.\n"
         for error in errors {
           log += "\n\(error.message) (\(error.code)):\n"
           if let userInfo = error.userInfo {
@@ -97,9 +97,11 @@ struct UploadCommand: AsyncParsableCommand {
       ])
     }
 
+    // upload
     try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
-
     parsed.log("Finished uploading.")
+
+    // stash a copy of the output
     let output = await uploadResult.stdout.string
     do {
       try output.write(to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
@@ -107,6 +109,7 @@ struct UploadCommand: AsyncParsableCommand {
       throw UploadError.savingUploadReceiptFailed(error)
     }
 
+    // parse the output
     let receipt: UploadReceipt
     do {
       let decoder = JSONDecoder()
@@ -116,10 +119,13 @@ struct UploadCommand: AsyncParsableCommand {
       throw UploadError.decodingUploadReceiptFailed(error)
     }
 
-    guard receipt.productErrors.isEmpty else {
-      throw UploadError.uploadingFailedWithErrors(receipt.productErrors)
+    // check the receipt for errors
+    if let errors = receipt.productErrors, !errors.isEmpty {
+      throw UploadError.uploadingFailedWithErrors(errors)
     }
 
+    // no errors, so tag the commit
+    parsed.log("Upload was accepted.")
     parsed.log("Tagging.")
     let git = GitRunner()
     let tagResult = git.run([
@@ -136,9 +142,16 @@ struct UploadReceiptError: Codable, Sendable {
   let underlyingErrors: [UploadReceiptError]
   let userInfo: [String: String]?
 }
+
+struct UploadReceiptDetails: Codable, Sendable {
+  let deliveryUuid: String
+  let transferred: String
+}
 struct UploadReceipt: Codable {
   let osVersion: String
   let toolPath: String
   let toolVersion: String
-  let productErrors: [UploadReceiptError]
+  let productErrors: [UploadReceiptError]?
+  let successMessage: String?
+  let details: UploadReceiptDetails?
 }
