@@ -114,7 +114,7 @@ class OptionParser {
   var exportOptionsURL: URL { return buildURL.appendingPathComponent("options.plist") }
   var changesURL: URL { return buildURL.appendingPathComponent("changes.txt") }
   var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
-  var uploadingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
+  var uploadingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.json") }
   var buildURL: URL { return rootURL.appendingPathComponents([".build", platform]) }
   var archiveURL: URL { return buildURL.appendingPathComponent("archive.xcarchive") }
   var exportURL: URL { return buildURL.appendingPathComponent("export") }
