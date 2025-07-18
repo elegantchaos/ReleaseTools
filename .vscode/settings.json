@@ -1,6 +1,5 @@
 {
   "swift.actionAfterBuildError": "Focus Problems",
-  "swift.debugger.useDebugAdapterFromToolchain": true,
   "swift.autoGenerateLaunchConfigurations": false,
   "swift.sourcekit-lsp.backgroundIndexing": "on",
   "swift.backgroundCompilation": true,
@@ -19,5 +18,9 @@
   "npm.autoDetect": "off",
   "explorer.excludeGitIgnore": true,
   "search.useIgnoreFiles": true,
-  "swift.searchSubfoldersForPackages": true
+  "swift.searchSubfoldersForPackages": true,
+  "swift.excludePathsFromPackageDependencies": [
+    "**/.git",
+    "**/.github"
+  ]
 }
