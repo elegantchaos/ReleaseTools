@@ -35,10 +35,15 @@ import PackagePlugin
 
   func performCommand(context: PackagePlugin.PluginContext, arguments: [String]) async throws {
     let tool = try context.tool(named: "ReleaseTools")
-    let output = try await run(
-      tool: tool, arguments: arguments, cwd: context.package.directoryURL)
-
-    Diagnostics.remark(output)
+    let filteredArguments = arguments.filter { $0 != "--allow-writing-to-package-directory" }
+    do {
+      let output = try await run(
+        tool: tool, arguments: filteredArguments, cwd: context.package.directoryURL)
+      print(output)
+    } catch {
+      Diagnostics.error("Error running ReleaseTools: \(error.localizedDescription)")
+      throw error
+    }
   }
 }
 

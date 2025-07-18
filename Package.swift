@@ -11,6 +11,7 @@ let package = Package(
 
   products: [
     .executable(name: "rt", targets: ["ReleaseTools"]),
+    .executable(name: "ReleaseTools", targets: ["ReleaseTools"]),
     .library(name: "Resources", targets: ["Resources"]),
     .plugin(name: "rt-plugin", targets: ["ReleaseToolsPlugin"]),
   ],
@@ -65,13 +66,15 @@ let package = Package(
       ),
 
       dependencies: [
-        "ReleaseTools"
+        .target(name: "ReleaseTools")
       ]
     ),
 
     .testTarget(
       name: "ReleaseToolsTests",
-      dependencies: ["ReleaseTools"]
+      dependencies: [
+        .target(name: "ReleaseTools")
+      ]
     ),
   ]
 )
