@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:6.2
 
 import PackageDescription
 
@@ -19,7 +19,7 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/elegantchaos/Coercion.git", from: "1.1.2"),
     .package(url: "https://github.com/elegantchaos/Files.git", from: "1.2.0"),
-    .package(url: "https://github.com/elegantchaos/Logger.git", branch: "swift6-manager-events"),
+    .package(url: "https://github.com/elegantchaos/Logger.git", from: "2.0.0"),
     .package(url: "https://github.com/elegantchaos/Runner.git", from: "2.1.0"),
     .package(url: "https://github.com/elegantchaos/ChaosByteStreams", from: "1.0.0"),
     .package(url: "https://github.com/elegantchaos/Versionator.git", from: "2.0.3"),

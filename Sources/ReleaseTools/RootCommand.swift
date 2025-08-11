@@ -26,6 +26,7 @@ struct RootCommand: AsyncParsableCommand {
         ExportCommand.self,
         GetCommand.self,
         InstallCommand.self,
+        MigrateCommand.self,
         NotarizeCommand.self,
         PublishCommand.self,
         SetCommand.self,
@@ -61,9 +62,9 @@ struct RootCommand: AsyncParsableCommand {
       } else {
         try command.run()
       }
-      Manager.shared.flush()
+      await Manager.shared.shutdown()
     } catch {
-      Manager.shared.flush()
+      await Manager.shared.shutdown()
       exit(withError: error)
     }
   }

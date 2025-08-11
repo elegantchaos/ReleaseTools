@@ -1,6 +1,5 @@
 {
   "configurations": [
-    
     {
       "type": "swift",
       "request": "launch",
@@ -18,6 +17,17 @@
       "name": "Release rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/release/rt",
       "preLaunchTask": "swift: Build Release rt"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [
+        "migrate",
+      ],
+      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
+      "name": "Debug -- migrate Stack",
+      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
+      "preLaunchTask": "swift: Build Debug rt"
     },
     {
       "type": "swift",

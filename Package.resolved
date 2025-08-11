@@ -1,5 +1,5 @@
 {
-  "originHash" : "02ec2ba614c54df5578a526e81dd132bfb8b85517d7adf5fa02053952ac44bd9",
+  "originHash" : "236bdc08f5add8931213bf81db190ef85e0ab4058e135459e98e9a0b155d1dee",
   "pins" : [
     {
       "identity" : "chaosbytestreams",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/Logger.git",
       "state" : {
-        "branch" : "swift6-manager-events",
-        "revision" : "d03c47468a1aa31d03eb8a3b24b6a664d959a989"
+        "revision" : "2a494cd58ec647ccb8774764cf65108d4e7c9552",
+        "version" : "2.0.0"
       }
     },
     {
