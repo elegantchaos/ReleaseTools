@@ -89,6 +89,9 @@ class OptionParser {
   var semaphore: DispatchSemaphore? = nil
   var error: Error? = nil
 
+  let workspaceSettingsURL: URL
+  var workspaceSettings: WorkspaceSettings
+
   var platform: String = ""
   var scheme: String = ""
   var user: String = ""
@@ -154,6 +157,14 @@ class OptionParser {
     package = rootURL.lastPathComponent
     if let platform = platform {
       self.platform = platform.platform ?? (setDefaultPlatform ? "macOS" : "")
+    }
+
+    // load settings from the .rt.json file if it exists
+    workspaceSettingsURL = URL(filePath: ".rt.json")!
+    do {
+      workspaceSettings = try WorkspaceSettings(url: workspaceSettingsURL)
+    } catch {
+      workspaceSettings = WorkspaceSettings()
     }
 
     // remember the build offset if it was supplied
@@ -233,6 +244,13 @@ class OptionParser {
         throw GeneralError.infoUnreadable(archiveURL.path)
       }
     }
+
+    // migrate any old UserDefault settings to .rt.json
+    workspaceSettings.migrateSetting(
+      parsed: self, scheme: self.scheme, platform: self.platform, key: "user", value: self.user)
+
+    // write the settings to the .rt.json file
+    try workspaceSettings.write(to: workspaceSettingsURL)
   }
 
   func defaultKey(for key: String, platform: String) -> String {

@@ -26,7 +26,6 @@ struct RootCommand: AsyncParsableCommand {
         ExportCommand.self,
         GetCommand.self,
         InstallCommand.self,
-        MigrateCommand.self,
         NotarizeCommand.self,
         PublishCommand.self,
         SetCommand.self,
