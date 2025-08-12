@@ -16,7 +16,7 @@
       "cwd": "${workspaceFolder:ReleaseTools}",
       "name": "Release rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/release/rt",
-      "preLaunchTask": "swift: Build Release rt"
+      "preLaunchTask": "swift: Build Release rt",
     },
     {
       "type": "swift",
@@ -24,10 +24,10 @@
       "args": [
         "migrate",
       ],
-      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
+      "cwd": "${workspaceFolder:ReleaseTools}/../nDuo-iQ",
       "name": "Debug -- migrate Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
-      "preLaunchTask": "swift: Build Debug rt"
+      "preLaunchTask": "swift: Build Debug rt",
     },
     {
       "type": "swift",

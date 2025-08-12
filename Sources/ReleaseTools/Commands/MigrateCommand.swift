@@ -23,22 +23,12 @@ struct MigrateCommand: AsyncParsableCommand {
   func run() async throws {
 
     let parsed = try OptionParser(
-      requires: [.archive],
+      requires: [.workspace],
       options: options,
       command: Self.configuration,
       scheme: scheme,
       platform: platform
     )
-
-    let keys = [
-      "keychain",
-      "offset",
-      "increment-tag",
-      "user",
-      "api-key",
-      "api-issuer",
-      "scheme",
-    ]
 
     let settingsURL = URL(filePath: ".rt.json")!
     var settings = WorkspaceSettings(defaultScheme: parsed.scheme, schemes: [:])
@@ -53,31 +43,47 @@ struct MigrateCommand: AsyncParsableCommand {
     }
 
     for (key, value) in UserDefaults.standard.dictionaryRepresentation() {
-      let components = key.split(separator: ".")
-      if let k = components.first {
-        // guard keys.contains(String(k)) else { continue }
-        print(k, key, value)
+      if key.hasSuffix(parsed.workspace) {
+        var components = key.split(separator: ".")
+        if components.count > 1 {
+          components.removeLast(2)
+          var schemeName = String(components[1])
+          if schemeName == "default" {
+            schemeName = parsed.scheme
+          }
+          let property = components[0]
+          let platform = (components.count > 2) ? String(components[2]) : "any"
+          print("migrated \(platform) setting for scheme \(schemeName): \(property) = \(value)")
+          settings.schemes[schemeName, default: SchemeSettings()].platforms[platform, default: RTSettings()].setFromKey(String(property), value: String(describing: value))
+        }
       }
     }
 
     // // Write the settings to a .rt file.
-    // let settingsFileURL = parsed.workspaceURL.appendingPathComponent(".rt")
-    // let encoder = JSONEncoder()
-    // encoder.outputFormatting = .prettyPrinted
-
-    // let data = try encoder.encode(workspaceSettings)
-    // try data.write(to: settingsFileURL)
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = .prettyPrinted
+    let data = try encoder.encode(settings)
+    try data.write(to: settingsURL)
 
     parsed.log("Migration complete. Settings saved to \(settingsURL.path).")
   }
 }
 
 struct WorkspaceSettings: Codable {
-  let defaultScheme: String?
-  let schemes: [String: SchemeSettings]
+  /// Default scheme to read settings from.
+  var defaultScheme: String?
+
+  /// Scheme-specific settings.
+  var schemes: [String: SchemeSettings] = [:]
 }
 
 struct SchemeSettings: Codable {
+  /// Settings indexed by platform.
+  /// Default values are stored in the platform "any".
+  var platforms: [String: RTSettings] = [:]
+}
+
+struct RTSettings: Codable {
   var user: String?
   var keychain: String?
   var offset: Int?
@@ -92,5 +98,24 @@ struct SchemeSettings: Codable {
     self.incrementTag = incrementTag
     self.apiKey = apiKey
     self.apiIssuer = apiIssuer
+  }
+
+  mutating func setFromKey(_ key: String, value: String) {
+    switch key {
+      case "user":
+        self.user = value
+      case "keychain":
+        self.keychain = value
+      case "offset":
+        self.offset = Int(value)
+      case "increment-tag":
+        self.incrementTag = Bool(value) ?? false
+      case "api-key":
+        self.apiKey = value
+      case "api-issuer":
+        self.apiIssuer = value
+      default:
+        break
+    }
   }
 }
