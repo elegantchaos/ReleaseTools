@@ -122,7 +122,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     let (build, commit) = try await parsed.nextBuildNumberAndCommit(in: configURL.deletingLastPathComponent(), using: git)
     let new = "BUILD_NUMBER = \(build)\nBUILD_COMMIT = \(commit)"
 
-    if let existing = try? String(contentsOf: configURL), existing == new {
+    if let existing = try? String(contentsOf: configURL, encoding: .utf8), existing == new {
       parsed.log("Build number is \(build).")
     } else {
       parsed.log("Updating build number to \(build).")
