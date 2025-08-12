@@ -16,27 +16,12 @@
       "cwd": "${workspaceFolder:ReleaseTools}",
       "name": "Release rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/release/rt",
-      "preLaunchTask": "swift: Build Release rt",
+      "preLaunchTask": "swift: Build Release rt"
     },
     {
       "type": "swift",
       "request": "launch",
-      "args": [
-        "migrate",
-      ],
-      "cwd": "${workspaceFolder:ReleaseTools}/../nDuo-iQ",
-      "name": "Debug -- migrate Stack",
-      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
-      "preLaunchTask": "swift: Build Debug rt",
-    },
-    {
-      "type": "swift",
-      "request": "launch",
-      "args": [
-        "archive",
-        "--platform=macOS",
-        "--increment-tag"
-      ],
+      "args": ["archive", "--platform=macOS", "--increment-tag"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "Debug -- archive Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
@@ -45,10 +30,7 @@
     {
       "type": "swift",
       "request": "launch",
-      "args": [
-        "archive",
-        "--platform=macOS",
-      ],
+      "args": ["archive", "--platform=macOS"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "Debug -- export Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
@@ -57,14 +39,11 @@
     {
       "type": "swift",
       "request": "launch",
-      "args": [
-        "upload",
-        "--platform=iOS",
-      ],
+      "args": ["upload", "--platform=iOS"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "Debug -- upload Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt"
-    },
+    }
   ]
 }
