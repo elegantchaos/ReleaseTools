@@ -192,6 +192,19 @@ class OptionParser {
     if requirements.contains(.workspace) || scheme != nil || user != nil {
       if let workspace = options.workspace ?? defaultWorkspace {
         self.workspace = workspace
+
+        // migrate any old UserDefault settings to .rt.json
+        if let knownScheme = scheme?.scheme {
+          if workspaceSettings.migrateSettings(
+            workspace: workspace,
+            scheme: knownScheme,
+            platform: self.platform
+          ) {
+
+            // write the settings to the .rt.json file
+            try workspaceSettings.write(to: workspaceSettingsURL)
+          }
+        }
       } else {
         throw GeneralError.missingWorkspace
       }
@@ -245,12 +258,6 @@ class OptionParser {
       }
     }
 
-    // migrate any old UserDefault settings to .rt.json
-    workspaceSettings.migrateSetting(
-      parsed: self, scheme: self.scheme, platform: self.platform, key: "user", value: self.user)
-
-    // write the settings to the .rt.json file
-    try workspaceSettings.write(to: workspaceSettingsURL)
   }
 
   func defaultKey(for key: String, platform: String) -> String {
