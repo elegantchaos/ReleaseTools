@@ -8,7 +8,7 @@ import Foundation
 import Runner
 
 enum UploadError: Error {
-  case decodingUploadReceiptFailed(Error)
+  case decodingUploadReceiptFailed(Error, String)
   case savingUploadReceiptFailed(Error)
   case uploadingFailedWithErrors([UploadReceiptError])
 }
@@ -19,8 +19,14 @@ extension UploadError: LocalizedError {
       case .savingUploadReceiptFailed(let error):
         return "Saving upload receipt failed.\n\(error.localizedDescription)"
 
-      case .decodingUploadReceiptFailed(let error):
-        return "Decoding upload receipt failed.\n\(error.localizedDescription)"
+      case .decodingUploadReceiptFailed(let error, let content):
+        var description = "Decoding upload receipt failed.\n\(error.localizedDescription)"
+        if content.isEmpty {
+          description += "\n\nNo content was returned from the upload command."
+        } else {
+          description += "\n\nResponse content:\n\(content)"
+        }
+        return description
 
       case .uploadingFailedWithErrors(let errors):
         var log = "Upload was rejected.\n"
@@ -116,7 +122,7 @@ struct UploadCommand: AsyncParsableCommand {
       decoder.keyDecodingStrategy = .dashCase
       receipt = try decoder.decode(UploadReceipt.self, from: output.data(using: .utf8)!)
     } catch {
-      throw UploadError.decodingUploadReceiptFailed(error)
+      throw UploadError.decodingUploadReceiptFailed(error, output)
     }
 
     // check the receipt for errors
