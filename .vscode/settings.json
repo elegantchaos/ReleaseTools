@@ -4,13 +4,12 @@
   "swift.sourcekit-lsp.backgroundIndexing": "on",
   "swift.backgroundCompilation": true,
   "swift.showBuildStatus": "progress",
-  "swift.buildPath": ".build/vscode-build",
   "swift.diagnosticsStyle": "default",
   "swift.diagnosticsCollection": "keepSwiftc",
   "[swift]": {
     "editor.defaultFormatter": "swiftlang.swift-vscode",
     "editor.formatOnSave": true,
-    "editor.formatOnPaste": true,
+    "editor.formatOnPaste": true
   },
   "editor.tabSize": 2,
   "editor.useTabStops": false,
@@ -19,8 +18,5 @@
   "explorer.excludeGitIgnore": true,
   "search.useIgnoreFiles": true,
   "swift.searchSubfoldersForPackages": true,
-  "swift.excludePathsFromPackageDependencies": [
-    "**/.git",
-    "**/.github"
-  ]
+  "swift.excludePathsFromPackageDependencies": ["**/.git", "**/.github"]
 }
