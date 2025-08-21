@@ -59,13 +59,13 @@ struct ExportCommand: AsyncParsableCommand {
     parsed.log(
       "Generating export options for \(distribution ? "direct" : "appstore") distribution.")
     do {
-      let options = [
+      let exportOptions = [
         "iCloudContainerEnvironment": "Production",
         "signingStyle": "automatic",
-        "method": distribution ? "developer-id" : "app-store",
+        "method": distribution ? "developer-id" : "app-store-connect",
       ]
       let data = try PropertyListSerialization.data(
-        fromPropertyList: options, format: .xml, options: 0)
+        fromPropertyList: exportOptions, format: .xml, options: 0)
       try data.write(to: parsed.exportOptionsURL)
     } catch {
       throw ExportError.writingOptionsFailed(error)
