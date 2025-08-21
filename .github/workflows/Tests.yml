@@ -10,14 +10,14 @@ on: [push, pull_request]
 jobs:
   macOS-swift-6:
     name: macOS (Swift 6)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set Up Swift
+      - name: Swift Setup
         uses: beeauvin/swiftly-swift@v1
-        with:
-          swift-version: 6.2-snapshot
+      - name: Swift Version
+        run: swift --version
       - name: Make Logs Directory
         run: mkdir logs
       - name: Build (Release)
