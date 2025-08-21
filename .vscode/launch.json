@@ -24,7 +24,7 @@
       "args": ["archive", "--platform=macOS", "--show-output"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "Debug -- archive Stack",
-      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
+      "program": "${workspaceFolder:ReleaseTools}/.build/vscode-build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt"
     },
     {
@@ -33,8 +33,9 @@
       "args": ["export", "--platform=macOS", "--show-output"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "Debug -- export Stack",
-      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
-      "preLaunchTask": "swift: Build Debug rt"
+      "program": "${workspaceFolder:ReleaseTools}/.build/vscode-build/debug/rt",
+      "preLaunchTask": "swift: Build Debug rt",
+      "internalConsoleOptions": "openOnSessionStart"
     },
     {
       "type": "swift",
@@ -42,7 +43,7 @@
       "args": ["upload", "--platform=macOS", "--show-output"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "Debug -- upload Stack",
-      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
+      "program": "${workspaceFolder:ReleaseTools}/.build/vscode-build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt"
     }
   ]
