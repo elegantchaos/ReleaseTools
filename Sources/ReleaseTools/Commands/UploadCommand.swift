@@ -102,26 +102,22 @@ struct UploadCommand: AsyncParsableCommand {
       "--file", parsed.exportedIPAURL.path, "--output-format", "json", "--type", parsed.platform,
     ])
 
-    print(
-      [
-        "altool", "--upload-app", "--apiIssuer", parsed.apiIssuer, "--apiKey", parsed.apiKey,
-        "--file", parsed.exportedIPAURL.path, "--output-format", "json", "--type", parsed.platform,
-      ].joined(separator: " "))
-
-    // upload
-    try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
-    parsed.log("Finished uploading.")
-
     // check for an error from stderr, since altool usefully doesn't always return a non-zero error
-    // (or maybe xcrun doesn't?)
-    let stderr = await uploadResult.stderr.string
-    if stderr.contains("ERROR:") {
-      if stderr.contains("File does not exist at path") {
-        throw UploadError.uploadFileMissing(stderr)
-      } else {
-        throw UploadError.uploadOtherError(stderr)
+    // (or maybe xcrun doesn't pass it on?)
+    for await line in await uploadResult.stderr.lines {
+      if line.contains("ERROR:") {
+        if line.contains("File does not exist at path") {
+          throw UploadError.uploadFileMissing(line)
+        } else {
+          throw UploadError.uploadOtherError(line)
+        }
       }
     }
+
+    // check for a non-zero result
+    try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
+
+    parsed.log("Finished uploading.")
 
     // stash a copy of the output
     let output = await uploadResult.stdout.string
