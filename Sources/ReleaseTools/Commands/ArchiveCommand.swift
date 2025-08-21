@@ -61,16 +61,23 @@ struct ArchiveCommand: AsyncParsableCommand {
 
     let xcode = XCodeBuildRunner(parsed: parsed)
     var args = [
-      "-workspace", parsed.workspace, "-scheme", parsed.scheme, "archive", "-archivePath",
-      parsed.archiveURL.path, "-allowProvisioningUpdates",
-      "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)", "INFOPLIST_PREPROCESS=YES",
+      "-workspace", parsed.workspace,
+      "-scheme", parsed.scheme,
+      "archive",
+      "-archivePath", parsed.archiveURL.path,
+      "-allowProvisioningUpdates",
+      "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)",
+      "INFOPLIST_PREPROCESS=YES",
       "CURRENT_PROJECT_VERSION=\(build)",
     ]
+
     if let config = xcconfig {
       args.append(contentsOf: ["-xcconfig", config])
     }
 
     switch parsed.platform {
+      case "macOS":
+        args.append(contentsOf: ["-destination", "generic/platform=macOS"])
       case "iOS":
         args.append(contentsOf: ["-destination", "generic/platform=iOS"])
       case "tvOS":
