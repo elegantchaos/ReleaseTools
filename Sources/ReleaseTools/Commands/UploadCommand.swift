@@ -8,6 +8,8 @@ import Foundation
 import Runner
 
 enum UploadError: Error {
+  case uploadFileMissing(String)
+  case uploadOtherError(String)
   case decodingUploadReceiptFailed(Error, String)
   case savingUploadReceiptFailed(Error)
   case uploadingFailedWithErrors([UploadReceiptError])
@@ -16,6 +18,12 @@ enum UploadError: Error {
 extension UploadError: LocalizedError {
   public var errorDescription: String? {
     switch self {
+      case .uploadFileMissing(let raw):
+        return "Upload file not found.\n\n\(raw)"
+
+      case .uploadOtherError(let raw):
+        return "Upload failed with an unknown error.\n\n\(raw)"
+
       case .savingUploadReceiptFailed(let error):
         return "Saving upload receipt failed.\n\(error.localizedDescription)"
 
@@ -89,23 +97,31 @@ struct UploadCommand: AsyncParsableCommand {
     parsed.log("Uploading \(parsed.versionTag) to Apple Connect.")
     let xcrun = XCRunRunner(parsed: parsed)
     let uploadResult: Runner.Session
-    if parsed.apiKey.isEmpty {
-      // use username & password
-      uploadResult = xcrun.run([
-        "altool", "--upload-app", "--username", parsed.user, "--password", "@keychain:AC_PASSWORD",
-        "--file", parsed.exportedIPAURL.path, "--output-format", "json", "--type", parsed.platform,
-      ])
-    } else {
-      // use api key and issuer
-      uploadResult = xcrun.run([
+    uploadResult = xcrun.run([
+      "altool", "--upload-app", "--apiIssuer", parsed.apiIssuer, "--apiKey", parsed.apiKey,
+      "--file", parsed.exportedIPAURL.path, "--output-format", "json", "--type", parsed.platform,
+    ])
+
+    print(
+      [
         "altool", "--upload-app", "--apiIssuer", parsed.apiIssuer, "--apiKey", parsed.apiKey,
         "--file", parsed.exportedIPAURL.path, "--output-format", "json", "--type", parsed.platform,
-      ])
-    }
+      ].joined(separator: " "))
 
     // upload
     try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
     parsed.log("Finished uploading.")
+
+    // check for an error from stderr, since altool usefully doesn't always return a non-zero error
+    // (or maybe xcrun doesn't?)
+    let stderr = await uploadResult.stderr.string
+    if stderr.contains("ERROR:") {
+      if stderr.contains("File does not exist at path") {
+        throw UploadError.uploadFileMissing(stderr)
+      } else {
+        throw UploadError.uploadOtherError(stderr)
+      }
+    }
 
     // stash a copy of the output
     let output = await uploadResult.stdout.string

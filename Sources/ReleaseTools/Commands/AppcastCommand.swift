@@ -64,7 +64,7 @@ struct AppcastCommand: AsyncParsableCommand {
     let xcode = XCodeBuildRunner(parsed: parsed)
 
     let keyChainPath =
-      keychain ?? parsed.getDefault(for: "keychain")
+      keychain ?? parsed.getSettings().keychain
       ?? ("~/Library/Keychains/login.keychain" as NSString).expandingTildeInPath
 
     parsed.log("Rebuilding appcast.")

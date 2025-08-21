@@ -16,13 +16,13 @@ enum WaitForNotarizationError: Error {
   case loadingNotarizationReceiptFailed
 }
 extension WaitForNotarizationError: LocalizedError {
-    public var errorDescription: String? {
-      switch self {
-        case .fetchingNotarizationStatusThrew(let error):
-          return "Fetching notarization status failed.\n\(error)"
-        case .notarizationFailed:
-          return "Notarization failed."
-        case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
+  public var errorDescription: String? {
+    switch self {
+      case .fetchingNotarizationStatusThrew(let error):
+        return "Fetching notarization status failed.\n\(error)"
+      case .notarizationFailed:
+        return "Notarization failed."
+      case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
       case .missingArchive: return "Exporting notarized app couldn't find archive."
       case .loadingNotarizationReceiptFailed:
         return "Loading notarization receipt failed."
@@ -133,8 +133,12 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
   func check(request: String, parsed: OptionParser) async throws -> Bool {
     let xcrun = XCRunRunner(parsed: parsed)
     let result = xcrun.run([
-      "altool", "--notarization-info", request, "--username", parsed.user, "--password",
-      "@keychain:AC_PASSWORD", "--output-format", "xml",
+      "altool",
+      "--notarization-info",
+      request,
+      "--apiIssuer", parsed.apiIssuer,
+      "--apiKey", parsed.apiKey,
+      "--output-format", "xml",
     ])
     try await result.throwIfFailed(WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed)
 

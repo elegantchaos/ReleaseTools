@@ -94,7 +94,6 @@ class OptionParser {
 
   var platform: String = ""
   var scheme: String = ""
-  var user: String = ""
   var apiKey: String = ""
   var apiIssuer: String = ""
   var package: String = ""
@@ -161,26 +160,22 @@ class OptionParser {
 
     // load settings from the .rt.json file if it exists
     workspaceSettingsURL = URL(filePath: ".rt.json")!
-    do {
-      workspaceSettings = try WorkspaceSettings(url: workspaceSettingsURL)
-    } catch {
-      workspaceSettings = WorkspaceSettings()
-    }
+    workspaceSettings = (try? WorkspaceSettings.load(url: workspaceSettingsURL)) ?? WorkspaceSettings()
 
     // remember the build offset if it was supplied
     if let buildOptions, let offset = buildOptions.offset {
       // ... on the command line
       buildOffset = offset
 
-    } else if let setting = getDefault(for: "offset"), let offset = UInt(setting) {
+    } else if let offset = getSettings().offset {
       // ... or as a default setting
       buildOffset = offset
     }
 
     // remember the commit counting setting if it was supplied
-    if let setting = getDefault(for: "increment-tag") {
+    if let setting = getSettings().incrementTag {
       // ... as a default setting
-      incrementBuildTag = setting == "true"
+      incrementBuildTag = setting
     }
 
     if let buildOptions, buildOptions.incrementTag {
@@ -218,22 +213,14 @@ class OptionParser {
       }
     }
 
-    if user != nil {
-      if let user = user?.user ?? getDefault(for: "user") {
-        self.user = user
-      } else if apiKey == nil {
-        throw GeneralError.noDefaultUser
-      }
-    }
-
     if apiKey != nil {
-      if let key = apiKey?.key ?? getDefault(for: "api-key") {
+      if let key = apiKey?.key ?? getSettings().apiKey {
         self.apiKey = key
       }
     }
 
     if apiIssuer != nil {
-      if let issuer = apiIssuer?.issuer ?? getDefault(for: "api-issuer") {
+      if let issuer = apiIssuer?.issuer ?? getSettings().apiIssuer {
         self.apiIssuer = issuer
       }
     }
@@ -245,7 +232,7 @@ class OptionParser {
       }
 
       // neither user or api key has been provided - we need one
-      if self.apiKey.isEmpty && self.user.isEmpty {
+      if self.apiKey.isEmpty {
         throw GeneralError.userOrApiKey
       }
     }
@@ -268,27 +255,13 @@ class OptionParser {
     }
   }
 
-  /// Read a default value from the settings.
-  /// We look for a platform-specific value first, and fall back on a general value if that doesn't exist.
-  func getDefault(for key: String) -> String? {
-    // try platform specific key first, if the platform has been specified
-    if !platform.isEmpty,
-      let platformValue = UserDefaults.standard.string(forKey: defaultKey(for: key, platform: platform))
-    {
-      return platformValue
-    }
-
-    // fall back on general key
-    if let generalValue = UserDefaults.standard.string(forKey: defaultKey(for: key, platform: "")) {
-      return generalValue
-    }
-
-    return nil
+  func getSettings() -> BasicSettings {
+    return workspaceSettings.settings(scheme: scheme, platform: platform)
   }
 
   /// If no scheme is supplied, we'll try to guess one based on the workspace.
   var defaultScheme: String? {
-    if let value = getDefault(for: "scheme") {
+    if let value = workspaceSettings.defaultScheme {
       return value
     }
 
@@ -302,16 +275,6 @@ class OptionParser {
     return nil
   }
 
-  func setDefault(_ value: String, for key: String) {
-    let key = defaultKey(for: key, platform: platform)
-    UserDefaults.standard.set(value, forKey: key)
-  }
-
-  func clearDefault(for key: String) {
-    let key = defaultKey(for: key, platform: platform)
-    UserDefaults.standard.set(nil, forKey: key)
-  }
-
   func log(_ message: String) {
     print(message)
   }
@@ -321,19 +284,6 @@ class OptionParser {
       print(message)
     }
   }
-
-  // func wait() throws {
-  //   semaphore = DispatchSemaphore(value: 0)
-  //   semaphore?.wait()
-
-  //   if let error = error {
-  //     throw error
-  //   }
-  // }
-
-  // func done() {
-  //   semaphore?.signal()
-  // }
 
   func fail(_ error: Error) {
     self.error = error
