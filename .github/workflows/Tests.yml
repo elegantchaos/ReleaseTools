@@ -8,27 +8,25 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-
-    macOS-swift-6:
-        name: macOS (Swift 6)
-        runs-on: macos-14
-        steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-        - name: Set up Xcode
-          uses: maxim-lobanov/setup-xcode@v1
-          with:
-            xcode-version: "16.2"
-        - name: Make Logs Directory
-          run: mkdir logs
-        - name: Build (Release)
-          run: swift build --configuration release
-        - name: Test (Debug)
-          run: swift test --disable-xctest
-        - name: Upload Logs
-          uses: actions/upload-artifact@v4
-          if: always()
-          with:
-            name: logs
-            path: logs
-
+  macOS-swift-6:
+    name: macOS (Swift 6)
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.4"
+      - name: Make Logs Directory
+        run: mkdir logs
+      - name: Build (Release)
+        run: swift build --configuration release
+      - name: Test (Debug)
+        run: swift test --disable-xctest
+      - name: Upload Logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs
+          path: logs
