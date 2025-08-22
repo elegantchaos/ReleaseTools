@@ -49,29 +49,36 @@ and may need some debugging. These are mostly aimed at external
 distribution of a macOS application via a website, and include support
 for notarizing and updating an appcast feed suitable for Sparkle.
 
-## Build Number
+## Calculated Build Number
 
 ReleaseTools can automatically calculate and inject a build number into your application.
 
-The injection is done in two ways:
+You can either do this only when making an archive for distribution, or every time you make a build. 
 
-- generating a VersionInfo.h header file
-- overriding some build settings on the command line when invoking `xcodebuild`
+The former approach is more efficient, but means that the build number is not available when running from Xcode. I generally use this approach.
+
+The latter approach requires running `rt update-build` in a script phase, and so slightly increases the build times for normal builds. This command can also generate an `.xcconfig` and/or inject info into a `.plist` file, which you may find to be more flexible.
+
+When archiving, the injection is done by:
+
+- generating a `VersionInfo.h` header file
+- overriding some build settings on the command line when invoking `xcodebuild`, so that the header file is included by the Info.plist preprocessor.
 
 The constants defined by the `VersionInfo.h` file are:
 - CURRENT_PROJECT_VERSION: the calculated build number
 - CURRENT_PROJECT_COMMIT: the full git commit hash
 
 The build settings supplied on the command line are:
-- INFOPLIST_PREFIX_HEADER: the path to the generated `VersionInfo.h` file
+- INFOPLIST_PREFIX_HEADER: set to the location of the generated `VersionInfo.h` file
 - INFOPLIST_PREPROCESS: set to YES
 - CURRENT_PROJECT_VERSION: set to the calculated build number
 - CURRENT_PROJECT_COMMIT: the full git commit hash
 
-Using a combination of these values, it is possible to use the defined values in Info.plist via variable substitution,
-and in other build settings or scripts.
+This causes any occurences of the text `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT` to be replaced in the Info.plist file.
 
-There is also a separate `update-build` command which you can use to generate a header file, a plist file, and/or an xcconfig file, containing these values.
+It should also allow any occurences of `${CURRENT_PROJECT_VERSION}` and `${CURRENT_PROJECT_COMMIT}` to be replaced in build settings or build scripts.
+
+When using the `update-build` command, you can generate the header file as described above. You can also generate an `.xcconfig` file which defines the build settings `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT`. Finally, you can also specify the path of source and destination `.plist` files. A new copy of the source file will be written to the destination, with the latest build and commit values written into the `CFBundleVersion` and `Commit` keys.
 
 ### Build Number Generation
 
