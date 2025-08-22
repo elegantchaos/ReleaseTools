@@ -14,7 +14,7 @@ class XCRunRunner: Runner {
   }
 
   func run(_ arguments: [String]) -> Session {
-    if parsed.showOutput {
+    if parsed.showCommands {
       parsed.log("xcrun " + arguments.joined(separator: " "))
     }
 

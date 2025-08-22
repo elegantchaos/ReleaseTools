@@ -31,7 +31,7 @@
     {
       "type": "swift",
       "request": "launch",
-      "args": ["archive", "--platform=macOS", "--show-output"],
+      "args": ["archive", "--platform=macOS", "--show-commands"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "archive Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
@@ -45,7 +45,7 @@
     {
       "type": "swift",
       "request": "launch",
-      "args": ["export", "--platform=macOS", "--show-output"],
+      "args": ["export", "--platform=macOS", "--show-commands"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "export Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
@@ -60,7 +60,7 @@
     {
       "type": "swift",
       "request": "launch",
-      "args": ["upload", "--platform=macOS", "--show-output"],
+      "args": ["upload", "--platform=macOS", "--show-commands"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "upload Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
@@ -74,7 +74,7 @@
     {
       "type": "swift",
       "request": "launch",
-      "args": ["submit", "--platform=macOS", "--show-output"],
+      "args": ["submit", "--platform=macOS", "--show-commands"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "submit Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",

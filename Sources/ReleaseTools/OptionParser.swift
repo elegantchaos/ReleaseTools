@@ -55,6 +55,7 @@ class OptionParser {
   }
 
   var showOutput: Bool
+  var showCommands: Bool
   var verbose: Bool
   var semaphore: DispatchSemaphore? = nil
   var error: Error? = nil
@@ -121,6 +122,7 @@ class OptionParser {
   ) throws {
 
     showOutput = options.showOutput
+    showCommands = options.showCommands
     verbose = options.verbose
     package = rootURL.lastPathComponent
     if let platform = platform {

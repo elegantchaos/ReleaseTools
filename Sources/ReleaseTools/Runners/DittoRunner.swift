@@ -14,7 +14,7 @@ class DittoRunner: Runner {
   }
 
   func run(_ arguments: [String]) -> Session {
-    if parsed.showOutput {
+    if parsed.showCommands {
       parsed.log("ditto " + arguments.joined(separator: " "))
     }
 

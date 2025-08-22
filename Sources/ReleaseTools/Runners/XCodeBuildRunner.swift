@@ -31,7 +31,7 @@ class XCodeBuildRunner: Runner {
   }
 
   func run(_ arguments: [String]) -> Session {
-    if parsed.showOutput {
+    if parsed.showCommands {
       parsed.log("\n> xcodebuild \(arguments.joined(separator: " "))\n")
     }
 

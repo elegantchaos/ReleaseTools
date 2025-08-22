@@ -23,6 +23,8 @@ struct SubmitCommand: AsyncParsableCommand {
 
   @Option(help: "Additional xcconfig file to use when building") var xcconfig: String?
   @OptionGroup() var scheme: SchemeOption
+  @OptionGroup() var apiKey: ApiKeyOption
+  @OptionGroup() var apiIssuer: ApiIssuerOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
   @OptionGroup() var buildOptions: BuildOptions
@@ -33,6 +35,8 @@ struct SubmitCommand: AsyncParsableCommand {
       options: options,
       command: Self.configuration,
       scheme: scheme,
+      apiKey: apiKey,
+      apiIssuer: apiIssuer,
       platform: platform,
       buildOptions: buildOptions
     )

@@ -109,7 +109,6 @@ public class BasicSettings: Codable {
         apiKey = value
         migrated = true
       case "api-issuer":
-
         apiIssuer = value
         migrated = true
       default:
