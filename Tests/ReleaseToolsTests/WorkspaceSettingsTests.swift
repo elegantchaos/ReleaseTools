@@ -10,15 +10,15 @@ import Testing
         "settings": {
           "Stack": {
             "apiKey": "blah",
-            "apiProvider": "foo"
+            "apiIssuer": "foo"
           },
           "Watch": {
             "apiKey": "wibble",
-            "apiProvider": "bar"
+            "apiIssuer": "bar"
           },
           "Watch.iOS": {
             "apiKey": "jibber",
-            "apiProvider": "baz"
+            "apiIssuer": "baz"
           }
         }
       }
