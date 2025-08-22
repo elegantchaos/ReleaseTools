@@ -55,7 +55,7 @@ struct ArchiveCommand: AsyncParsableCommand {
   static func archive(parsed: OptionParser, xcconfig: String? = nil) async throws {
     parsed.log("Updating VersionInfo.h...")
     let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
-    let build = try await UpdateBuildCommand.generateHeader(
+    let (build, commit) = try await UpdateBuildCommand.generateHeader(
       parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)
     parsed.log("Archiving scheme \(parsed.scheme)...")
 
@@ -69,6 +69,7 @@ struct ArchiveCommand: AsyncParsableCommand {
       "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)",
       "INFOPLIST_PREPROCESS=YES",
       "CURRENT_PROJECT_VERSION=\(build)",
+      "CURRENT_PROJECT_COMMIT=\(commit)",
     ]
 
     if let config = xcconfig {

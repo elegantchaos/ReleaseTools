@@ -85,13 +85,13 @@ struct UpdateBuildCommand: AsyncParsableCommand {
         try data.write(to: destURL, options: .atomic)
 
         let headerURL = destURL.deletingLastPathComponent().appendingPathComponent("RTInfo.h")
-        let header = "#define BUILD \(build)\n#define COMMIT \(commit)"
+        let header = "#define CURRENT_PROJECT_VERSION \(build)\n#define CURRENT_PROJECT_COMMIT \(commit)"
         try header.write(to: headerURL, atomically: true, encoding: .utf8)
       }
     }
   }
 
-  static func generateHeader(parsed: OptionParser, header: String, repo: String) async throws -> String {
+  static func generateHeader(parsed: OptionParser, header: String, repo: String) async throws -> (String, String) {
     let headerURL = URL(fileURLWithPath: header)
     let repoURL = URL(fileURLWithPath: repo)
 
@@ -99,11 +99,11 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     let (build, commit) = try await parsed.nextBuildNumberAndCommit(in: repoURL, using: git)
     parsed.log("Setting build number to \(build).")
     let header =
-      "#define BUILD \(build)\n#define CURRENT_PROJECT_VERSION \(build)\n#define COMMIT \(commit)"
+      "#define CURRENT_PROJECT_VERSION \(build)\n#define CURRENT_PROJECT_COMMIT \(commit)"
     try? FileManager.default.createDirectory(
       at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
     try header.write(to: headerURL, atomically: true, encoding: .utf8)
-    return build
+    return (build, commit)
   }
 
   static func generateConfig(parsed: OptionParser, config: String?) async throws {
@@ -120,7 +120,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
 
     let git = GitRunner()
     let (build, commit) = try await parsed.nextBuildNumberAndCommit(in: configURL.deletingLastPathComponent(), using: git)
-    let new = "BUILD_NUMBER = \(build)\nBUILD_COMMIT = \(commit)"
+    let new = "CURRENT_PROJECT_VERSION = \(build)\nCURRENT_PROJECT_COMMIT = \(commit)"
 
     if let existing = try? String(contentsOf: configURL, encoding: .utf8), existing == new {
       parsed.log("Build number is \(build).")

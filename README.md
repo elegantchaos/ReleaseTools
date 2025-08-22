@@ -44,14 +44,14 @@ can also executed in order if you want more control over the process, or
 if you need to restart the halfway through (eg run the export again
 without rebuilding or exporting the archive).
 
-Some other tasks are supported by rt, but haven't been used for a while
+Some other tasks are supported by rt (see below), but haven't been used for a while
 and may need some debugging. These are mostly aimed at external
 distribution of a macOS application via a website, and include support
 for notarizing and updating an appcast feed suitable for Sparkle.
 
 ## Build Number
 
-ReleaseTools can automatically calculated and inject a build number into your build.
+ReleaseTools can automatically calculate and inject a build number into your application.
 
 The injection is done in two ways:
 
@@ -59,17 +59,19 @@ The injection is done in two ways:
 - overriding some build settings on the command line when invoking `xcodebuild`
 
 The constants defined by the `VersionInfo.h` file are:
-- BUILD: the calculated build number
-- CURRENT_PROJECT_VERSION: the same value as BUILD
-- COMMIT: the full git commit hash
+- CURRENT_PROJECT_VERSION: the calculated build number
+- CURRENT_PROJECT_COMMIT: the full git commit hash
 
 The build settings supplied on the command line are:
 - INFOPLIST_PREFIX_HEADER: the path to the generated `VersionInfo.h` file
 - INFOPLIST_PREPROCESS: set to YES
 - CURRENT_PROJECT_VERSION: set to the calculated build number
+- CURRENT_PROJECT_COMMIT: the full git commit hash
 
 Using a combination of these values, it is possible to use the defined values in Info.plist via variable substitution,
 and in other build settings or scripts.
+
+There is also a separate `update-build` command which you can use to generate a header file, a plist file, and/or an xcconfig file, containing these values.
 
 ### Build Number Generation
 
@@ -182,13 +184,35 @@ Commits and publishes the latest changes to the website repo.
 
 Assumes that the submodule defining the website which hosts the appcast is located at `Dependencies/Website`.
 
+### update-build
+
+This command can be used to inject the current build number
+and commit hash into a C-style header file,
+an xcconfig file, or an Info.plist file.
+
+If you specify the `--header` option with a path to a `.h` file, it
+will be replaced with generated content:
+
+```c
+#define CURRENT_PROJECT_BUILD <build>
+#define CURRENT_PROJECT_COMMIT <hash>
+```
+
+containing the current build and hash values.
+
+If you specify the `--config` option with a path to an `.xcconfig` file, it will be generated with the same values as above.
+
+If you specify the `--plist` option with a path to a `.plist` file,
+it will be generated, or updates, with two keys `CURRENT_PROJECT_BUILD` and `CURRENT_PROJECT_HASH`.
 
 
 ## Building
 
 The tool is currently built using swift package manager: `swift build`.
 
-You can build and run in a single line with `swift run ReleaseTools <command> <args>`.
+You can build and run in a single line with `swift run rt <command> <args>`.
+
+Alternatively you can build & install it somewhere, eg using [Mint](https://github.com/yonaskolb/Mint).
 
 
 ## Naming Conventions
