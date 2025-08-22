@@ -7,7 +7,12 @@
       "cwd": "${workspaceFolder:ReleaseTools}",
       "name": "Debug rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
-      "preLaunchTask": "swift: Build Debug rt"
+      "preLaunchTask": "swift: Build Debug rt",
+      "presentation": {
+        "hidden": false,
+        "group": "default",
+        "order": 1
+      }
     },
     {
       "type": "swift",
@@ -16,35 +21,69 @@
       "cwd": "${workspaceFolder:ReleaseTools}",
       "name": "Release rt",
       "program": "${workspaceFolder:ReleaseTools}/.build/release/rt",
-      "preLaunchTask": "swift: Build Release rt"
+      "preLaunchTask": "swift: Build Release rt",
+      "presentation": {
+        "hidden": false,
+        "group": "default",
+        "order": 2
+      }
     },
     {
       "type": "swift",
       "request": "launch",
       "args": ["archive", "--platform=macOS", "--show-output"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
-      "name": "Debug -- archive Stack",
+      "name": "archive Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
-      "preLaunchTask": "swift: Build Debug rt"
+      "preLaunchTask": "swift: Build Debug rt",
+      "presentation": {
+        "hidden": false,
+        "group": "example",
+        "order": 1
+      }
     },
     {
       "type": "swift",
       "request": "launch",
       "args": ["export", "--platform=macOS", "--show-output"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
-      "name": "Debug -- export Stack",
+      "name": "export Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt",
-      "internalConsoleOptions": "openOnSessionStart"
+      "internalConsoleOptions": "openOnSessionStart",
+      "presentation": {
+        "hidden": false,
+        "group": "example",
+        "order": 2
+      }
     },
     {
       "type": "swift",
       "request": "launch",
       "args": ["upload", "--platform=macOS", "--show-output"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
-      "name": "Debug -- upload Stack",
+      "name": "upload Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
-      "preLaunchTask": "swift: Build Debug rt"
+      "preLaunchTask": "swift: Build Debug rt",
+      "presentation": {
+        "hidden": false,
+        "group": "example",
+        "order": 3
+      }
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": ["submit", "--platform=macOS", "--show-output"],
+      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
+      "name": "submit Stack",
+      "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
+      "preLaunchTask": "swift: Build Debug rt",
+      "presentation": {
+        "hidden": false,
+        "group": "example",
+        "order": 4
+      }
     }
   ]
 }
