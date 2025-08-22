@@ -58,7 +58,7 @@ struct NotarizeCommand: AsyncParsableCommand {
       platform: platform
     )
 
-    parsed.log("Creating archive for notarization.")
+    parsed.log("Creating zip archive for notarization.")
     let ditto = DittoRunner(parsed: parsed)
 
     let zipResult = ditto.zip(parsed.exportedAppURL, as: parsed.exportedZipURL)
