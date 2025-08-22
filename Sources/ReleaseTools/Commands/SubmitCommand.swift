@@ -31,7 +31,6 @@ struct SubmitCommand: AsyncParsableCommand {
 
   func run() async throws {
     let parsed = try OptionParser(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       scheme: scheme,
@@ -41,9 +40,9 @@ struct SubmitCommand: AsyncParsableCommand {
       buildOptions: buildOptions
     )
 
-    // TODO: set scheme if not supplied?
     try await ArchiveCommand.archive(parsed: parsed, xcconfig: xcconfig)
     try await ExportCommand.export(parsed: parsed)
+    parsed.archive = XcodeArchive(url: parsed.archiveURL)
     try await UploadCommand.upload(parsed: parsed)
     // TODO: open page in app portal?
   }
