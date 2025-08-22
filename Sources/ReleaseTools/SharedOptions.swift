@@ -11,11 +11,6 @@ struct SchemeOption: ParsableArguments {
   var scheme: String?
 }
 
-struct UserOption: ParsableArguments {
-  @Option(help: "The App Store Connect user we're notarizing as.")
-  var user: String?
-}
-
 struct ApiKeyOption: ParsableArguments {
   @Option(name: .customLong("api-key"), help: "The App Store Connect api key ID we're using.")
   var key: String?

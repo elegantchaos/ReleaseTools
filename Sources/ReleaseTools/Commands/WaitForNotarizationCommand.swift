@@ -57,7 +57,6 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command."
   ) var request: String?
 
-  @OptionGroup() var user: UserOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
@@ -69,7 +68,6 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       requires: [.archive],
       options: options,
       command: Self.configuration,
-      user: user,
       platform: platform
     )
 

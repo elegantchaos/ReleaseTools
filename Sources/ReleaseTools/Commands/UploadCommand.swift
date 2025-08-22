@@ -72,7 +72,6 @@ struct UploadCommand: AsyncParsableCommand {
   }
 
   @OptionGroup() var scheme: SchemeOption
-  @OptionGroup() var user: UserOption
   @OptionGroup() var apiKey: ApiKeyOption
   @OptionGroup() var apiIssuer: ApiIssuerOption
   @OptionGroup() var platform: PlatformOption
@@ -84,7 +83,6 @@ struct UploadCommand: AsyncParsableCommand {
       options: options,
       command: Self.configuration,
       scheme: scheme,
-      user: user,
       apiKey: apiKey,
       apiIssuer: apiIssuer,
       platform: platform

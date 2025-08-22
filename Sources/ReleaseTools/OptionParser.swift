@@ -143,7 +143,6 @@ class OptionParser {
     options: CommonOptions,
     command: CommandConfiguration,
     scheme: SchemeOption? = nil,
-    user: UserOption? = nil,
     apiKey: ApiKeyOption? = nil,
     apiIssuer: ApiIssuerOption? = nil,
     platform: PlatformOption? = nil,
@@ -183,8 +182,8 @@ class OptionParser {
       incrementBuildTag = true
     }
 
-    // if we've specified the scheme or user, we also need the workspace
-    if requirements.contains(.workspace) || scheme != nil || user != nil {
+    // if we've specified the scheme, we also need the workspace
+    if requirements.contains(.workspace) || scheme != nil {
       if let workspace = options.workspace ?? defaultWorkspace {
         self.workspace = workspace
 

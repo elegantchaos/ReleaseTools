@@ -43,7 +43,6 @@ struct NotarizeCommand: AsyncParsableCommand {
   }
 
   @OptionGroup() var scheme: SchemeOption
-  @OptionGroup() var user: UserOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
 
@@ -54,7 +53,6 @@ struct NotarizeCommand: AsyncParsableCommand {
       options: options,
       command: Self.configuration,
       scheme: scheme,
-      user: user,
       platform: platform
     )
 

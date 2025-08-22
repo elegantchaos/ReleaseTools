@@ -21,10 +21,11 @@ struct SubmitCommand: AsyncParsableCommand {
     )
   }
 
+  @Option(help: "Additional xcconfig file to use when building") var xcconfig: String?
   @OptionGroup() var scheme: SchemeOption
-  @OptionGroup() var user: UserOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
+  @OptionGroup() var buildOptions: BuildOptions
 
   func run() async throws {
     let parsed = try OptionParser(
@@ -32,12 +33,12 @@ struct SubmitCommand: AsyncParsableCommand {
       options: options,
       command: Self.configuration,
       scheme: scheme,
-      user: user,
-      platform: platform
+      platform: platform,
+      buildOptions: buildOptions
     )
 
     // TODO: set scheme if not supplied?
-    try await ArchiveCommand.archive(parsed: parsed)
+    try await ArchiveCommand.archive(parsed: parsed, xcconfig: xcconfig)
     try await ExportCommand.export(parsed: parsed)
     try await UploadCommand.upload(parsed: parsed)
     // TODO: open page in app portal?
