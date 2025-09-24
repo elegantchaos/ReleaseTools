@@ -7,12 +7,7 @@ import Foundation
 import Runner
 
 class GitRunner: Runner {
-
-  init() {
-    super.init(command: "git")
-  }
-
-  init(environment: [String: String]) {
+  init(environment: [String: String] = ProcessInfo.processInfo.environment) {
     super.init(command: "git", environment: environment)
   }
 }
