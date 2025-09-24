@@ -10,10 +10,26 @@ extension OptionParser {
   /// Return the build number to use for the next build, and the commit tag it was build from.
   func nextBuildNumberAndCommit(in url: URL, using git: GitRunner) async throws -> (String, String) {
     git.cwd = url
-    chdir(url.path)
+    // Avoid changing global process CWD; rely on Runner.cwd
+
+    // optionally adopt build number from a different platform tag at HEAD
+    var adoptedBuild: UInt? = nil
+    if adoptOtherPlatformBuild {
+      adoptedBuild = try await getBuildFromOtherPlatformTagAtHEAD(using: git, currentPlatform: platform)
+      if let adoptedBuild {
+        log("Adopting build number from another platform tag at HEAD: \(adoptedBuild)")
+      }
+    }
 
     // get next build number
-    let build = incrementBuildTag ? try await getBuildByIncrementingTag(using: git, platform: platform) : try await getBuildByCommits(using: git, offset: buildOffset)
+    let build: UInt
+    if let adoptedBuild {
+      build = adoptedBuild
+    } else if incrementBuildTag {
+      build = try await getBuildByIncrementingTag(using: git, platform: platform)
+    } else {
+      build = try await getBuildByCommits(using: git, offset: buildOffset)
+    }
 
     // get current commit
     let result = git.run(["rev-list", "--max-count", "1", "HEAD"])
@@ -21,6 +37,28 @@ extension OptionParser {
     let commit = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
     return (String(build), commit)
+  }
+
+  /// Try to find a version tag on the current commit for any platform other than the current one, and return its build number if found.
+  private func getBuildFromOtherPlatformTagAtHEAD(using git: GitRunner, currentPlatform: String) async throws -> UInt? {
+    // ensure tags are up-to-date
+    let fetchResult = git.run(["fetch", "--tags"])
+    try await fetchResult.throwIfFailed(UpdateBuildError.fetchingTagsFailed)
+
+    // get the tags pointing at HEAD
+    let tagsAtHead = git.run(["tag", "--points-at", "HEAD"])
+    try await tagsAtHead.throwIfFailed(UpdateBuildError.gettingBuildFailed)
+
+    let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
+    var maxBuild: UInt? = nil
+    for await tag in await tagsAtHead.stdout.lines {
+      if let parsed = tag.firstMatch(of: pattern) {
+        if parsed.platform != currentPlatform, let build = UInt(parsed.build) {
+          if maxBuild == nil || build > maxBuild! { maxBuild = build }
+        }
+      }
+    }
+    return maxBuild
   }
 
   /// Return the build number to use for the next build.

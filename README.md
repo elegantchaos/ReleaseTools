@@ -82,7 +82,7 @@ When using the `update-build` command, you can generate the header file as descr
 
 ### Build Number Generation
 
-There are two ways that the build number can be generated.
+There are two primary ways that the build number can be generated, with an additional optional override.
 
 The default method uses a count of the commits (produced with `git rev-list --count HEAD`), and thus trends upwards as commits increase.
 
@@ -96,6 +96,10 @@ This tag is presumed to represent the highest in-use build number, and so the ne
 
 These tags are automatically created and pushed to git if the `upload` command succeeds, and so each subsequent upload will be tagged with
 a new higher build number, even if it happens on a different build machine.
+
+Optional override:
+
+- `--adopt-other-platform-build` (or `"adoptOtherPlatformBuild": true` in `.rt.json`) — if the current commit (HEAD) already has a version tag for a different platform in the form `vX.Y.Z-build-OtherPlatform`, the build number from that tag is reused for the current platform. This is useful when cutting simultaneous releases across platforms and you want them to share the same build number. If no such tag is present at HEAD, the normal build-number strategy (incrementing tags or commit count) is used.
 
 
 ## The Full Toolchain

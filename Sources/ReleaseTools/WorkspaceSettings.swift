@@ -77,6 +77,7 @@ public class BasicSettings: Codable {
   public var keychain: String?
   public var offset: UInt?
   public var incrementTag: Bool?
+  public var adoptOtherPlatformBuild: Bool?
   public var apiKey: String?
   public var apiIssuer: String?
 
@@ -88,6 +89,7 @@ public class BasicSettings: Codable {
       keychain = other.keychain ?? keychain
       offset = other.offset ?? offset
       incrementTag = other.incrementTag ?? incrementTag
+      adoptOtherPlatformBuild = other.adoptOtherPlatformBuild ?? adoptOtherPlatformBuild
       apiKey = other.apiKey ?? apiKey
       apiIssuer = other.apiIssuer ?? apiIssuer
     }
@@ -104,6 +106,9 @@ public class BasicSettings: Codable {
         migrated = true
       case "increment-tag":
         incrementTag = Bool(value)
+        migrated = true
+      case "adopt-other-platform-build":
+        adoptOtherPlatformBuild = Bool(value)
         migrated = true
       case "api-key":
         apiKey = value

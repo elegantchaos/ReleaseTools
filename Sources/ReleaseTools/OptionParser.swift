@@ -71,6 +71,7 @@ class OptionParser {
   var workspace: String = ""
   var buildOffset: UInt = 0
   var incrementBuildTag: Bool = true
+  var adoptOtherPlatformBuild: Bool = false
   var archive: XcodeArchive!
 
   let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -149,9 +150,19 @@ class OptionParser {
       incrementBuildTag = setting
     }
 
+    // remember the adoptOtherPlatformBuild setting if supplied in settings
+    if let adopt = getSettings().adoptOtherPlatformBuild {
+      adoptOtherPlatformBuild = adopt
+    }
+
     if let buildOptions, buildOptions.incrementTag {
       // ... a true value on the command line takes precedence
       incrementBuildTag = true
+    }
+
+    if let buildOptions, buildOptions.adoptOtherPlatformBuild {
+      // ... enabling on the command line takes precedence
+      adoptOtherPlatformBuild = true
     }
 
     // if we've specified the scheme, we also need the workspace
@@ -211,6 +222,30 @@ class OptionParser {
       }
     }
 
+  }
+
+  /// Lightweight initializer intended for tests where we only need build-number logic.
+  /// It avoids ArgumentParser plumbling and workspace inference.
+  init(testingPlatform: String, incrementBuildTag: Bool, adoptOtherPlatformBuild: Bool, buildOffset: UInt = 0) {
+    showOutput = false
+    showCommands = false
+    verbose = false
+    semaphore = nil
+    error = nil
+
+    workspaceSettingsURL = URL(fileURLWithPath: ".rt.json")
+    workspaceSettings = WorkspaceSettings()
+
+    platform = testingPlatform
+    scheme = ""
+    apiKey = ""
+    apiIssuer = ""
+    package = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).lastPathComponent
+    workspace = ""
+    self.buildOffset = buildOffset
+    self.incrementBuildTag = incrementBuildTag
+    self.adoptOtherPlatformBuild = adoptOtherPlatformBuild
+    archive = nil
   }
 
   func defaultKey(for key: String, platform: String) -> String {

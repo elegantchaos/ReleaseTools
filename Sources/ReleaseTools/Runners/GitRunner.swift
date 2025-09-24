@@ -11,4 +11,8 @@ class GitRunner: Runner {
   init() {
     super.init(command: "git")
   }
+
+  init(environment: [String: String]) {
+    super.init(command: "git", environment: environment)
+  }
 }
