@@ -5,7 +5,7 @@
 
 import Foundation
 import XCTest
-import ArgumentParser
+
 @testable import ReleaseTools
 
 final class BuildNumberTests: XCTestCase {
@@ -19,54 +19,64 @@ final class BuildNumberTests: XCTestCase {
     return url
   }
 
+  // Run a git command with GitRunner and capture stdout/stderr/exit code.
   @discardableResult
-  func sh(_ args: [String], cwd: URL) throws -> (stdout: String, stderr: String, code: Int32) {
-    let task = Process()
-    task.currentDirectoryURL = cwd
-    task.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    task.arguments = args
-
-    let out = Pipe(); task.standardOutput = out
-    let err = Pipe(); task.standardError = err
-    try task.run()
-    task.waitUntilExit()
-
-    let dataOut = out.fileHandleForReading.readDataToEndOfFile()
-    let dataErr = err.fileHandleForReading.readDataToEndOfFile()
-    return (
-      String(decoding: dataOut, as: UTF8.self),
-      String(decoding: dataErr, as: UTF8.self),
-      task.terminationStatus
-    )
+  func runGit(_ git: GitRunner, _ args: [String]) async -> (stdout: String, stderr: String, code: Int32) {
+    let session = git.run(args)
+    let state = await session.waitUntilExit()
+    let out = await session.stdout.string
+    let err = await session.stderr.string
+    let code: Int32
+    switch state {
+      case .succeeded: code = 0
+      case .failed(let c): code = c
+      default: code = -1
+    }
+    return (out, err, code)
   }
 
-  func initGitRepo(at url: URL) throws {
-    let r0 = try sh(["git", "init"], cwd: url); XCTAssertEqual(r0.code, 0, r0.stderr)
-  let r1 = try sh(["git", "config", "user.name", "Test User"], cwd: url); XCTAssertEqual(r1.code, 0, r1.stderr)
-  let r2 = try sh(["git", "config", "user.email", "test@example.com"], cwd: url); XCTAssertEqual(r2.code, 0, r2.stderr)
-  let r1b = try sh(["git", "config", "commit.gpgsign", "false"], cwd: url); XCTAssertEqual(r1b.code, 0, r1b.stderr)
-  let r1c = try sh(["git", "config", "tag.gpgSign", "false"], cwd: url); XCTAssertEqual(r1c.code, 0, r1c.stderr)
+  func initGitRepo(at url: URL) async throws {
+    let git = gitRunner(for: url)
+    var r = await runGit(git, ["init"])
+    XCTAssertEqual(r.code, 0, r.stderr)
+    r = await runGit(git, ["config", "user.name", "Test User"])
+    XCTAssertEqual(r.code, 0, r.stderr)
+    r = await runGit(git, ["config", "user.email", "test@example.com"])
+    XCTAssertEqual(r.code, 0, r.stderr)
+    r = await runGit(git, ["config", "commit.gpgsign", "false"])
+    XCTAssertEqual(r.code, 0, r.stderr)
+    r = await runGit(git, ["config", "tag.gpgSign", "false"])
+    XCTAssertEqual(r.code, 0, r.stderr)
     try "initial".write(to: url.appendingPathComponent("file.txt"), atomically: true, encoding: .utf8)
-    let r3 = try sh(["git", "add", "."], cwd: url); XCTAssertEqual(r3.code, 0, r3.stderr)
-    let r4 = try sh(["git", "commit", "-m", "initial"], cwd: url); XCTAssertEqual(r4.code, 0, r4.stderr)
-    let r5 = try sh(["git","rev-parse","--verify","HEAD"], cwd: url); XCTAssertEqual(r5.code, 0, r5.stderr)
+    r = await runGit(git, ["add", "."])
+    XCTAssertEqual(r.code, 0, r.stderr)
+    r = await runGit(git, ["commit", "-m", "initial"])
+    XCTAssertEqual(r.code, 0, r.stderr)
+    r = await runGit(git, ["rev-parse", "--verify", "HEAD"])
+    XCTAssertEqual(r.code, 0, r.stderr)
 
     // Create a separate bare remote so that `git fetch --tags` always succeeds
     let remote = try makeTempDir()
-    let b0 = try sh(["git", "init", "--bare"], cwd: remote); XCTAssertEqual(b0.code, 0, b0.stderr)
-    let b1 = try sh(["git", "remote", "add", "origin", remote.path], cwd: url); XCTAssertEqual(b1.code, 0, b1.stderr)
-    let b2 = try sh(["git", "push", "-u", "origin", "HEAD"], cwd: url); XCTAssertEqual(b2.code, 0, b2.stderr)
+    let gitBare = gitRunner(for: remote)
+    var b = await runGit(gitBare, ["init", "--bare"])
+    XCTAssertEqual(b.code, 0, b.stderr)
+    b = await runGit(git, ["remote", "add", "origin", remote.path])
+    XCTAssertEqual(b.code, 0, b.stderr)
+    b = await runGit(git, ["push", "-u", "origin", "HEAD"])
+    XCTAssertEqual(b.code, 0, b.stderr)
   }
 
-  func commit(at url: URL, message: String = "update") throws {
+  func commit(at url: URL, message: String = "update") async throws {
+    let git = gitRunner(for: url)
     let p = url.appendingPathComponent("file.txt")
     try (UUID().uuidString).appendLine(to: p)
-    _ = try sh(["git", "add", "."], cwd: url)
-    _ = try sh(["git", "commit", "-m", message], cwd: url)
+    _ = await runGit(git, ["add", "."])
+    _ = await runGit(git, ["commit", "-m", message])
   }
 
-  func tag(at url: URL, name: String) throws {
-    _ = try sh(["git", "tag", name], cwd: url)
+  func tag(at url: URL, name: String) async throws {
+    let git = gitRunner(for: url)
+    _ = await runGit(git, ["tag", name])
   }
 
   func gitRunner(for repo: URL) -> GitRunner {
@@ -83,74 +93,144 @@ final class BuildNumberTests: XCTestCase {
     return OptionParser(testingPlatform: platform, incrementBuildTag: incrementTag, adoptOtherPlatformBuild: adopt)
   }
 
+  func parser(platform: String, adopt: Bool, incrementTag: Bool, offset: UInt) throws -> OptionParser {
+    return OptionParser(testingPlatform: platform, incrementBuildTag: incrementTag, adoptOtherPlatformBuild: adopt, buildOffset: offset)
+  }
+
   // MARK: - Tests
 
   func testAdoptsBuildFromOtherPlatformTagAtHEAD() async throws {
     let repo = try makeTempDir()
-    try initGitRepo(at: repo)
-    try tag(at: repo, name: "v1.2.3-42-iOS")
+    try await initGitRepo(at: repo)
+    try await tag(at: repo, name: "v1.2.3-42-iOS")
 
     // Sanity: HEAD should resolve and tag should point at it
-    let head = try sh(["git","rev-parse","--verify","HEAD"], cwd: repo)
+    let gitSanity = gitRunner(for: repo)
+    let head = await runGit(gitSanity, ["rev-parse", "--verify", "HEAD"])
     XCTAssertEqual(head.code, 0, head.stderr)
-    let pts = try sh(["git","tag","--points-at","HEAD"], cwd: repo)
+    let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
     XCTAssertTrue(pts.stdout.contains("v1.2.3-42-iOS"))
 
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: false)
-  let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     XCTAssertEqual(build, "42")
   }
 
   func testAdoptChoosesHighestBuildAcrossOtherPlatformsAtHEAD() async throws {
     let repo = try makeTempDir()
-    try initGitRepo(at: repo)
-    try tag(at: repo, name: "v1.2.3-10-iOS")
-    try tag(at: repo, name: "v2.0-99-tvOS")
-    try tag(at: repo, name: "v2.0-77-macCatalyst")
+    try await initGitRepo(at: repo)
+    try await tag(at: repo, name: "v1.2.3-10-iOS")
+    try await tag(at: repo, name: "v2.0-99-tvOS")
+    try await tag(at: repo, name: "v2.0-77-macCatalyst")
 
     // Sanity
-    let head = try sh(["git","rev-parse","--verify","HEAD"], cwd: repo)
+    let gitSanity = gitRunner(for: repo)
+    let head = await runGit(gitSanity, ["rev-parse", "--verify", "HEAD"])
     XCTAssertEqual(head.code, 0, head.stderr)
-    let pts = try sh(["git","tag","--points-at","HEAD"], cwd: repo)
+    let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
     XCTAssertTrue(pts.stdout.contains("v2.0-99-tvOS"))
 
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: false)
-  let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     XCTAssertEqual(build, "99")
   }
 
   func testNoAdoptionFallsBackToIncrementTag() async throws {
     let repo = try makeTempDir()
-    try initGitRepo(at: repo)
+    try await initGitRepo(at: repo)
     // add some unrelated platform tags at other commits
-    try tag(at: repo, name: "v1.0-5-macOS")
-    try commit(at: repo, message: "work")
-    try tag(at: repo, name: "v1.1-11-macOS")
+    try await tag(at: repo, name: "v1.0-5-macOS")
+    try await commit(at: repo, message: "work")
+    try await tag(at: repo, name: "v1.1-11-macOS")
+
+    // sanity: tag list should include the macOS tag
+    let sanityGit = gitRunner(for: repo)
+    let tagsList = await runGit(sanityGit, ["tag"])
+    XCTAssertEqual(tagsList.code, 0, tagsList.stderr)
+    XCTAssertTrue(tagsList.stdout.contains("v1.1-11-macOS"))
 
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: true)
-  let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // highest existing macOS tag is 11, so next should be 12
     XCTAssertEqual(build, "12")
   }
 
   func testNoAdoptionFallsBackToCommitCount() async throws {
     let repo = try makeTempDir()
-    try initGitRepo(at: repo)
-    try commit(at: repo, message: "second")
+    try await initGitRepo(at: repo)
+    try await commit(at: repo, message: "second")
 
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: false)
-  let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // we made two commits total
     XCTAssertEqual(build, "2")
   }
+
+  func testAdoptPrefersOtherPlatformEvenIfSamePlatformTagAtHEAD() async throws {
+    let repo = try makeTempDir()
+    try await initGitRepo(at: repo)
+    // Create both other-platform and same-platform tags at HEAD
+    try await tag(at: repo, name: "v1.2.3-40-macOS")
+    try await tag(at: repo, name: "v1.2.3-42-iOS")
+
+    // sanity
+    let gitSanity = gitRunner(for: repo)
+    let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
+    XCTAssertTrue(pts.stdout.contains("v1.2.3-40-macOS"))
+    XCTAssertTrue(pts.stdout.contains("v1.2.3-42-iOS"))
+
+    let git = gitRunner(for: repo)
+    let parsed = try parser(platform: "macOS", adopt: true, incrementTag: true)
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    // should adopt 42 from iOS even though macOS tag also exists at HEAD
+    XCTAssertEqual(build, "42")
+  }
+
+  func testAdoptionIgnoresBuildOffset() async throws {
+    let repo = try makeTempDir()
+    try await initGitRepo(at: repo)
+    try await tag(at: repo, name: "v3.4.5-42-iOS")
+
+    let git = gitRunner(for: repo)
+    let parsed = try parser(platform: "macOS", adopt: true, incrementTag: true, offset: 100)
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    // offset is ignored when adopting; should not be 142
+    XCTAssertEqual(build, "42")
+  }
+
+  func testIncrementTagIgnoresOtherPlatformTagsAtHEAD() async throws {
+    let repo = try makeTempDir()
+    try await initGitRepo(at: repo)
+
+    // Highest macOS tag on an earlier commit (not at HEAD)
+    try await tag(at: repo, name: "v1.1-11-macOS")
+    try await commit(at: repo, message: "advance HEAD")
+
+    // At HEAD: create an other-platform tag and a lower macOS tag
+    try await tag(at: repo, name: "v2.0-99-iOS")
+    try await tag(at: repo, name: "v1.0-2-macOS")
+
+    // Sanity: tags at HEAD should include these
+    let sanity = gitRunner(for: repo)
+    let pts = await runGit(sanity, ["tag", "--points-at", "HEAD"])
+    XCTAssertTrue(pts.stdout.contains("v2.0-99-iOS"))
+    XCTAssertTrue(pts.stdout.contains("v1.0-2-macOS"))
+
+    // When adoption is disabled and incrementTag is enabled, we should
+    // pick max macOS build (11) globally and add 1 => 12.
+    let git = gitRunner(for: repo)
+    let parsed = try parser(platform: "macOS", adopt: false, incrementTag: true)
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    XCTAssertEqual(build, "12")
+  }
 }
 
-private extension String {
-  func appendLine(to url: URL) throws {
+extension String {
+  fileprivate func appendLine(to url: URL) throws {
     let data = (self + "\n").data(using: .utf8)!
     if FileManager.default.fileExists(atPath: url.path) {
       let handle = try FileHandle(forWritingTo: url)

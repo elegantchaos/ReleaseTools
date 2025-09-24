@@ -101,6 +101,14 @@ Optional override:
 
 - `--adopt-other-platform-build` (or `"adoptOtherPlatformBuild": true` in `.rt.json`) — if the current commit (HEAD) already has a version tag for a different platform in the form `vX.Y.Z-build-OtherPlatform`, the build number from that tag is reused for the current platform. This is useful when cutting simultaneous releases across platforms and you want them to share the same build number. If no such tag is present at HEAD, the normal build-number strategy (incrementing tags or commit count) is used.
 
+Examples:
+
+- Submit with adoption and increment-tag enabled:
+    `rt submit --platform macOS --adopt-other-platform-build --increment-tag`
+
+- Update xcconfig with adoption (repo path explicit):
+    `rt update-build --config Configs/BuildNumber.xcconfig --repo . --adopt-other-platform-build`
+
 
 ## The Full Toolchain
 
