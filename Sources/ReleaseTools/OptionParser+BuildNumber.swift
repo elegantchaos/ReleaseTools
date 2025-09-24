@@ -12,10 +12,10 @@ extension OptionParser {
     git.cwd = url
     // Avoid changing global process CWD; rely on Runner.cwd
 
-    // optionally adopt build number from a different platform tag at HEAD
+  // optionally use the build number from an existing tag at HEAD (from another platform)
     var adoptedBuild: UInt? = nil
-    if adoptOtherPlatformBuild {
-      adoptedBuild = try await getBuildFromOtherPlatformTagAtHEAD(using: git, currentPlatform: platform)
+    if useExistingTag {
+      adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)
       if let adoptedBuild {
         log("Adopting build number from another platform tag at HEAD: \(adoptedBuild)")
       }
@@ -39,8 +39,8 @@ extension OptionParser {
     return (String(build), commit)
   }
 
-  /// Try to find a version tag on the current commit for any platform other than the current one, and return its build number if found.
-  private func getBuildFromOtherPlatformTagAtHEAD(using git: GitRunner, currentPlatform: String) async throws -> UInt? {
+  /// Try to find an existing version tag at HEAD for any platform other than the current one, and return its build number if found.
+  private func getBuildFromExistingTag(using git: GitRunner, currentPlatform: String) async throws -> UInt? {
     // ensure tags are up-to-date
     let fetchResult = git.run(["fetch", "--tags"])
     try await fetchResult.throwIfFailed(UpdateBuildError.fetchingTagsFailed)

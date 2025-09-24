@@ -70,13 +70,16 @@ final class BuildNumberTests: XCTestCase {
     let git = gitRunner(for: url)
     let p = url.appendingPathComponent("file.txt")
     try (UUID().uuidString).appendLine(to: p)
-    _ = await runGit(git, ["add", "."])
-    _ = await runGit(git, ["commit", "-m", message])
+    let add = await runGit(git, ["add", "."]) 
+    XCTAssertEqual(add.code, 0, add.stderr)
+    let commit = await runGit(git, ["commit", "-m", message])
+    XCTAssertEqual(commit.code, 0, commit.stderr)
   }
 
   func tag(at url: URL, name: String) async throws {
     let git = gitRunner(for: url)
-    _ = await runGit(git, ["tag", name])
+    let t = await runGit(git, ["tag", name])
+    XCTAssertEqual(t.code, 0, t.stderr)
   }
 
   func gitRunner(for repo: URL) -> GitRunner {

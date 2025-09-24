@@ -67,5 +67,5 @@ struct CommonOptions: ParsableArguments {
 struct BuildOptions: ParsableArguments {
   @Option(name: .customLong("offset"), help: "Integer offset to apply to the build number.") var offset: UInt?
   @Flag(help: "Calculate builds by looking for the highest existing build tag, and incrementing it. If this is false, we instead calculate the build number by counting the commits.") var incrementTag: Bool = false
-  @Flag(name: .customLong("adopt-other-platform-build"), help: "If a version tag for a different platform exists on the current commit, reuse its build number for this build.") var adoptOtherPlatformBuild: Bool = false
+  @Flag(name: .customLong("existing-tag"), help: "If a version tag for a different platform exists on the current commit, reuse its build number for this build.") var useExistingTag: Bool = false
 }

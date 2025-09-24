@@ -71,7 +71,7 @@ class OptionParser {
   var workspace: String = ""
   var buildOffset: UInt = 0
   var incrementBuildTag: Bool = true
-  var adoptOtherPlatformBuild: Bool = false
+  var useExistingTag: Bool = false
   var archive: XcodeArchive!
 
   let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -150,9 +150,9 @@ class OptionParser {
       incrementBuildTag = setting
     }
 
-    // remember the adoptOtherPlatformBuild setting if supplied in settings
-    if let adopt = getSettings().adoptOtherPlatformBuild {
-      adoptOtherPlatformBuild = adopt
+  // remember the useExistingTag setting if supplied in settings
+    if let useExisting = getSettings().useExistingTag {
+      useExistingTag = useExisting
     }
 
     if let buildOptions, buildOptions.incrementTag {
@@ -160,9 +160,9 @@ class OptionParser {
       incrementBuildTag = true
     }
 
-    if let buildOptions, buildOptions.adoptOtherPlatformBuild {
+    if let buildOptions, buildOptions.useExistingTag {
       // ... enabling on the command line takes precedence
-      adoptOtherPlatformBuild = true
+      useExistingTag = true
     }
 
     // if we've specified the scheme, we also need the workspace
@@ -225,7 +225,7 @@ class OptionParser {
   }
 
   /// Lightweight initializer intended for tests where we only need build-number logic.
-  /// It avoids ArgumentParser plumbling and workspace inference.
+  /// It avoids ArgumentParser plumbing and workspace inference.
   init(testingPlatform: String, incrementBuildTag: Bool, adoptOtherPlatformBuild: Bool, buildOffset: UInt = 0) {
     showOutput = false
     showCommands = false
@@ -244,7 +244,7 @@ class OptionParser {
     workspace = ""
     self.buildOffset = buildOffset
     self.incrementBuildTag = incrementBuildTag
-    self.adoptOtherPlatformBuild = adoptOtherPlatformBuild
+  self.useExistingTag = adoptOtherPlatformBuild
     archive = nil
   }
 
