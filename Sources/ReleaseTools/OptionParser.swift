@@ -150,7 +150,7 @@ class OptionParser {
       incrementBuildTag = setting
     }
 
-  // remember the useExistingTag setting if supplied in settings
+    // remember the useExistingTag setting if supplied in settings
     if let useExisting = getSettings().useExistingTag {
       useExistingTag = useExisting
     }
@@ -244,7 +244,7 @@ class OptionParser {
     workspace = ""
     self.buildOffset = buildOffset
     self.incrementBuildTag = incrementBuildTag
-  self.useExistingTag = adoptOtherPlatformBuild
+    self.useExistingTag = adoptOtherPlatformBuild
     archive = nil
   }
 

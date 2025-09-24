@@ -35,51 +35,48 @@ final class BuildNumberTests: XCTestCase {
     return (out, err, code)
   }
 
+  // Run a git command and assert it succeeded. Returns the same tuple as runGit.
+  @discardableResult
+  func XCTAssertGit(_ git: GitRunner, _ args: [String], file: StaticString = #filePath, line: UInt = #line) async -> (stdout: String, stderr: String, code: Int32) {
+    let r = await runGit(git, args)
+    XCTAssertEqual(r.code, 0, r.stderr, file: file, line: line)
+    return r
+  }
+
   func initGitRepo(at url: URL) async throws {
     let git = gitRunner(for: url)
-    var r = await runGit(git, ["init"])
-    XCTAssertEqual(r.code, 0, r.stderr)
-    r = await runGit(git, ["config", "user.name", "Test User"])
-    XCTAssertEqual(r.code, 0, r.stderr)
-    r = await runGit(git, ["config", "user.email", "test@example.com"])
-    XCTAssertEqual(r.code, 0, r.stderr)
-    r = await runGit(git, ["config", "commit.gpgsign", "false"])
-    XCTAssertEqual(r.code, 0, r.stderr)
-    r = await runGit(git, ["config", "tag.gpgSign", "false"])
-    XCTAssertEqual(r.code, 0, r.stderr)
+    await XCTAssertGit(git, ["init"])
+    await XCTAssertGit(git, ["config", "user.name", "Test User"])
+    await XCTAssertGit(git, ["config", "user.email", "test@example.com"])
+    await XCTAssertGit(git, ["config", "commit.gpgsign", "false"])
+  await XCTAssertGit(git, ["config", "tag.gpgSign", "false"])
+  await XCTAssertGit(git, ["config", "fetch.pruneTags", "false"])
     try "initial".write(to: url.appendingPathComponent("file.txt"), atomically: true, encoding: .utf8)
-    r = await runGit(git, ["add", "."])
-    XCTAssertEqual(r.code, 0, r.stderr)
-    r = await runGit(git, ["commit", "-m", "initial"])
-    XCTAssertEqual(r.code, 0, r.stderr)
-    r = await runGit(git, ["rev-parse", "--verify", "HEAD"])
-    XCTAssertEqual(r.code, 0, r.stderr)
+    await XCTAssertGit(git, ["add", "."])
+    await XCTAssertGit(git, ["commit", "-m", "initial"])
+    await XCTAssertGit(git, ["rev-parse", "--verify", "HEAD"])
 
     // Create a separate bare remote so that `git fetch --tags` always succeeds
     let remote = try makeTempDir()
     let gitBare = gitRunner(for: remote)
-    var b = await runGit(gitBare, ["init", "--bare"])
-    XCTAssertEqual(b.code, 0, b.stderr)
-    b = await runGit(git, ["remote", "add", "origin", remote.path])
-    XCTAssertEqual(b.code, 0, b.stderr)
-    b = await runGit(git, ["push", "-u", "origin", "HEAD"])
-    XCTAssertEqual(b.code, 0, b.stderr)
+    await XCTAssertGit(gitBare, ["init", "--bare"])
+    await XCTAssertGit(git, ["remote", "add", "origin", remote.path])
+    await XCTAssertGit(git, ["push", "-u", "origin", "HEAD"])
   }
 
   func commit(at url: URL, message: String = "update") async throws {
     let git = gitRunner(for: url)
     let p = url.appendingPathComponent("file.txt")
     try (UUID().uuidString).appendLine(to: p)
-    let add = await runGit(git, ["add", "."]) 
-    XCTAssertEqual(add.code, 0, add.stderr)
-    let commit = await runGit(git, ["commit", "-m", message])
-    XCTAssertEqual(commit.code, 0, commit.stderr)
+    await XCTAssertGit(git, ["add", "."])
+    await XCTAssertGit(git, ["commit", "-m", message])
   }
 
   func tag(at url: URL, name: String) async throws {
     let git = gitRunner(for: url)
-    let t = await runGit(git, ["tag", name])
-    XCTAssertEqual(t.code, 0, t.stderr)
+    await XCTAssertGit(git, ["tag", name])
+    // Ensure remote has the tag so a later `fetch --tags` doesn't drop it
+    await XCTAssertGit(git, ["push", "origin", name])
   }
 
   func gitRunner(for repo: URL) -> GitRunner {

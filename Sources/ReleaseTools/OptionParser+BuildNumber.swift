@@ -12,7 +12,7 @@ extension OptionParser {
     git.cwd = url
     // Avoid changing global process CWD; rely on Runner.cwd
 
-  // optionally use the build number from an existing tag at HEAD (from another platform)
+    // optionally use the build number from an existing tag at HEAD (from another platform)
     var adoptedBuild: UInt? = nil
     if useExistingTag {
       adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)
