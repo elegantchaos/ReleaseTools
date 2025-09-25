@@ -52,25 +52,13 @@ extension OptionParser {
   /// If the highest for any platform is greater than the current platform, use it.
   /// If they are equal, increment it. Otherwise, use the current platform's max.
   private func getBuildFromExistingTag(using git: GitRunner, currentPlatform: String) async throws -> UInt? {
-    // ensure tags are up-to-date (skip if no remote exists)
-    let fetchResult = git.run(["fetch", "--tags"])
-    let fetchState = await fetchResult.waitUntilExit()
-    if case .failed(_) = fetchState {
-      // Ignore fetch failures (e.g., no remote configured) and continue with local tags
-    }
+    await ensureTagsUpToDate(using: git)
 
-    // get all tags
-    let tagsResult = git.run(["tag"])
-    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
-
-    let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
     var maxAny: UInt = 0
     var maxCurrent: UInt = 0
-    for await tag in await tagsResult.stdout.lines {
-      if let parsed = tag.firstMatch(of: pattern), let build = UInt(parsed.build) {
-        if build > maxAny { maxAny = build }
-        if parsed.platform == currentPlatform, build > maxCurrent { maxCurrent = build }
-      }
+    try await processAllVersionTags(using: git) { platform, build, _ in
+      if build > maxAny { maxAny = build }
+      if platform == currentPlatform, build > maxCurrent { maxCurrent = build }
     }
 
     if maxAny > maxCurrent {
@@ -102,27 +90,14 @@ extension OptionParser {
   /// We calculate the build number by searching the repo tags for the
   /// highest existing build number, and adding 1 to it.
   private func getBuildByIncrementingTag(using git: GitRunner, platform: String) async throws -> UInt {
-    // make sure the tags are up to date (skip if no remote exists)
-    let fetchResult = git.run(["fetch", "--tags"])
-    let fetchState = await fetchResult.waitUntilExit()
-    if case .failed(_) = fetchState {
-      // Ignore fetch failures (e.g., no remote configured) and continue with local tags
-    }
+    await ensureTagsUpToDate(using: git)
 
-    // get highest existing build in any version tag for this platform
-    let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
-    let tagsResult = git.run(["tag"])
-    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
     var maxBuild: UInt = 0
     var maxTag: String?
-    for await tag in await tagsResult.stdout.lines {
-      if let parsed = tag.firstMatch(of: pattern) {
-        if parsed.platform == platform, let build = UInt(parsed.build) {
-          if build > maxBuild {
-            maxBuild = build
-            maxTag = tag
-          }
-        }
+    try await processAllVersionTags(using: git) { tagPlatform, build, tag in
+      if tagPlatform == platform, build > maxBuild {
+        maxBuild = build
+        maxTag = tag
       }
     }
 
@@ -134,5 +109,32 @@ extension OptionParser {
 
     // add 1 for the new build number
     return maxBuild + 1
+  }
+
+  /// Fetch all version tags, extract platform as String and build as UInt, and process each with the provided closure if both are non-nil.
+  private func processAllVersionTags(
+    using git: GitRunner,
+    process: @escaping (_ platform: String, _ build: UInt, _ tag: String) async -> Void
+  ) async throws {
+    let pattern: Regex<(Substring, version: Substring, Substring?, build: Substring, platform: Substring)> = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
+    let tagsResult = git.run(["tag"])
+    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
+    for await tag in await tagsResult.stdout.lines {
+      if let parsed = tag.firstMatch(of: pattern) {
+        let platform = String(parsed.output.platform)
+        if let build = UInt(parsed.output.build) {
+          await process(platform, build, tag)
+        }
+      }
+    }
+  }
+}
+
+/// Ensure tags are up-to-date by fetching from remote, ignoring failures if no remote exists.
+private func ensureTagsUpToDate(using git: GitRunner) async {
+  let fetchResult = git.run(["fetch", "--tags"])
+  let fetchState = await fetchResult.waitUntilExit()
+  if case .failed(_) = fetchState {
+    // Ignore fetch failures (e.g., no remote configured) and continue with local tags
   }
 }
