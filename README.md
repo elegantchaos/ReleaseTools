@@ -82,22 +82,26 @@ When using the `update-build` command, you can generate the header file as descr
 
 ### Build Number Generation
 
-ReleaseTools supports several strategies for generating the build number, which can be controlled via command-line flags or the `.rt.json` settings file. The options are mutually exclusive where noted, and their precedence is as follows:
+ReleaseTools supports several strategies for generating the build number, which can be controlled via command-line flags or the `.rt.json` settings file:
 
 1. **Explicit Build Number**
    - Use `--explicit-build <number>` to specify the exact build number to use. This takes precedence over all other options. Cannot be combined with `--existing-tag`, `--increment-tag`, or `--offset`.
+   - Generally this is useful if you want to completely reset the build number sequence.
    - Example: `rt archive --explicit-build 1234`
 
-2. **Adopt Build Number from Existing Tag (Cross-Platform Awareness)**
-   - Use `--existing-tag` (or set `"useExistingTag": true` in `.rt.json`) to scan all version tags for all platforms. The tool finds the highest build number for any platform and for the platform being built. If another platform has a higher build number, it uses that. If the highest for any platform matches the current platform, it increments it. Otherwise, it uses the current platform's highest build number. This is useful when cutting simultaneous releases across platforms and you want them to share the same build number or keep them in sync.
-   - Example: `rt submit --platform macOS --existing-tag`
-
-3. **Increment Highest Existing Tag**
+2. **Increment Highest Existing Tag**
    - Use `--increment-tag` (or set `"incrementTag": true` in `.rt.json`) to find the highest build number for the current platform in tags of the form `vX.Y.Z-build-platform`, and increment it by one. If no tags are found, falls back to commit count.
    - Example: `rt archive --increment-tag`
 
+3. **Adopt Build Number from Existing Tag**
+   - Use `--existing-tag` (or set `"useExistingTag": true` in `.rt.json`) to scan all version tags for all platforms. The tool finds the highest build number for any platform and for the platform being built. If another platform has a higher build number, it uses that. If the highest for any platform matches the current platform, it increments it. 
+   - This is useful when cutting simultaneous releases across platforms and you want them to share the same build number or keep them in sync. Typically you will use `--increment-tag` when building the first platform, then `--existing-tag` for the subsequent platforms. This should ensure that they all share the same number.
+   - Example: `rt submit --platform macOS --existing-tag`
+
+
 4. **Commit Count (Default)**
    - If none of the above options are specified, the build number is set to the number of commits in the repository (`git rev-list --count HEAD`).
+   - If you are generally not releasing from multiple branches, this method is often sufficient. However, the commit count is based on the current branch, and so it is possible for it to end up going down if you switch to a branch with fewer commits, and generally being inconsistent between branches. For most situations, using tags is probably more reliable.
 
 #### Option Precedence and Conflicts
 - `--explicit-build` cannot be used with `--existing-tag`, `--increment-tag`, or `--offset`. If conflicting options are provided, the tool will report an error.
