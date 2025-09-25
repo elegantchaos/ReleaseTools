@@ -17,7 +17,7 @@ extension OptionParser {
     if useExistingTag {
       adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)
       if let adoptedBuild {
-        log("Adopting build number from another platform tag at HEAD: \(adoptedBuild)")
+        verbose("Adopting build number from another platform tag at HEAD: \(adoptedBuild)")
       }
     }
 
@@ -28,7 +28,7 @@ extension OptionParser {
     } else if incrementBuildTag {
       build = try await getBuildByIncrementingTag(using: git, platform: platform)
     } else {
-      build = try await getBuildByCommits(using: git, offset: buildOffset)
+      build = try await getBuildByCommitCount(using: git, offset: buildOffset)
     }
 
     // get current commit
@@ -66,7 +66,7 @@ extension OptionParser {
 
   /// Return the build number to use for the next build.
   /// We calculate the build number by counting the commits in the repo.
-  private func getBuildByCommits(using git: GitRunner, offset: UInt) async throws -> UInt {
+  private func getBuildByCommitCount(using git: GitRunner, offset: UInt) async throws -> UInt {
     let result = git.run(["rev-list", "--count", "HEAD"])
     try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
 

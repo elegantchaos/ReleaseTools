@@ -71,7 +71,7 @@ class OptionParser {
   var workspace: String = ""
   var buildOffset: UInt = 0
   var incrementBuildTag: Bool = true
-  var useExistingTag: Bool = false
+  var useExistingTag: Bool = true
   var archive: XcodeArchive!
 
   let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)

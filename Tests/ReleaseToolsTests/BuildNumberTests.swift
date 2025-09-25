@@ -184,9 +184,9 @@ final class BuildNumberTests: XCTestCase {
     XCTAssertTrue(parsed.useExistingTag, "useExistingTag should be true")
     XCTAssertTrue(parsed.incrementBuildTag, "incrementBuildTag should be true due to useExistingTag implication")
 
-    // Test the opposite case for comparison
+    // Test the opposite case for comparison (explicitly disable useExistingTag)
     let parsedNoAdopt = try parser(platform: "macOS", adopt: false, incrementTag: false)
-    XCTAssertFalse(parsedNoAdopt.useExistingTag, "useExistingTag should be false")
+    XCTAssertFalse(parsedNoAdopt.useExistingTag, "useExistingTag should be false when explicitly disabled")
     XCTAssertFalse(parsedNoAdopt.incrementBuildTag, "incrementBuildTag should be false")
   }
 
