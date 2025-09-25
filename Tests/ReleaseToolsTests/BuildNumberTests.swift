@@ -4,11 +4,11 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
-import XCTest
+import Testing
 
 @testable import ReleaseTools
 
-final class BuildNumberTests: XCTestCase {
+struct BuildNumberTests {
 
   // MARK: - Helpers
 
@@ -37,23 +37,23 @@ final class BuildNumberTests: XCTestCase {
 
   // Run a git command and assert it succeeded. Returns the same tuple as runGit.
   @discardableResult
-  func XCTAssertGit(_ git: GitRunner, _ args: [String], file: StaticString = #filePath, line: UInt = #line) async -> (stdout: String, stderr: String, code: Int32) {
+  func assertGit(_ git: GitRunner, _ args: [String], sourceLocation: SourceLocation = #_sourceLocation) async -> (stdout: String, stderr: String, code: Int32) {
     let r = await runGit(git, args)
-    XCTAssertEqual(r.code, 0, r.stderr, file: file, line: line)
+    #expect(r.code == 0, Comment(rawValue: r.stderr), sourceLocation: sourceLocation)
     return r
   }
 
   func initGitRepo(at url: URL) async throws {
     let git = gitRunner(for: url)
-    await XCTAssertGit(git, ["init"])
-    await XCTAssertGit(git, ["config", "user.name", "Test User"])
-    await XCTAssertGit(git, ["config", "user.email", "test@example.com"])
-    await XCTAssertGit(git, ["config", "commit.gpgsign", "false"])
-    await XCTAssertGit(git, ["config", "tag.gpgSign", "false"])
+    await assertGit(git, ["init"])
+    await assertGit(git, ["config", "user.name", "Test User"])
+    await assertGit(git, ["config", "user.email", "test@example.com"])
+    await assertGit(git, ["config", "commit.gpgsign", "false"])
+    await assertGit(git, ["config", "tag.gpgSign", "false"])
     try "initial".write(to: url.appendingPathComponent("file.txt"), atomically: true, encoding: .utf8)
-    await XCTAssertGit(git, ["add", "."])
-    await XCTAssertGit(git, ["commit", "-m", "initial"])
-    await XCTAssertGit(git, ["rev-parse", "--verify", "HEAD"])
+    await assertGit(git, ["add", "."])
+    await assertGit(git, ["commit", "-m", "initial"])
+    await assertGit(git, ["rev-parse", "--verify", "HEAD"])
   }
 
   func commit(at url: URL, message: String = "update") async throws {
@@ -61,13 +61,13 @@ final class BuildNumberTests: XCTestCase {
     let filename = "file-\(UUID().uuidString).txt"
     let p = url.appendingPathComponent(filename)
     try message.write(to: p, atomically: true, encoding: .utf8)
-    await XCTAssertGit(git, ["add", "."])
-    await XCTAssertGit(git, ["commit", "-m", message])
+    await assertGit(git, ["add", "."])
+    await assertGit(git, ["commit", "-m", message])
   }
 
   func tag(at url: URL, name: String) async throws {
     let git = gitRunner(for: url)
-    await XCTAssertGit(git, ["tag", name])
+    await assertGit(git, ["tag", name])
   }
 
   func gitRunner(for repo: URL) -> GitRunner {
@@ -90,7 +90,7 @@ final class BuildNumberTests: XCTestCase {
 
   // MARK: - Tests
 
-  func testAdoptsBuildFromOtherPlatformTagAtHEAD() async throws {
+  @Test func adoptsBuildFromOtherPlatformTagAtHEAD() async throws {
     let repo = try makeTempDir()
     try await initGitRepo(at: repo)
     try await tag(at: repo, name: "v1.2.3-42-iOS")
@@ -98,17 +98,17 @@ final class BuildNumberTests: XCTestCase {
     // Sanity: HEAD should resolve and tag should point at it
     let gitSanity = gitRunner(for: repo)
     let head = await runGit(gitSanity, ["rev-parse", "--verify", "HEAD"])
-    XCTAssertEqual(head.code, 0, head.stderr)
+    #expect(head.code == 0, Comment(rawValue: head.stderr))
     let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
-    XCTAssertTrue(pts.stdout.contains("v1.2.3-42-iOS"))
+    #expect(pts.stdout.contains("v1.2.3-42-iOS"))
 
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: false)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
-    XCTAssertEqual(build, "42")
+    #expect(build == "42")
   }
 
-  func testAdoptChoosesHighestBuildAcrossOtherPlatformsAtHEAD() async throws {
+  @Test func adoptChoosesHighestBuildAcrossOtherPlatformsAtHEAD() async throws {
     let repo = try makeTempDir()
     try await initGitRepo(at: repo)
     try await tag(at: repo, name: "v1.2.3-10-iOS")
@@ -118,39 +118,37 @@ final class BuildNumberTests: XCTestCase {
     // Sanity
     let gitSanity = gitRunner(for: repo)
     let head = await runGit(gitSanity, ["rev-parse", "--verify", "HEAD"])
-    XCTAssertEqual(head.code, 0, head.stderr)
+    #expect(head.code == 0, Comment(rawValue: head.stderr))
     let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
-    XCTAssertTrue(pts.stdout.contains("v2.0-99-tvOS"))
+    #expect(pts.stdout.contains("v2.0-99-tvOS"))
 
     let git = gitRunner(for: repo)
     // useExistingTag now implies incrementBuildTag, so incrementTag parameter is ignored
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: false)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
-    XCTAssertEqual(build, "99")
+    #expect(build == "99")
   }
 
-  func testNoAdoptionFallsBackToIncrementTag() async throws {
+  @Test func adoptionFallsBackToIncrementTag() async throws {
     let repo = try makeTempDir()
     try await initGitRepo(at: repo)
-    // add some unrelated platform tags at other commits
+
+    // Create some older tags globally, but not at HEAD
     try await tag(at: repo, name: "v1.0-5-macOS")
-    try await commit(at: repo, message: "work")
-    try await tag(at: repo, name: "v1.1-11-macOS")
+    try await tag(at: repo, name: "v1.0-10-iOS")
+    try await commit(at: repo, message: "second commit")
+    try await tag(at: repo, name: "v1.5-11-macOS")
+    try await commit(at: repo, message: "third commit (HEAD)")
 
-    // sanity: tag list should include the macOS tag
-    let sanityGit = gitRunner(for: repo)
-    let tagsList = await runGit(sanityGit, ["tag"])
-    XCTAssertEqual(tagsList.code, 0, tagsList.stderr)
-    XCTAssertTrue(tagsList.stdout.contains("v1.1-11-macOS"), "Expected v1.1-11-macOS in tags: \(tagsList.stdout)")
-
+    // When no adoption happens at HEAD, fall back to incrementTag.
+    // The highest macOS build is 11, so we should get 12.
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
-    // highest existing macOS tag is 11, so next should be 12
-    XCTAssertEqual(build, "12")
+    #expect(build == "12")
   }
 
-  func testUseExistingTagFallsBackToIncrementTag() async throws {
+  @Test func useExistingTagFallsBackToIncrementTag() async throws {
     let repo = try makeTempDir()
     try await initGitRepo(at: repo)
     try await commit(at: repo, message: "second")
@@ -160,10 +158,10 @@ final class BuildNumberTests: XCTestCase {
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: false)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // no existing tags for macOS, so incrementTag returns 1
-    XCTAssertEqual(build, "1")
+    #expect(build == "1")
   }
 
-  func testCommitCountFallback() async throws {
+  @Test func commitCountFallback() async throws {
     let repo = try makeTempDir()
     try await initGitRepo(at: repo)
     try await commit(at: repo, message: "second")
@@ -173,24 +171,24 @@ final class BuildNumberTests: XCTestCase {
     let parsed = try parser(platform: "macOS", adopt: false, incrementTag: false)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // we made two commits total
-    XCTAssertEqual(build, "2")
+    #expect(build == "2")
   }
 
-  func testUseExistingTagImpliesIncrementTag() async throws {
+  @Test func useExistingTagImpliesIncrementTag() async throws {
     // This test verifies that useExistingTag automatically enables incrementBuildTag
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: false)
 
     // Even though we passed incrementTag: false, useExistingTag should have overridden it
-    XCTAssertTrue(parsed.useExistingTag, "useExistingTag should be true")
-    XCTAssertTrue(parsed.incrementBuildTag, "incrementBuildTag should be true due to useExistingTag implication")
+    #expect(parsed.useExistingTag, "useExistingTag should be true")
+    #expect(parsed.incrementBuildTag, "incrementBuildTag should be true due to useExistingTag implication")
 
     // Test the opposite case for comparison (explicitly disable useExistingTag)
     let parsedNoAdopt = try parser(platform: "macOS", adopt: false, incrementTag: false)
-    XCTAssertFalse(parsedNoAdopt.useExistingTag, "useExistingTag should be false when explicitly disabled")
-    XCTAssertFalse(parsedNoAdopt.incrementBuildTag, "incrementBuildTag should be false")
+    #expect(!parsedNoAdopt.useExistingTag, "useExistingTag should be false when explicitly disabled")
+    #expect(!parsedNoAdopt.incrementBuildTag, "incrementBuildTag should be false")
   }
 
-  func testAdoptPrefersOtherPlatformEvenIfSamePlatformTagAtHEAD() async throws {
+  @Test func adoptPrefersOtherPlatformEvenIfSamePlatformTagAtHEAD() async throws {
     let repo = try makeTempDir()
     try await initGitRepo(at: repo)
     // Create both other-platform and same-platform tags at HEAD
@@ -200,17 +198,17 @@ final class BuildNumberTests: XCTestCase {
     // sanity
     let gitSanity = gitRunner(for: repo)
     let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
-    XCTAssertTrue(pts.stdout.contains("v1.2.3-40-macOS"), "Expected v1.2.3-40-macOS in tags at HEAD: \(pts.stdout)")
-    XCTAssertTrue(pts.stdout.contains("v1.2.3-42-iOS"), "Expected v1.2.3-42-iOS in tags at HEAD: \(pts.stdout)")
+    #expect(pts.stdout.contains("v1.2.3-40-macOS"), Comment(rawValue: "Expected v1.2.3-40-macOS in tags at HEAD: \(pts.stdout)"))
+    #expect(pts.stdout.contains("v1.2.3-42-iOS"), Comment(rawValue: "Expected v1.2.3-42-iOS in tags at HEAD: \(pts.stdout)"))
 
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // should adopt 42 from iOS even though macOS tag also exists at HEAD
-    XCTAssertEqual(build, "42")
+    #expect(build == "42")
   }
 
-  func testAdoptionIgnoresBuildOffset() async throws {
+  @Test func adoptionIgnoresBuildOffset() async throws {
     let repo = try makeTempDir()
     try await initGitRepo(at: repo)
     try await tag(at: repo, name: "v3.4.5-42-iOS")
@@ -219,10 +217,10 @@ final class BuildNumberTests: XCTestCase {
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: true, offset: 100)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // offset is ignored when adopting; should not be 142
-    XCTAssertEqual(build, "42")
+    #expect(build == "42")
   }
 
-  func testIncrementTagIgnoresOtherPlatformTagsAtHEAD() async throws {
+  @Test func incrementTagIgnoresOtherPlatformTagsAtHEAD() async throws {
     let repo = try makeTempDir()
     try await initGitRepo(at: repo)
 
@@ -237,14 +235,14 @@ final class BuildNumberTests: XCTestCase {
     // Sanity: tags at HEAD should include these
     let sanity = gitRunner(for: repo)
     let pts = await runGit(sanity, ["tag", "--points-at", "HEAD"])
-    XCTAssertTrue(pts.stdout.contains("v2.0-99-iOS"), "Expected v2.0-99-iOS in tags at HEAD: \(pts.stdout)")
-    XCTAssertTrue(pts.stdout.contains("v1.0-2-macOS"), "Expected v1.0-2-macOS in tags at HEAD: \(pts.stdout)")
+    #expect(pts.stdout.contains("v2.0-99-iOS"), Comment(rawValue: "Expected v2.0-99-iOS in tags at HEAD: \(pts.stdout)"))
+    #expect(pts.stdout.contains("v1.0-2-macOS"), Comment(rawValue: "Expected v1.0-2-macOS in tags at HEAD: \(pts.stdout)"))
 
     // When adoption is disabled and incrementTag is enabled, we should
     // pick max macOS build (11) globally and add 1 => 12.
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: false, incrementTag: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
-    XCTAssertEqual(build, "12")
+    #expect(build == "12")
   }
 }
