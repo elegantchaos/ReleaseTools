@@ -16,6 +16,8 @@ enum UpdateBuildError: Runner.Error {
   case gettingCommitFailed
   case writingConfigFailed
   case updatingIndexFailed
+  case invalidExplicitBuild(String)
+  case inconsistentTagState(currentPlatform: String)
 
   func description(for session: Runner.Session) async -> String {
     async let stderr = session.stderr.string
@@ -25,6 +27,10 @@ enum UpdateBuildError: Runner.Error {
       case .gettingCommitFailed: return "Failed to get the commit from git.\n\n\(await stderr)"
       case .writingConfigFailed: return "Failed to write the config file.\n\n\(await stderr)"
       case .updatingIndexFailed: return "Failed to tell git to ignore the config file.\n\n\(await stderr)"
+      case .invalidExplicitBuild(let value):
+        return "Invalid explicit build number: \(value). Must be a positive integer."
+      case .inconsistentTagState(let currentPlatform):
+        return "Inconsistent tag state: highest build for platform (\(currentPlatform)) is greater than highest build for any platform. This should not happen. Please check your tags."
     }
   }
 }

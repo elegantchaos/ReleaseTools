@@ -3,7 +3,6 @@
 //  All code (c) 2025 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import ArgumentParser
 import Foundation
 
 extension OptionParser {
@@ -17,7 +16,7 @@ extension OptionParser {
     if let explicitBuild {
       // use explicitly specified build number
       guard let explicitBuildNumber = UInt(explicitBuild) else {
-        throw ValidationError("Invalid explicit build number: \(explicitBuild). Must be a positive integer.")
+        throw UpdateBuildError.invalidExplicitBuild(explicitBuild)
       }
       build = explicitBuildNumber
       verbose("Using explicit build number: \(build)")
@@ -66,7 +65,7 @@ extension OptionParser {
     } else if maxAny == maxCurrent && maxAny > 0 {
       return maxAny + 1
     } else if maxAny < maxCurrent {
-      throw ValidationError("Inconsistent tag state: highest build for platform (\(currentPlatform)) is greater than highest build for any platform. This should not happen. Please check your tags.")
+      throw UpdateBuildError.inconsistentTagState(currentPlatform: currentPlatform)
     } else if maxCurrent > 0 {
       return maxCurrent
     } else {
