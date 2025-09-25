@@ -78,6 +78,7 @@ public class BasicSettings: Codable {
   public var offset: UInt?
   public var incrementTag: Bool?
   public var useExistingTag: Bool?
+  public var explicitBuild: String?
   public var apiKey: String?
   public var apiIssuer: String?
 
@@ -90,6 +91,7 @@ public class BasicSettings: Codable {
       offset = other.offset ?? offset
       incrementTag = other.incrementTag ?? incrementTag
       useExistingTag = other.useExistingTag ?? useExistingTag
+      explicitBuild = other.explicitBuild ?? explicitBuild
       apiKey = other.apiKey ?? apiKey
       apiIssuer = other.apiIssuer ?? apiIssuer
     }
@@ -109,6 +111,9 @@ public class BasicSettings: Codable {
         migrated = true
       case "existing-tag":
         useExistingTag = Bool(value)
+        migrated = true
+      case "explicit-build":
+        explicitBuild = value
         migrated = true
       case "api-key":
         apiKey = value

@@ -3,6 +3,7 @@
 //  All code (c) 2025 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Foundation
 
 extension OptionParser {
@@ -12,23 +13,32 @@ extension OptionParser {
     git.cwd = url
     // Avoid changing global process CWD; rely on Runner.cwd
 
-    // optionally use the build number from an existing tag at HEAD (from another platform)
-    var adoptedBuild: UInt? = nil
-    if useExistingTag {
-      adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)
-      if let adoptedBuild {
-        verbose("Adopting build number from another platform tag at HEAD: \(adoptedBuild)")
-      }
-    }
-
     // get next build number
     let build: UInt
-    if let adoptedBuild {
-      build = adoptedBuild
-    } else if incrementBuildTag {
-      build = try await getBuildByIncrementingTag(using: git, platform: platform)
+    if let explicitBuild {
+      // use explicitly specified build number
+      guard let explicitBuildNumber = UInt(explicitBuild) else {
+        throw ValidationError("Invalid explicit build number: \(explicitBuild). Must be a positive integer.")
+      }
+      build = explicitBuildNumber
+      verbose("Using explicit build number: \(build)")
     } else {
-      build = try await getBuildByCommitCount(using: git, offset: buildOffset)
+      // optionally use the build number from an existing tag at HEAD (from another platform)
+      var adoptedBuild: UInt? = nil
+      if useExistingTag {
+        adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)
+        if let adoptedBuild {
+          verbose("Adopting build number from another platform tag at HEAD: \(adoptedBuild)")
+        }
+      }
+
+      if let adoptedBuild {
+        build = adoptedBuild
+      } else if incrementBuildTag {
+        build = try await getBuildByIncrementingTag(using: git, platform: platform)
+      } else {
+        build = try await getBuildByCommitCount(using: git, offset: buildOffset)
+      }
     }
 
     // get current commit

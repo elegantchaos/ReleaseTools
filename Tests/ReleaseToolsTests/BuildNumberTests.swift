@@ -3,6 +3,7 @@
 //  All code (c) 2025 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import ArgumentParser
 import Foundation
 import Testing
 
@@ -88,6 +89,10 @@ struct BuildNumberTests {
     return OptionParser(testingPlatform: platform, incrementBuildTag: incrementTag, adoptOtherPlatformBuild: adopt, buildOffset: offset)
   }
 
+  func parser(platform: String, explicitBuild: String) throws -> OptionParser {
+    return OptionParser(testingPlatform: platform, incrementBuildTag: false, adoptOtherPlatformBuild: false, explicitBuild: explicitBuild)
+  }
+
   // MARK: - Tests
 
   @Test func adoptsBuildFromOtherPlatformTagAtHEAD() async throws {
@@ -97,10 +102,10 @@ struct BuildNumberTests {
 
     // Sanity: HEAD should resolve and tag should point at it
     let gitSanity = gitRunner(for: repo)
-    let head = await runGit(gitSanity, ["rev-parse", "--verify", "HEAD"])
-    #expect(head.code == 0, Comment(rawValue: head.stderr))
-    let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
-    #expect(pts.stdout.contains("v1.2.3-42-iOS"))
+  let head = await runGit(gitSanity, ["rev-parse", "--verify", "HEAD"])
+  #expect(head.code == 0, Comment(rawValue: head.stderr))
+  let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
+  #expect(pts.stdout.contains("v1.2.3-42-iOS"))
 
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: false)
@@ -110,6 +115,7 @@ struct BuildNumberTests {
 
   @Test func adoptChoosesHighestBuildAcrossOtherPlatformsAtHEAD() async throws {
     let repo = try makeTempDir()
+    print(repo.path)
     try await initGitRepo(at: repo)
     try await tag(at: repo, name: "v1.2.3-10-iOS")
     try await tag(at: repo, name: "v2.0-99-tvOS")
@@ -117,10 +123,10 @@ struct BuildNumberTests {
 
     // Sanity
     let gitSanity = gitRunner(for: repo)
-    let head = await runGit(gitSanity, ["rev-parse", "--verify", "HEAD"])
-    #expect(head.code == 0, Comment(rawValue: head.stderr))
-    let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
-    #expect(pts.stdout.contains("v2.0-99-tvOS"))
+  let head = await runGit(gitSanity, ["rev-parse", "--verify", "HEAD"])
+  #expect(head.code == 0, Comment(rawValue: head.stderr))
+  let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
+  #expect(pts.stdout.contains("v2.0-99-tvOS"))
 
     let git = gitRunner(for: repo)
     // useExistingTag now implies incrementBuildTag, so incrementTag parameter is ignored
@@ -197,9 +203,9 @@ struct BuildNumberTests {
 
     // sanity
     let gitSanity = gitRunner(for: repo)
-    let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
-    #expect(pts.stdout.contains("v1.2.3-40-macOS"), Comment(rawValue: "Expected v1.2.3-40-macOS in tags at HEAD: \(pts.stdout)"))
-    #expect(pts.stdout.contains("v1.2.3-42-iOS"), Comment(rawValue: "Expected v1.2.3-42-iOS in tags at HEAD: \(pts.stdout)"))
+  let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
+  #expect(pts.stdout.contains("v1.2.3-40-macOS"), Comment(rawValue: "Expected v1.2.3-40-macOS in tags at HEAD: \(pts.stdout)"))
+  #expect(pts.stdout.contains("v1.2.3-42-iOS"), Comment(rawValue: "Expected v1.2.3-42-iOS in tags at HEAD: \(pts.stdout)"))
 
     let git = gitRunner(for: repo)
     let parsed = try parser(platform: "macOS", adopt: true, incrementTag: true)
@@ -234,9 +240,9 @@ struct BuildNumberTests {
 
     // Sanity: tags at HEAD should include these
     let sanity = gitRunner(for: repo)
-    let pts = await runGit(sanity, ["tag", "--points-at", "HEAD"])
-    #expect(pts.stdout.contains("v2.0-99-iOS"), Comment(rawValue: "Expected v2.0-99-iOS in tags at HEAD: \(pts.stdout)"))
-    #expect(pts.stdout.contains("v1.0-2-macOS"), Comment(rawValue: "Expected v1.0-2-macOS in tags at HEAD: \(pts.stdout)"))
+  let pts = await runGit(sanity, ["tag", "--points-at", "HEAD"])
+  #expect(pts.stdout.contains("v2.0-99-iOS"), Comment(rawValue: "Expected v2.0-99-iOS in tags at HEAD: \(pts.stdout)"))
+  #expect(pts.stdout.contains("v1.0-2-macOS"), Comment(rawValue: "Expected v1.0-2-macOS in tags at HEAD: \(pts.stdout)"))
 
     // When adoption is disabled and incrementTag is enabled, we should
     // pick max macOS build (11) globally and add 1 => 12.
@@ -244,5 +250,42 @@ struct BuildNumberTests {
     let parsed = try parser(platform: "macOS", adopt: false, incrementTag: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     #expect(build == "12")
+  }
+
+  @Test func explicitBuildUsesSpecifiedNumber() async throws {
+    let repo = try makeTempDir()
+    try await initGitRepo(at: repo)
+
+    let git = gitRunner(for: repo)
+    let parsed = try parser(platform: "macOS", explicitBuild: "42")
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    #expect(build == "42")
+  }
+
+  @Test func explicitBuildIgnoresExistingTags() async throws {
+    let repo = try makeTempDir()
+    try await initGitRepo(at: repo)
+    try await tag(at: repo, name: "v1.0-100-macOS")
+    try await tag(at: repo, name: "v1.0-200-iOS")
+
+    let git = gitRunner(for: repo)
+    let parsed = try parser(platform: "macOS", explicitBuild: "5")
+    let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+    #expect(build == "5")
+  }
+
+  @Test func explicitBuildRejectsInvalidNumbers() async throws {
+    let repo = try makeTempDir()
+    try await initGitRepo(at: repo)
+
+    let git = gitRunner(for: repo)
+    let parsed = try parser(platform: "macOS", explicitBuild: "not-a-number")
+
+    do {
+      let _ = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
+      #expect(Bool(false), Comment(rawValue: "Should have thrown ValidationError"))
+    } catch {
+      #expect(error is ValidationError, Comment(rawValue: "Should throw ValidationError for invalid number"))
+    }
   }
 }

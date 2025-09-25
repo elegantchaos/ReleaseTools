@@ -72,6 +72,7 @@ class OptionParser {
   var buildOffset: UInt = 0
   var incrementBuildTag: Bool = true
   var useExistingTag: Bool = true
+  var explicitBuild: String?
   var archive: XcodeArchive!
 
   let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -155,6 +156,15 @@ class OptionParser {
       useExistingTag = useExisting
     }
 
+    // remember the explicitBuild setting if supplied
+    if let buildOptions, let explicit = buildOptions.explicitBuild {
+      // ... on the command line
+      explicitBuild = explicit
+    } else if let explicit = getSettings().explicitBuild {
+      // ... or as a default setting
+      explicitBuild = explicit
+    }
+
     if let buildOptions, buildOptions.incrementTag {
       // ... a true value on the command line takes precedence
       incrementBuildTag = true
@@ -168,6 +178,33 @@ class OptionParser {
     // useExistingTag implies incrementBuildTag (for fallback behavior)
     if useExistingTag {
       incrementBuildTag = true
+    }
+
+    // validate that explicitBuild is not used with conflicting options
+    if explicitBuild != nil {
+      var conflictingOptions: [String] = []
+      
+      if let buildOptions, buildOptions.useExistingTag {
+        conflictingOptions.append("--existing-tag")
+      } else if getSettings().useExistingTag == true {
+        conflictingOptions.append("useExistingTag setting")
+      }
+      
+      if let buildOptions, buildOptions.incrementTag {
+        conflictingOptions.append("--increment-tag")
+      } else if getSettings().incrementTag == true {
+        conflictingOptions.append("incrementTag setting")
+      }
+      
+      if let buildOptions, buildOptions.offset != nil {
+        conflictingOptions.append("--offset")
+      } else if getSettings().offset != nil {
+        conflictingOptions.append("offset setting")
+      }
+      
+      if !conflictingOptions.isEmpty {
+        throw ValidationError("--explicit-build cannot be used with: \(conflictingOptions.joined(separator: ", "))")
+      }
     }
 
     // if we've specified the scheme, we also need the workspace
@@ -231,7 +268,7 @@ class OptionParser {
 
   /// Lightweight initializer intended for tests where we only need build-number logic.
   /// It avoids ArgumentParser plumbing and workspace inference.
-  init(testingPlatform: String, incrementBuildTag: Bool, adoptOtherPlatformBuild: Bool, buildOffset: UInt = 0) {
+  init(testingPlatform: String, incrementBuildTag: Bool, adoptOtherPlatformBuild: Bool, buildOffset: UInt = 0, explicitBuild: String? = nil) {
     showOutput = false
     showCommands = false
     verbose = false
@@ -250,6 +287,7 @@ class OptionParser {
     self.buildOffset = buildOffset
     self.incrementBuildTag = incrementBuildTag
     self.useExistingTag = adoptOtherPlatformBuild
+    self.explicitBuild = explicitBuild
 
     // useExistingTag implies incrementBuildTag (for fallback behavior)
     if self.useExistingTag {
