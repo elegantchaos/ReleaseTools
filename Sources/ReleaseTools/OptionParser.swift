@@ -165,6 +165,11 @@ class OptionParser {
       useExistingTag = true
     }
 
+    // useExistingTag implies incrementBuildTag (for fallback behavior)
+    if useExistingTag {
+      incrementBuildTag = true
+    }
+
     // if we've specified the scheme, we also need the workspace
     if requirements.contains(.workspace) || scheme != nil {
       if let workspace = options.workspace ?? defaultWorkspace {
@@ -245,6 +250,12 @@ class OptionParser {
     self.buildOffset = buildOffset
     self.incrementBuildTag = incrementBuildTag
     self.useExistingTag = adoptOtherPlatformBuild
+
+    // useExistingTag implies incrementBuildTag (for fallback behavior)
+    if self.useExistingTag {
+      self.incrementBuildTag = true
+    }
+
     archive = nil
   }
 

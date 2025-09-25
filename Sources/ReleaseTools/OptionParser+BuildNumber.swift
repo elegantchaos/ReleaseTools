@@ -41,9 +41,12 @@ extension OptionParser {
 
   /// Try to find an existing version tag at HEAD for any platform other than the current one, and return its build number if found.
   private func getBuildFromExistingTag(using git: GitRunner, currentPlatform: String) async throws -> UInt? {
-    // ensure tags are up-to-date
+    // ensure tags are up-to-date (skip if no remote exists)
     let fetchResult = git.run(["fetch", "--tags"])
-    try await fetchResult.throwIfFailed(UpdateBuildError.fetchingTagsFailed)
+    let fetchState = await fetchResult.waitUntilExit()
+    if case .failed(_) = fetchState {
+      // Ignore fetch failures (e.g., no remote configured) and continue with local tags
+    }
 
     // get the tags pointing at HEAD
     let tagsAtHead = git.run(["tag", "--points-at", "HEAD"])
@@ -77,9 +80,12 @@ extension OptionParser {
   /// We calculate the build number by searching the repo tags for the
   /// highest existing build number, and adding 1 to it.
   private func getBuildByIncrementingTag(using git: GitRunner, platform: String) async throws -> UInt {
-    // make sure the tags are up to date
+    // make sure the tags are up to date (skip if no remote exists)
     let fetchResult = git.run(["fetch", "--tags"])
-    try await fetchResult.throwIfFailed(UpdateBuildError.fetchingTagsFailed)
+    let fetchState = await fetchResult.waitUntilExit()
+    if case .failed(_) = fetchState {
+      // Ignore fetch failures (e.g., no remote configured) and continue with local tags
+    }
 
     // get highest existing build in any version tag for this platform
     let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
