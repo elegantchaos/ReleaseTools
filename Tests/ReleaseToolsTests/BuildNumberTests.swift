@@ -187,8 +187,8 @@ struct BuildNumberTests {
     // sanity
     let gitSanity = gitRunner(for: repo)
     let pts = await runGit(gitSanity, ["tag", "--points-at", "HEAD"])
-    #expect(pts.stdout.contains("v1.2.3-40-macOS"), Comment(rawValue: "Expected v1.2.3-40-macOS in tags at HEAD: \(pts.stdout)"))
-    #expect(pts.stdout.contains("v1.2.3-42-iOS"), Comment(rawValue: "Expected v1.2.3-42-iOS in tags at HEAD: \(pts.stdout)"))
+    #expect(pts.stdout.contains("v1.2.3-40-macOS"), "Expected v1.2.3-40-macOS in tags at HEAD: \(pts.stdout)")
+    #expect(pts.stdout.contains("v1.2.3-42-iOS"), "Expected v1.2.3-42-iOS in tags at HEAD: \(pts.stdout)")
 
     let git = gitRunner(for: repo)
     let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: true)
@@ -224,8 +224,8 @@ struct BuildNumberTests {
     // Sanity: tags at HEAD should include these
     let sanity = gitRunner(for: repo)
     let pts = await runGit(sanity, ["tag", "--points-at", "HEAD"])
-    #expect(pts.stdout.contains("v2.0-99-iOS"), Comment(rawValue: "Expected v2.0-99-iOS in tags at HEAD: \(pts.stdout)"))
-    #expect(pts.stdout.contains("v1.0-2-macOS"), Comment(rawValue: "Expected v1.0-2-macOS in tags at HEAD: \(pts.stdout)"))
+    #expect(pts.stdout.contains("v2.0-99-iOS"), "Expected v2.0-99-iOS in tags at HEAD: \(pts.stdout)")
+    #expect(pts.stdout.contains("v1.0-2-macOS"), "Expected v1.0-2-macOS in tags at HEAD: \(pts.stdout)")
 
     // When adoption is disabled and incrementTag is enabled, we should
     // pick max macOS build (11) globally and add 1 => 12.
@@ -266,9 +266,16 @@ struct BuildNumberTests {
 
     do {
       let _ = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
-      #expect(Bool(false), Comment(rawValue: "Should have thrown ValidationError"))
+      #expect(Bool(false), "Should have thrown UpdateBuildError.invalidExplicitBuild")
+    } catch let error as UpdateBuildError {
+      switch error {
+        case .invalidExplicitBuild:
+          #expect(true)
+        default:
+          #expect(Bool(false), "Should throw UpdateBuildError.invalidExplicitBuild for invalid number, got: \(error)")
+      }
     } catch {
-      #expect(error is ValidationError, Comment(rawValue: "Should throw ValidationError for invalid number"))
+      #expect(Bool(false), "Should throw UpdateBuildError.invalidExplicitBuild for invalid number, got: \(error)")
     }
   }
 }

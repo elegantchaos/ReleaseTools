@@ -180,33 +180,6 @@ class OptionParser {
       incrementBuildTag = true
     }
 
-    // validate that explicitBuild is not used with conflicting options
-    if explicitBuild != nil {
-      var conflictingOptions: [String] = []
-
-      if let buildOptions, buildOptions.useExistingTag {
-        conflictingOptions.append("--existing-tag")
-      } else if getSettings().useExistingTag == true {
-        conflictingOptions.append("useExistingTag setting")
-      }
-
-      if let buildOptions, buildOptions.incrementTag {
-        conflictingOptions.append("--increment-tag")
-      } else if getSettings().incrementTag == true {
-        conflictingOptions.append("incrementTag setting")
-      }
-
-      if let buildOptions, buildOptions.offset != nil {
-        conflictingOptions.append("--offset")
-      } else if getSettings().offset != nil {
-        conflictingOptions.append("offset setting")
-      }
-
-      if !conflictingOptions.isEmpty {
-        throw ValidationError("--explicit-build cannot be used with: \(conflictingOptions.joined(separator: ", "))")
-      }
-    }
-
     // if we've specified the scheme, we also need the workspace
     if requirements.contains(.workspace) || scheme != nil {
       if let workspace = options.workspace ?? defaultWorkspace {
@@ -264,6 +237,8 @@ class OptionParser {
       }
     }
 
+    // validate that explicitBuild is not used with conflicting options
+    try validateBuildOptionConflicts(buildOptions: buildOptions)
   }
 
   /// Lightweight initializer intended for tests where we only need build-number logic.
@@ -338,5 +313,34 @@ class OptionParser {
   func fail(_ error: Error) {
     self.error = error
     // semaphore?.signal()
+  }
+
+  /// Validates that explicitBuild is not used with conflicting options.
+  private func validateBuildOptionConflicts(buildOptions: BuildOptions?) throws {
+    if explicitBuild != nil {
+      var conflictingOptions: [String] = []
+
+      if let buildOptions, buildOptions.useExistingTag {
+        conflictingOptions.append("--existing-tag")
+      } else if getSettings().useExistingTag == true {
+        conflictingOptions.append("useExistingTag setting")
+      }
+
+      if let buildOptions, buildOptions.incrementTag {
+        conflictingOptions.append("--increment-tag")
+      } else if getSettings().incrementTag == true {
+        conflictingOptions.append("incrementTag setting")
+      }
+
+      if let buildOptions, buildOptions.offset != nil {
+        conflictingOptions.append("--offset")
+      } else if getSettings().offset != nil {
+        conflictingOptions.append("offset setting")
+      }
+
+      if !conflictingOptions.isEmpty {
+        throw ValidationError("--explicit-build cannot be used with: \(conflictingOptions.joined(separator: ", "))")
+      }
+    }
   }
 }
