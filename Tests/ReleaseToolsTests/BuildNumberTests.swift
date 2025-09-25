@@ -76,8 +76,6 @@ struct BuildNumberTests {
     return git
   }
 
-
-
   // MARK: - Tests
 
   @Test func adoptsBuildFromOtherPlatformTagAtHEAD() async throws {
@@ -93,7 +91,7 @@ struct BuildNumberTests {
     #expect(pts.stdout.contains("v1.2.3-42-iOS"))
 
     let git = gitRunner(for: repo)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: true)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     #expect(build == "42")
   }
@@ -115,7 +113,7 @@ struct BuildNumberTests {
 
     let git = gitRunner(for: repo)
     // useExistingTag now implies incrementBuildTag, so incrementTag parameter is ignored
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: true)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     #expect(build == "99")
   }
@@ -134,7 +132,7 @@ struct BuildNumberTests {
     // When no adoption happens at HEAD, fall back to incrementTag.
     // The highest macOS build is 11, so we should get 12.
     let git = gitRunner(for: repo)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: true)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     #expect(build == "12")
   }
@@ -146,7 +144,7 @@ struct BuildNumberTests {
 
     let git = gitRunner(for: repo)
     // useExistingTag now implies incrementBuildTag, so it falls back to incrementTag (not commit count)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: true)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // no existing tags for macOS, so incrementTag returns 1
     #expect(build == "1")
@@ -159,7 +157,7 @@ struct BuildNumberTests {
 
     let git = gitRunner(for: repo)
     // with adopt: false and incrementTag: false, should use commit count
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // we made two commits total
     #expect(build == "2")
@@ -167,14 +165,14 @@ struct BuildNumberTests {
 
   @Test func useExistingTagImpliesIncrementTag() async throws {
     // This test verifies that useExistingTag automatically enables incrementBuildTag
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: true)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: true)
 
     // Even though we passed incrementTag: false, useExistingTag should have overridden it
     #expect(parsed.useExistingTag, "useExistingTag should be true")
     #expect(parsed.incrementBuildTag, "incrementBuildTag should be true due to useExistingTag implication")
 
     // Test the opposite case for comparison (explicitly disable useExistingTag)
-  let parsedNoAdopt = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false)
+    let parsedNoAdopt = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false)
     #expect(!parsedNoAdopt.useExistingTag, "useExistingTag should be false when explicitly disabled")
     #expect(!parsedNoAdopt.incrementBuildTag, "incrementBuildTag should be false")
   }
@@ -193,7 +191,7 @@ struct BuildNumberTests {
     #expect(pts.stdout.contains("v1.2.3-42-iOS"), Comment(rawValue: "Expected v1.2.3-42-iOS in tags at HEAD: \(pts.stdout)"))
 
     let git = gitRunner(for: repo)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: true)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: true)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // should adopt 42 from iOS even though macOS tag also exists at HEAD
     #expect(build == "42")
@@ -205,7 +203,7 @@ struct BuildNumberTests {
     try await tag(at: repo, name: "v3.4.5-42-iOS")
 
     let git = gitRunner(for: repo)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: true, buildOffset: 100)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: true, buildOffset: 100)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     // offset is ignored when adopting; should not be 142
     #expect(build == "42")
@@ -232,7 +230,7 @@ struct BuildNumberTests {
     // When adoption is disabled and incrementTag is enabled, we should
     // pick max macOS build (11) globally and add 1 => 12.
     let git = gitRunner(for: repo)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: false)
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: true, adoptOtherPlatformBuild: false)
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     #expect(build == "12")
   }
@@ -242,7 +240,7 @@ struct BuildNumberTests {
     try await initGitRepo(at: repo)
 
     let git = gitRunner(for: repo)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false, explicitBuild: "42")
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false, explicitBuild: "42")
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     #expect(build == "42")
   }
@@ -254,7 +252,7 @@ struct BuildNumberTests {
     try await tag(at: repo, name: "v1.0-200-iOS")
 
     let git = gitRunner(for: repo)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false, explicitBuild: "5")
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false, explicitBuild: "5")
     let (build, _) = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)
     #expect(build == "5")
   }
@@ -264,7 +262,7 @@ struct BuildNumberTests {
     try await initGitRepo(at: repo)
 
     let git = gitRunner(for: repo)
-  let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false, explicitBuild: "not-a-number")
+    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false, explicitBuild: "not-a-number")
 
     do {
       let _ = try await parsed.nextBuildNumberAndCommit(in: repo, using: git)

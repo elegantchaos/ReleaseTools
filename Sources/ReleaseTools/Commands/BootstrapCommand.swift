@@ -14,7 +14,7 @@ struct BootstrapCommand: AsyncParsableCommand {
 
     public var description: String {
       switch self {
-      case let .couldntCopyConfigs(error): return "Couldn't copy files \(error)."
+        case .couldntCopyConfigs(let error): return "Couldn't copy files \(error)."
       }
     }
   }

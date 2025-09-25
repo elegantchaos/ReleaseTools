@@ -11,7 +11,6 @@ extension OptionParser {
   /// Return the build number to use for the next build, and the commit tag it was build from.
   func nextBuildNumberAndCommit(in url: URL, using git: GitRunner) async throws -> (String, String) {
     git.cwd = url
-    // Avoid changing global process CWD; rely on Runner.cwd
 
     // get next build number
     let build: UInt
@@ -23,7 +22,7 @@ extension OptionParser {
       build = explicitBuildNumber
       verbose("Using explicit build number: \(build)")
     } else {
-  // optionally use the build number from an existing tag for another platform
+      // optionally use the build number from an existing tag for another platform
       var adoptedBuild: UInt? = nil
       if useExistingTag {
         adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)

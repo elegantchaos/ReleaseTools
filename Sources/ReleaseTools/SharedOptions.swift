@@ -69,23 +69,23 @@ struct BuildOptions: ParsableArguments {
   @Flag(help: "Calculate builds by looking for the highest existing build tag, and incrementing it. If this is false, we instead calculate the build number by counting the commits.") var incrementTag: Bool = false
   @Flag(name: .customLong("existing-tag"), help: "If a version tag for a different platform exists on the current commit, reuse its build number for this build.") var useExistingTag: Bool = false
   @Option(name: .customLong("explicit-build"), help: "Specify the exact build number to use. Cannot be used with --existing-tag, --increment-tag, or --offset.") var explicitBuild: String?
-  
+
   mutating func validate() throws {
     if let _ = explicitBuild {
       var conflictingOptions: [String] = []
-      
+
       if useExistingTag {
         conflictingOptions.append("--existing-tag")
       }
-      
+
       if incrementTag {
         conflictingOptions.append("--increment-tag")
       }
-      
+
       if offset != nil {
         conflictingOptions.append("--offset")
       }
-      
+
       if !conflictingOptions.isEmpty {
         throw ValidationError("--explicit-build cannot be used with: \(conflictingOptions.joined(separator: ", "))")
       }

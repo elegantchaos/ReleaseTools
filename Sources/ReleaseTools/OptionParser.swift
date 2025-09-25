@@ -183,25 +183,25 @@ class OptionParser {
     // validate that explicitBuild is not used with conflicting options
     if explicitBuild != nil {
       var conflictingOptions: [String] = []
-      
+
       if let buildOptions, buildOptions.useExistingTag {
         conflictingOptions.append("--existing-tag")
       } else if getSettings().useExistingTag == true {
         conflictingOptions.append("useExistingTag setting")
       }
-      
+
       if let buildOptions, buildOptions.incrementTag {
         conflictingOptions.append("--increment-tag")
       } else if getSettings().incrementTag == true {
         conflictingOptions.append("incrementTag setting")
       }
-      
+
       if let buildOptions, buildOptions.offset != nil {
         conflictingOptions.append("--offset")
       } else if getSettings().offset != nil {
         conflictingOptions.append("offset setting")
       }
-      
+
       if !conflictingOptions.isEmpty {
         throw ValidationError("--explicit-build cannot be used with: \(conflictingOptions.joined(separator: ", "))")
       }
