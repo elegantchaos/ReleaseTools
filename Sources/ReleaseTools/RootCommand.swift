@@ -50,9 +50,9 @@ struct RootCommand: AsyncParsableCommand {
   /// Main entrypoint.
   /// Note that this is overridden from the default implementation in `AsyncParsableCommand`,
   /// to allow us to flush the log after running the command.
-  public static func main() async {
+  public static func main(_ arguments: [String]?) async {
     do {
-      var command = try parseAsRoot(nil)
+      var command = try parseAsRoot(arguments)
       if var asyncCommand = command as? AsyncParsableCommand {
         try await asyncCommand.run()
       } else {
