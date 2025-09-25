@@ -85,7 +85,7 @@ When using the `update-build` command, you can generate the header file as descr
 ReleaseTools supports several strategies for generating the build number, which can be controlled via command-line flags or the `.rt.json` settings file. The options are mutually exclusive where noted, and their precedence is as follows:
 
 1. **Explicit Build Number**
-   - Use `--explicit-build <number>` (or set `"explicitBuild": "<number>"` in `.rt.json`) to specify the exact build number to use. This takes precedence over all other options. Cannot be combined with `--existing-tag`, `--increment-tag`, or `--offset`.
+   - Use `--explicit-build <number>` to specify the exact build number to use. This takes precedence over all other options. Cannot be combined with `--existing-tag`, `--increment-tag`, or `--offset`.
    - Example: `rt archive --explicit-build 1234`
 
 2. **Adopt Build Number from Existing Tag (Cross-Platform Awareness)**
