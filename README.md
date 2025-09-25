@@ -82,33 +82,37 @@ When using the `update-build` command, you can generate the header file as descr
 
 ### Build Number Generation
 
-There are two primary ways that the build number can be generated, with an additional optional override.
+ReleaseTools supports several strategies for generating the build number, which can be controlled via command-line flags or the `.rt.json` settings file. The options are mutually exclusive where noted, and their precedence is as follows:
 
-The default method uses a count of the commits (produced with `git rev-list --count HEAD`), and thus trends upwards as commits increase.
+1. **Explicit Build Number**
+   - Use `--explicit-build <number>` (or set `"explicitBuild": "<number>"` in `.rt.json`) to specify the exact build number to use. This takes precedence over all other options. Cannot be combined with `--existing-tag`, `--increment-tag`, or `--offset`.
+   - Example: `rt archive --explicit-build 1234`
 
-This is often sufficient, but the commit value stored is the actual git commit at `HEAD`, and so it can vary up or down when you switch branches. If you always publish from the same branch (eg `main`), this should not be a problem.
+2. **Adopt Build Number from Existing Tag at HEAD**
+   - Use `--existing-tag` (or set `"useExistingTag": true` in `.rt.json`) to reuse the build number from a version tag for a different platform at the current commit (HEAD). If no such tag is present, falls back to the next strategy.
+   - Example: `rt submit --platform macOS --existing-tag`
 
-The other generation method uses git tags. It can be enabled by passing the `--increment-tag` flag, or setting `"incrementTag": true` in the `.rt.json` settings file for your project.
+3. **Increment Highest Existing Tag**
+   - Use `--increment-tag` (or set `"incrementTag": true` in `.rt.json`) to find the highest build number for the current platform in tags of the form `vX.Y.Z-build-platform`, and increment it by one. If no tags are found, falls back to commit count.
+   - Example: `rt archive --increment-tag`
 
-This method works by examining the git tags and finding the tag with the highest version in the format `vX.Y.Z-build-platform` where `platform` is the platform you are building for (eg `iOS`), `build` is the build number, and `X.Y.Z` is the semantic version of the product.
+4. **Commit Count (Default)**
+   - If none of the above options are specified, the build number is set to the number of commits in the repository (`git rev-list --count HEAD`).
 
-This tag is presumed to represent the highest in-use build number, and so the new build number is calculated by adding one to it.
+#### Option Precedence and Conflicts
+- `--explicit-build` cannot be used with `--existing-tag`, `--increment-tag`, or `--offset`. If conflicting options are provided, the tool will report an error.
+- If `--existing-tag` is specified, it implies `--increment-tag` for fallback behavior.
+- If no options are specified, commit count is used by default.
 
-These tags are automatically created and pushed to git if the `upload` command succeeds, and so each subsequent upload will be tagged with
-a new higher build number, even if it happens on a different build machine.
-
-Optional override:
-
-- `--existing-tag` (or `"useExistingTag": true` in `.rt.json`) — if the current commit (HEAD) already has a version tag for a different platform in the form `vX.Y.Z-build-OtherPlatform`, the build number from that tag is reused for the current platform. This is useful when cutting simultaneous releases across platforms and you want them to share the same build number. If no such tag is present at HEAD, the normal build-number strategy (incrementing tags or commit count) is used.
-
-Examples:
-
-- Submit with adoption and increment-tag enabled:
-    `rt submit --platform macOS --existing-tag --increment-tag`
-
-- Update xcconfig with adoption (repo path explicit):
-    `rt update-build --config Configs/BuildNumber.xcconfig --repo . --existing-tag`
-
+#### Examples
+- Use explicit build number:
+  `rt update-build --explicit-build 5000`
+- Adopt build number from another platform's tag at HEAD:
+  `rt archive --existing-tag`
+- Increment highest existing tag for platform:
+  `rt archive --increment-tag`
+- Use commit count (default):
+  `rt archive`
 
 ## The Full Toolchain
 
