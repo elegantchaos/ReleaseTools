@@ -88,8 +88,8 @@ ReleaseTools supports several strategies for generating the build number, which 
    - Use `--explicit-build <number>` (or set `"explicitBuild": "<number>"` in `.rt.json`) to specify the exact build number to use. This takes precedence over all other options. Cannot be combined with `--existing-tag`, `--increment-tag`, or `--offset`.
    - Example: `rt archive --explicit-build 1234`
 
-2. **Adopt Build Number from Existing Tag at HEAD**
-   - Use `--existing-tag` (or set `"useExistingTag": true` in `.rt.json`) to reuse the build number from a version tag for a different platform at the current commit (HEAD). If no such tag is present, falls back to the next strategy.
+2. **Adopt Build Number from Existing Tag (Cross-Platform Awareness)**
+   - Use `--existing-tag` (or set `"useExistingTag": true` in `.rt.json`) to scan all version tags for all platforms. The tool finds the highest build number for any platform and for the platform being built. If another platform has a higher build number, it uses that. If the highest for any platform matches the current platform, it increments it. Otherwise, it uses the current platform's highest build number. This is useful when cutting simultaneous releases across platforms and you want them to share the same build number or keep them in sync.
    - Example: `rt submit --platform macOS --existing-tag`
 
 3. **Increment Highest Existing Tag**

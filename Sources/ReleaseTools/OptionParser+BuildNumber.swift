@@ -23,12 +23,12 @@ extension OptionParser {
       build = explicitBuildNumber
       verbose("Using explicit build number: \(build)")
     } else {
-      // optionally use the build number from an existing tag at HEAD (from another platform)
+  // optionally use the build number from an existing tag for another platform
       var adoptedBuild: UInt? = nil
       if useExistingTag {
         adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)
         if let adoptedBuild {
-          verbose("Adopting build number from another platform tag at HEAD: \(adoptedBuild)")
+          verbose("Adopting build number from another platform tag: \(adoptedBuild)")
         }
       }
 
@@ -49,7 +49,9 @@ extension OptionParser {
     return (String(build), commit)
   }
 
-  /// Try to find an existing version tag at HEAD for any platform other than the current one, and return its build number if found.
+  /// Find the highest build number for any platform and for the current platform.
+  /// If the highest for any platform is greater than the current platform, use it.
+  /// If they are equal, increment it. Otherwise, use the current platform's max.
   private func getBuildFromExistingTag(using git: GitRunner, currentPlatform: String) async throws -> UInt? {
     // ensure tags are up-to-date (skip if no remote exists)
     let fetchResult = git.run(["fetch", "--tags"])
@@ -58,20 +60,31 @@ extension OptionParser {
       // Ignore fetch failures (e.g., no remote configured) and continue with local tags
     }
 
-    // get the tags pointing at HEAD
-    let tagsAtHead = git.run(["tag", "--points-at", "HEAD"])
-    try await tagsAtHead.throwIfFailed(UpdateBuildError.gettingBuildFailed)
+    // get all tags
+    let tagsResult = git.run(["tag"])
+    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
 
     let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
-    var maxBuild: UInt? = nil
-    for await tag in await tagsAtHead.stdout.lines {
-      if let parsed = tag.firstMatch(of: pattern) {
-        if parsed.platform != currentPlatform, let build = UInt(parsed.build) {
-          if maxBuild == nil || build > maxBuild! { maxBuild = build }
-        }
+    var maxAny: UInt = 0
+    var maxCurrent: UInt = 0
+    for await tag in await tagsResult.stdout.lines {
+      if let parsed = tag.firstMatch(of: pattern), let build = UInt(parsed.build) {
+        if build > maxAny { maxAny = build }
+        if parsed.platform == currentPlatform, build > maxCurrent { maxCurrent = build }
       }
     }
-    return maxBuild
+
+    if maxAny > maxCurrent {
+      return maxAny
+    } else if maxAny == maxCurrent && maxAny > 0 {
+      return maxAny + 1
+    } else if maxAny < maxCurrent {
+      throw ValidationError("Inconsistent tag state: highest build for platform (\(currentPlatform)) is greater than highest build for any platform. This should not happen. Please check your tags.")
+    } else if maxCurrent > 0 {
+      return maxCurrent
+    } else {
+      return nil
+    }
   }
 
   /// Return the build number to use for the next build.
