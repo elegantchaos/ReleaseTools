@@ -19,11 +19,11 @@ My own personal tools to perform various release-related tasks for iOS and macOS
 Think [Fastlane](https://fastlane.tools/), but much simpler (and consequently much less capable).
 
 The main activities supported are:
-- calculating a build number and injecting it whilst archiving
+- calculating a build number and injecting it whilst building or archiving
 - exporting and uploading an archive to the App Store portal
 - (or) notarising and building a Sparkle feed for an externally distributed macOS app.
 
-**Note**: __the notarisation/sparkle path is one I am not currently using, so it may need to a bit of fixing up though, so let me know if you encounter any problems.__
+**Note**: _The notarisation/sparkle path is one I used it extensively for a while, but I haven't needed it recently. It may need a little bit of fixing up, so let me know if you encounter problems. It isn't likely to be hard to fix._
 
 ## Uploading To App Store
 
