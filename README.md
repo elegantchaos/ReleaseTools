@@ -14,9 +14,18 @@
 [comment]: <> (End of ActionStatus Header)
 
 
-# Release Tools
+My own personal tools to perform various release-related tasks for iOS and macOS applications.
 
-A suite of tools to perform various release-related tasks.
+Think [Fastlane](https://fastlane.tools/), but much simpler (and consequently much less capable).
+
+The main activities supported are:
+- calculating a build number and injecting it whilst archiving
+- exporting and uploading an archive to the App Store portal
+- (or) notarising and building a Sparkle feed for an externally distributed macOS app.
+
+**Note**: __the notarisation/sparkle path is one I am not currently using, so it may need to a bit of fixing up though, so let me know if you encounter any problems.__
+
+## Uploading To App Store
 
 When publishing via the App Store Connect portal, the main command is:
 
@@ -24,9 +33,11 @@ When publishing via the App Store Connect portal, the main command is:
 rt submit
 ```
 
-This builds an archive, exports it, and uploads it to the app store.
+This builds an archive, exports it, and uploads it to the app store, using credentials you've previously configured.
 
-It is the equivalent of performing this sequence:
+### Granularity
+
+The `submit` command is the equivalent of performing this sequence of smaller commands:
 
 ```shell
     rt archive
@@ -49,15 +60,17 @@ and may need some debugging. These are mostly aimed at external
 distribution of a macOS application via a website, and include support
 for notarizing and updating an appcast feed suitable for Sparkle.
 
-## Calculated Build Number
+# Build Number
 
 ReleaseTools can automatically calculate and inject a build number into your application.
 
-You can either do this only when making an archive for distribution, or every time you make a build. 
+You can either do this only when making an archive for distribution (running `rt archive` or `rt submit`), or every time you make a build. 
 
-The former approach is more efficient, but means that the build number is not available when running from Xcode. I generally use this approach.
+The former is more efficient, but means that the build number is not available when running from Xcode. I generally use this approach.
 
-The latter approach requires running `rt update-build` in a script phase, and so slightly increases the build times for normal builds. This command can also generate an `.xcconfig` and/or inject info into a `.plist` file, which you may find to be more flexible.
+The latter requires running `rt update-build` in a script phase, and so slightly increases the build times for normal builds. 
+
+## When Archiving
 
 When archiving, the injection is done by:
 
@@ -78,9 +91,15 @@ This causes any occurences of the text `CURRENT_PROJECT_VERSION` and `CURRENT_PR
 
 It should also allow any occurences of `${CURRENT_PROJECT_VERSION}` and `${CURRENT_PROJECT_COMMIT}` to be replaced in build settings or build scripts.
 
-When using the `update-build` command, you can generate the header file as described above. You can also generate an `.xcconfig` file which defines the build settings `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT`. Finally, you can also specify the path of source and destination `.plist` files. A new copy of the source file will be written to the destination, with the latest build and commit values written into the `CFBundleVersion` and `Commit` keys.
+## When Building
 
-### Build Number Generation
+When using the `update-build` command, you can generate the header file as described above. You can then configure your project to use it.
+
+You can also generate an `.xcconfig` file which defines the build settings `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT`, and have your project include that.
+
+Finally, you can also specify the path of source and destination `.plist` files. A new copy of the source file will be written to the destination, with the latest build and commit values written into the `CFBundleVersion` and `Commit` keys.
+
+## Build Number Strategies
 
 ReleaseTools supports several strategies for generating the build number, which can be controlled via command-line flags or the `.rt.json` settings file:
 
@@ -98,17 +117,16 @@ ReleaseTools supports several strategies for generating the build number, which 
    - This is useful when cutting simultaneous releases across platforms and you want them to share the same build number or keep them in sync. Typically you will use `--increment-tag` when building the first platform, then `--existing-tag` for the subsequent platforms. This should ensure that they all share the same number.
    - Example: `rt submit --platform macOS --existing-tag`
 
-
-4. **Commit Count (Default)**
+4. **Commit Count**
    - If none of the above options are specified, the build number is set to the number of commits in the repository (`git rev-list --count HEAD`).
-   - If you are generally not releasing from multiple branches, this method is often sufficient. However, the commit count is based on the current branch, and so it is possible for it to end up going down if you switch to a branch with fewer commits, and generally being inconsistent between branches. For most situations, using tags is probably more reliable.
+   - If you are generally not releasing from multiple branches, this method is often sufficient, and for many years, it was all I did. However, the commit count is based on the current branch, and so it is possible for it to end up going down if you switch to a branch with fewer commits, and generally being inconsistent between branches. For most situations, using tags is probably more reliable.
 
-#### Option Precedence and Conflicts
+### Option Precedence and Conflicts
 - `--explicit-build` cannot be used with `--existing-tag`, `--increment-tag`, or `--offset`. If conflicting options are provided, the tool will report an error.
 - If `--existing-tag` is specified, it implies `--increment-tag` for fallback behavior.
 - If no options are specified, commit count is used by default.
 
-#### Examples
+### Examples
 - Use explicit build number:
   `rt update-build --explicit-build 5000`
 - Adopt build number from another platform's tag at HEAD:
@@ -118,26 +136,28 @@ ReleaseTools supports several strategies for generating the build number, which 
 - Use commit count (default):
   `rt archive`
 
-## The Full Toolchain
+
+# The Full Toolchain
 
 The process of producing a release consists of a number of steps: archiving, exporting, notarizing, stapling, zipping, updating, regenerating an appcast, and publishing.  
 
-When everything is working smoothly, the steps are expected to be run one after the other, without the need for interaction.
+ReleaseTools is designed to be easy to debug when something goes wrong, and so each step is broken down into separate command. This makes it possible to re-run some steps without having to start at the beginning each time.
 
-However, each step is broken down into separate command. This is done to make them easier to debug, and to make it possible to re-run some steps without having to start at the beginning each time.
+There are also `--show-commands` and `--show-output` options which will echo the commands that the tool is running, and the output of those commands.
 
-A shell script to run them all together in the correct order, for a macOS release being distributed via an external website, might look something like:
+When everything is working smoothly, however, the steps are expected to be run one after the other, without the need for interaction. A shell script to run them all together in the correct order, for a macOS release being distributed via an external website, might look something like:
 
-```
+```shell
 set -e
-rt archive --show-output
+rt archive --show-commands
 rt export
 rt notarize
 rt wait
 rt compress
-rt appcast --show-output
+rt appcast --show-commands
 rt publish
 ```
+## Commands
 
 More details of each command are given below:
 
@@ -232,6 +252,11 @@ If you specify the `--config` option with a path to an `.xcconfig` file, it will
 If you specify the `--plist` option with a path to a `.plist` file,
 it will be generated, or updates, with two keys `CURRENT_PROJECT_BUILD` and `CURRENT_PROJECT_HASH`.
 
+### submit
+
+This performs the `archive`, `export` and `upload` commands in order.
+
+It accepts the same options as those commands.
 
 ## Building
 
@@ -242,24 +267,16 @@ You can build and run in a single line with `swift run rt <command> <args>`.
 Alternatively you can build & install it somewhere, eg using [Mint](https://github.com/yonaskolb/Mint).
 
 
-## Naming Conventions
+# Configuration
 
 To cut down on the amount of configuration that you have to do, `rt` relies on naming conventions and defaults for a lot of things.
 
-We expect a standard project layout. If your project is called `Foo`, the layout would be: 
+We expect you to run rt from the root of a project folder, and we look for a workspace in that folder with the same name as the folder. 
 
-```
-Foo/
-    Foo.xcworkspace
-    Foo.xcodeproj
-    Sources/
-        Foo/
-            Resources/
-```
-        
-From this we derive some other values:
-        
-- *package*: this is expected to be the same name as the containing folder, so if your project is in a folder `~/Projects/foo`, the package will be `foo`.
-- *workspace*: this is expected to be the same name as the package, so if your package is `foo`, the workspace will be `foo.xcworkspace`.
-- *platform*: this is either supplied as `--platform=macOS|iOS|tvOS|watchOS` or defaults to `macOS`
-- *scheme*: this is supplied as `--scheme=<name>`; a default can be specified in `.rt.json`.
+We also look for a scheme in that workspace with the same name, by default. 
+
+So if your project is in a folder called `Foo`, we will use `Foo.xcworkspace` as the `-workspace` argument to xcodebuild, and `Foo` as the `-scheme` argument.
+
+You can override the default scheme with the `--scheme=<name>` option, or with a setting in the optional `.rt.json` configuration file.
+
+We support building for multiple platforms, but only one at a time. To tell rt which platform to build for, use an optional argument `--platform=macOS|iOS|tvOS|watchOS`. If you have only one supported platform, you can set it in the `.rt.json` file. If you don't supply the platform, it defaults to `macOS`.
