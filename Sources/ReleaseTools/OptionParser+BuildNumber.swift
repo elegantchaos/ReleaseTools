@@ -25,9 +25,6 @@ extension OptionParser {
       var adoptedBuild: UInt? = nil
       if useExistingTag {
         adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)
-        if let adoptedBuild {
-          verbose("Adopting build number from another platform tag: \(adoptedBuild)")
-        }
       }
 
       if let adoptedBuild {
@@ -55,21 +52,38 @@ extension OptionParser {
 
     var maxAny: UInt = 0
     var maxCurrent: UInt = 0
-    try await processAllVersionTags(using: git) { platform, build, _ in
-      if build > maxAny { maxAny = build }
-      if platform == currentPlatform, build > maxCurrent { maxCurrent = build }
+    var maxTag: String?
+    var maxPlatformTag: String?
+
+    try await processAllVersionTags(using: git) { platform, build, tag in
+      if build > maxAny {
+        maxAny = build
+        maxTag = tag
+      }
+
+      if platform == currentPlatform, build > maxCurrent {
+        maxCurrent = build
+        maxPlatformTag = tag
+      }
+    }
+
+    guard maxAny >= maxCurrent else {
+      // something is wrong if the max for the current platform is greater than the max for any platform
+      throw UpdateBuildError.inconsistentTagState(currentPlatform: currentPlatform)
+    }
+
+    guard maxAny > 0 else {
+      // no existing tags at all
+      return nil
     }
 
     if maxAny > maxCurrent {
+      verbose("Adopting build number \(maxAny) from another platform tag: \(maxTag!).")
       return maxAny
-    } else if maxAny == maxCurrent && maxAny > 0 {
-      return maxAny + 1
-    } else if maxAny < maxCurrent {
-      throw UpdateBuildError.inconsistentTagState(currentPlatform: currentPlatform)
-    } else if maxCurrent > 0 {
-      return maxCurrent
     } else {
-      return nil
+      let result = maxCurrent + 1
+      verbose("Highest tag \(maxPlatformTag!) was from this platform, so incrementing the build number to \(result).")
+      return result
     }
   }
 
