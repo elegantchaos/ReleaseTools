@@ -60,7 +60,7 @@
     {
       "type": "swift",
       "request": "launch",
-      "args": ["upload", "--platform=macOS", "--show-commands"],
+      "args": ["upload", "--platform=iOS", "--show-commands"],
       "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
       "name": "upload Stack",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
