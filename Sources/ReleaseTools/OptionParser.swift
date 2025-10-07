@@ -89,10 +89,12 @@ class OptionParser {
   var exportOptionsURL: URL { return buildURL.appendingPathComponent("options.plist") }
   var changesURL: URL { return buildURL.appendingPathComponent("changes.txt") }
   var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
-  var uploadingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.json") }
+  var uploadingReceiptURL: URL { return uploadURL.appendingPathComponent("receipt.json") }
+  var uploadingErrorsURL: URL { return uploadURL.appendingPathComponent("errors.log") }
   var buildURL: URL { return rootURL.appendingPathComponents([".build", platform]) }
   var archiveURL: URL { return buildURL.appendingPathComponent("archive.xcarchive") }
   var exportURL: URL { return buildURL.appendingPathComponent("export") }
+  var uploadURL: URL { return exportURL.appendingPathComponent("upload") }
   var stapledURL: URL { return buildURL.appendingPathComponent("stapled") }
   var versionTag: String { return "v\(archive.version)-\(archive.build)-\(platform)" }
 

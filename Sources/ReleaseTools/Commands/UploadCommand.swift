@@ -100,42 +100,47 @@ struct UploadCommand: AsyncParsableCommand {
       "--file", parsed.exportedIPAURL.path, "--output-format", "json", "--type", parsed.platform,
     ])
 
-    // check for an error from stderr, since altool usefully doesn't always return a non-zero error
-    // (or maybe xcrun doesn't pass it on?)
-    for await line in await uploadResult.stderr.lines {
-      if line.contains("ERROR:") {
-        if line.contains("File does not exist at path") {
-          throw UploadError.uploadFileMissing(line)
-        } else {
-          throw UploadError.uploadOtherError(line)
-        }
-      }
-    }
-
-    // check for a non-zero result
-    try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
-
-    parsed.log("Finished uploading.")
-
-    // stash a copy of the output
-    let output = await uploadResult.stdout.string
+    // stash a copy of the stdout and stderr in the build folder
+    let stdout = await uploadResult.stdout.string
+    let stderr = await uploadResult.stderr.string
     do {
-      try output.write(to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
+      try? FileManager.default.createDirectory(at: parsed.uploadURL, withIntermediateDirectories: true)
+      try stdout.write(to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
+      try stderr.write(to: parsed.uploadingErrorsURL, atomically: true, encoding: .utf8)
     } catch {
       throw UploadError.savingUploadReceiptFailed(error)
     }
 
-    // parse the output
+    // check for a non-zero result
+    // unfortunately altool doesn't always return a non-zero error
+    // (or maybe xcrun doesn't pass it on?)
+    try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
+
+    parsed.log("Finished uploading.")
+
+    // try to parse the output
     let receipt: UploadReceipt
     do {
       let decoder = JSONDecoder()
       decoder.keyDecodingStrategy = .dashCase
-      receipt = try decoder.decode(UploadReceipt.self, from: output.data(using: .utf8)!)
+      receipt = try decoder.decode(UploadReceipt.self, from: stdout.data(using: .utf8)!)
     } catch {
-      throw UploadError.decodingUploadReceiptFailed(error, output)
+      // we couldn't parse the output - see if we can find an error message in stderr instead
+      for await line in await uploadResult.stderr.lines {
+        if line.contains("ERROR:") {
+          if line.contains("File does not exist at path") {
+            throw UploadError.uploadFileMissing(line)
+          } else {
+            throw UploadError.uploadOtherError(line)
+          }
+        }
+      }
+
+      // no errors found in stderr, so just report the decoding error
+      throw UploadError.decodingUploadReceiptFailed(error, stdout)
     }
 
-    // check the receipt for errors
+    // check the parsed receipt for errors
     if let errors = receipt.productErrors, !errors.isEmpty {
       throw UploadError.uploadingFailedWithErrors(errors)
     }
