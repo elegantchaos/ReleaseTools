@@ -8,12 +8,14 @@ import Foundation
 import Runner
 
 enum CompressError: LocalizedError {
-  case compressFailed(stderr: String)
+  case compressFailed(Runner.Session)
 
   var errorDescription: String? {
-    switch self {
-      case .compressFailed(let stderr):
-        return "Compressing failed.\n\(stderr)"
+    get async {
+      switch self {
+        case .compressFailed(let session):
+          return "Compressing failed.\n\(await session.stderr.string)"
+      }
     }
   }
 }
@@ -48,8 +50,7 @@ struct CompressCommand: AsyncParsableCommand {
     let result = ditto.zip(stapledAppURL, as: destination)
     let state = await result.waitUntilExit()
     if case .failed = state {
-      let stderr = await result.stderr.string
-      throw CompressError.compressFailed(stderr: stderr)
+      throw CompressError.compressFailed(result)
     }
 
     parsed.log(

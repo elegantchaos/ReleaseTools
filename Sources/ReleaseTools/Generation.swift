@@ -45,14 +45,13 @@ struct Generation {
         try new.write(to: configURL, atomically: true, encoding: .utf8)
         parsed.log("Updated \(configURL.lastPathComponent).")
       } catch {
-        throw UpdateBuildError.writingConfigFailed(stderr: error.localizedDescription)
+        throw UpdateBuildError.writingConfigFailed(error.localizedDescription)
       }
 
       let result = parsed.git.run(["update-index", "--assume-unchanged", configURL.path])
       let state = await result.waitUntilExit()
       if case .failed = state {
-        let stderr = await result.stderr.string
-        throw UpdateBuildError.updatingIndexFailed(stderr: stderr)
+        throw UpdateBuildError.updatingIndexFailed(result)
       }
     }
   }

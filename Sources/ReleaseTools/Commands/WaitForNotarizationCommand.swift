@@ -31,15 +31,17 @@ extension WaitForNotarizationError: LocalizedError {
 }
 
 enum WaitForNotarizationRunnerError: LocalizedError {
-  case fetchingNotarizationStatusFailed(stderr: String)
-  case exportingNotarizedAppFailed(stderr: String)
+  case fetchingNotarizationStatusFailed(Runner.Session)
+  case exportingNotarizedAppFailed(Runner.Session)
 
   var errorDescription: String? {
-    switch self {
-      case .fetchingNotarizationStatusFailed(let stderr):
-        return "Fetching notarization status failed.\n\(stderr)"
-      case .exportingNotarizedAppFailed(let stderr):
-        return "Exporting notarized app failed.\n\(stderr)"
+    get async {
+      switch self {
+        case .fetchingNotarizationStatusFailed(let session):
+          return "Fetching notarization status failed.\n\(await session.stderr.string)"
+        case .exportingNotarizedAppFailed(let session):
+          return "Exporting notarized app failed.\n\(await session.stderr.string)"
+      }
     }
   }
 }
@@ -119,8 +121,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
         let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
         let state = await result.waitUntilExit()
         if case .failed = state {
-          let stderr = await result.stderr.string
-          throw WaitForNotarizationRunnerError.exportingNotarizedAppFailed(stderr: stderr)
+          throw WaitForNotarizationRunnerError.exportingNotarizedAppFailed(result)
         }
       } else {
         throw WaitForNotarizationError.missingArchive
@@ -142,8 +143,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     ])
     let state = await result.waitUntilExit()
     if case .failed = state {
-      let stderr = await result.stderr.string
-      throw WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed(stderr: stderr)
+      throw WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed(result)
     }
 
     parsed.log("Received response.")

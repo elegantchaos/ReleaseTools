@@ -21,21 +21,23 @@ enum GenerationError: Error, CustomStringConvertible {
   }
 }
 enum AppcastError: LocalizedError {
-  case buildAppcastGeneratorFailed(stderr: String)
-  case appcastGeneratorFailed(stderr: String)
-  case keyGenerationFailed(stderr: String)
-  case keyImportFailed(stderr: String)
+  case buildAppcastGeneratorFailed(Runner.Session)
+  case appcastGeneratorFailed(Runner.Session)
+  case keyGenerationFailed(Runner.Session)
+  case keyImportFailed(Runner.Session)
 
   var errorDescription: String? {
-    switch self {
-      case .buildAppcastGeneratorFailed(let stderr):
-        return "Failed to build the generate_appcast tool.\n\n\(stderr)"
-      case .appcastGeneratorFailed(let stderr):
-        return "Failed to generate the appcast.\n\n\(stderr)"
-      case .keyGenerationFailed(let stderr):
-        return "Failed to generate appcast keys.\n\n\(stderr)"
-      case .keyImportFailed(let stderr):
-        return "Failed to import appcast keys.\n\n\(stderr)"
+    get async {
+      switch self {
+        case .buildAppcastGeneratorFailed(let session):
+          return "Failed to build the generate_appcast tool.\n\n\(await session.stderr.string)"
+        case .appcastGeneratorFailed(let session):
+          return "Failed to generate the appcast.\n\n\(await session.stderr.string)"
+        case .keyGenerationFailed(let session):
+          return "Failed to generate appcast keys.\n\n\(await session.stderr.string)"
+        case .keyImportFailed(let session):
+          return "Failed to import appcast keys.\n\n\(await session.stderr.string)"
+      }
     }
   }
 }
@@ -80,8 +82,7 @@ struct AppcastCommand: AsyncParsableCommand {
     ])
     let buildState = await result.waitUntilExit()
     if case .failed = buildState {
-      let stderr = await result.stderr.string
-      throw AppcastError.buildAppcastGeneratorFailed(stderr: stderr)
+      throw AppcastError.buildAppcastGeneratorFailed(result)
     }
 
     let workspaceName = URL(fileURLWithPath: parsed.workspace).deletingPathExtension()
@@ -95,8 +96,7 @@ struct AppcastCommand: AsyncParsableCommand {
       if state != .succeeded {
         let output = await genResult.stdout.string
         if !output.contains("Unable to load DSA private key") {
-          let stderr = await genResult.stderr.string
-          throw AppcastError.appcastGeneratorFailed(stderr: stderr)
+          throw AppcastError.appcastGeneratorFailed(genResult)
         }
       }
 
@@ -106,8 +106,7 @@ struct AppcastCommand: AsyncParsableCommand {
       let keygenResult = keygen.run([])
       let keygenState = await keygenResult.waitUntilExit()
       if case .failed = keygenState {
-        let stderr = await keygenResult.stderr.string
-        throw AppcastError.keyGenerationFailed(stderr: stderr)
+        throw AppcastError.keyGenerationFailed(keygenResult)
       }
 
       parsed.log("Importing Key.")
@@ -118,8 +117,7 @@ struct AppcastCommand: AsyncParsableCommand {
       ])
       let importState = await importResult.waitUntilExit()
       if case .failed = importState {
-        let stderr = await importResult.stderr.string
-        throw AppcastError.keyImportFailed(stderr: stderr)
+        throw AppcastError.keyImportFailed(importResult)
       }
 
       parsed.log("Moving Public Key.")

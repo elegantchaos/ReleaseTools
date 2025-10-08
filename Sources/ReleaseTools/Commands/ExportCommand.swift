@@ -21,12 +21,14 @@ extension ExportError: LocalizedError {
 }
 
 enum ExportRunnerError: LocalizedError {
-  case exportFailed(stderr: String)
+  case exportFailed(Runner.Session)
 
   var errorDescription: String? {
-    switch self {
-      case .exportFailed(let stderr):
-        return "Exporting failed.\n\(stderr)"
+    get async {
+      switch self {
+        case .exportFailed(let session):
+          return "Exporting failed.\n\(await session.stderr.string)"
+      }
     }
   }
 }
@@ -82,8 +84,7 @@ struct ExportCommand: AsyncParsableCommand {
 
     let state = await result.waitUntilExit()
     if case .failed = state {
-      let stderr = await result.stderr.string
-      throw ExportRunnerError.exportFailed(stderr: stderr)
+      throw ExportRunnerError.exportFailed(result)
     }
     parsed.log("Exported \(parsed.scheme).")
   }

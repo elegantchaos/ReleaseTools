@@ -39,8 +39,7 @@ extension OptionParser {
     let tagsResult = git.run(["tag"])
     let state = await tagsResult.waitUntilExit()
     if case .failed = state {
-      let stderr = await tagsResult.stderr.string
-      throw UpdateBuildError.gettingBuildFailed(stderr: stderr)
+      throw UpdateBuildError.gettingBuildFailed(tagsResult)
     }
     for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: Self.platformSpecificTagPattern) {
@@ -59,8 +58,7 @@ extension OptionParser {
     let tagsResult = git.run(["tag"])
     let state = await tagsResult.waitUntilExit()
     if case .failed = state {
-      let stderr = await tagsResult.stderr.string
-      throw UpdateBuildError.gettingBuildFailed(stderr: stderr)
+      throw UpdateBuildError.gettingBuildFailed(tagsResult)
     }
     for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: Self.platformAgnosticTagPattern) {

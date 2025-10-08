@@ -22,15 +22,17 @@ extension NotarizeError: LocalizedError {
 }
 
 enum NotarizeRunnerError: LocalizedError {
-  case compressingFailed(stderr: String)
-  case notarizingFailed(stderr: String)
+  case compressingFailed(Runner.Session)
+  case notarizingFailed(Runner.Session)
 
   var errorDescription: String? {
-    switch self {
-      case .compressingFailed(let stderr):
-        return "Compressing failed.\n\(stderr)"
-      case .notarizingFailed(let stderr):
-        return "Notarizing failed.\n\(stderr)"
+    get async {
+      switch self {
+        case .compressingFailed(let session):
+          return "Compressing failed.\n\(await session.stderr.string)"
+        case .notarizingFailed(let session):
+          return "Notarizing failed.\n\(await session.stderr.string)"
+      }
     }
   }
 }
@@ -63,8 +65,7 @@ struct NotarizeCommand: AsyncParsableCommand {
     let zipResult = ditto.zip(parsed.exportedAppURL, as: parsed.exportedZipURL)
     let zipState = await zipResult.waitUntilExit()
     if case .failed = zipState {
-      let stderr = await zipResult.stderr.string
-      throw NotarizeRunnerError.compressingFailed(stderr: stderr)
+      throw NotarizeRunnerError.compressingFailed(zipResult)
     }
 
     parsed.log("Uploading \(parsed.versionTag) to notarization service.")
@@ -81,8 +82,7 @@ struct NotarizeCommand: AsyncParsableCommand {
     ])
     let state = await result.waitUntilExit()
     if case .failed = state {
-      let stderr = await result.stderr.string
-      throw NotarizeRunnerError.notarizingFailed(stderr: stderr)
+      throw NotarizeRunnerError.notarizingFailed(result)
     }
 
     parsed.log("Requested notarization.")

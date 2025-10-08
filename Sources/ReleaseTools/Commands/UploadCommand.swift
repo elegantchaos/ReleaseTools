@@ -53,12 +53,14 @@ extension UploadError: LocalizedError {
 }
 
 enum UploadRunnerError: LocalizedError {
-  case uploadingFailed(stderr: String)
+  case uploadingFailed(Runner.Session)
 
   var errorDescription: String? {
-    switch self {
-      case .uploadingFailed(let stderr):
-        return "Uploading failed.\n\(stderr)"
+    get async {
+      switch self {
+        case .uploadingFailed(let session):
+          return "Uploading failed.\n\(await session.stderr.string)"
+      }
     }
   }
 }
@@ -116,7 +118,7 @@ struct UploadCommand: AsyncParsableCommand {
     // (or maybe xcrun doesn't pass it on?)
     let uploadState = await uploadResult.waitUntilExit()
     if case .failed = uploadState {
-      throw UploadRunnerError.uploadingFailed(stderr: stderr)
+      throw UploadRunnerError.uploadingFailed(uploadResult)
     }
 
     parsed.log("Finished uploading.")
