@@ -10,8 +10,7 @@ import Testing
 
 @testable import ReleaseTools
 
-@Suite(.serialized)
-struct ArchiveCommandTests {
+struct VersionTagTests {
 
   // MARK: - Tests
 
@@ -20,13 +19,8 @@ struct ArchiveCommandTests {
 
     // Create a non-version tag (should not count)
     try await repo.tag(name: "some-tag")
-
-    let originalDir = FileManager.default.currentDirectoryPath
-    FileManager.default.changeCurrentDirectoryPath(repo.url.path)
-    defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
-
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
+    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     await #expect(throws: GeneralError.noVersionTagAtHEAD) {
       try await parsed.ensureVersionTagAtHEAD()
@@ -39,12 +33,8 @@ struct ArchiveCommandTests {
     // Create a platform-agnostic version tag
     try await repo.tag(name: "v1.2.3-42")
 
-    let originalDir = FileManager.default.currentDirectoryPath
-    FileManager.default.changeCurrentDirectoryPath(repo.url.path)
-    defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
-
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
+    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     // Should not throw
     try await parsed.ensureVersionTagAtHEAD()
@@ -55,11 +45,6 @@ struct ArchiveCommandTests {
 
     // Create only a platform-specific tag (should not count)
     try await repo.tag(name: "v1.2.3-42-iOS")
-
-    let originalDir = FileManager.default.currentDirectoryPath
-    FileManager.default.changeCurrentDirectoryPath(repo.url.path)
-    defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
-
     let options = try CommonOptions.parse([])
     let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
 
@@ -76,12 +61,8 @@ struct ArchiveCommandTests {
     try await repo.tag(name: "v1.2.3-42-iOS")
     try await repo.tag(name: "release-tag")
 
-    let originalDir = FileManager.default.currentDirectoryPath
-    FileManager.default.changeCurrentDirectoryPath(repo.url.path)
-    defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
-
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
+    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     // Should not throw as long as there's at least one platform-agnostic version tag
     try await parsed.ensureVersionTagAtHEAD()

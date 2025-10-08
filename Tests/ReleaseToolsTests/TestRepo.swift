@@ -15,17 +15,14 @@ class TestRepo {
   let url: URL
   var transcript: String = ""
 
-  /// The original working directory before changing to this repo
-  private let originalCwd: String
-
   /// The git runner configured for this repository
   let git: GitRunner
 
+  /// The runner for executing the rt command
+  let rt: Runner
+
   /// Create a new test repository in a temporary directory
   init() async throws {
-    // Save the original working directory
-    self.originalCwd = FileManager.default.currentDirectoryPath
-
     // Create temp directory
     let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
       .appendingPathComponent("ReleaseToolsTests-\(UUID().uuidString)")
@@ -40,6 +37,17 @@ class TestRepo {
     let gitRunner = GitRunner(environment: env)
     gitRunner.cwd = tempURL
     self.git = gitRunner
+
+    // Create runner for rt command
+    // The rt executable will be in .build/debug/rt relative to the package root
+    let packageRoot = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let rtPath = packageRoot.appendingPathComponent(".build/debug/rt")
+    let rtRunner = Runner(for: rtPath)
+    rtRunner.cwd = tempURL
+    self.rt = rtRunner
 
     // Initialize git repo
     try await initGitRepo()
@@ -112,18 +120,29 @@ class TestRepo {
     return r
   }
 
-  /// Change the current working directory to this repository
-  func chdir() {
-    FileManager.default.changeCurrentDirectoryPath(url.path)
+  /// Run the rt command with the given arguments and return the result
+  @discardableResult
+  func runRT(_ args: [String]) async -> (stdout: String, stderr: String, state: RunState) {
+    let session = rt.run(args)
+
+    let state = await session.waitUntilExit()
+    let out = await session.stdout.string
+    let err = await session.stderr.string
+
+    transcript += "> rt \(args.joined(separator: " "))\n"
+    transcript += out
+    if !err.isEmpty {
+      transcript += "STDERR: \(err)\n"
+    }
+
+    return (out, err, state)
   }
 
-  /// Restore the original working directory
-  func restoreCwd() {
-    FileManager.default.changeCurrentDirectoryPath(originalCwd)
-  }
-
-  deinit {
-    // Restore the original working directory when the repo is deallocated
-    FileManager.default.changeCurrentDirectoryPath(originalCwd)
+  /// Run the rt command and assert it succeeded
+  @discardableResult
+  func checkedRT(_ args: [String], sourceLocation: SourceLocation = #_sourceLocation) async -> (stdout: String, stderr: String, state: RunState) {
+    let r = await runRT(args)
+    #expect(r.state == .succeeded, Comment(rawValue: "rt command failed:\n\(r.stderr)"), sourceLocation: sourceLocation)
+    return r
   }
 }
