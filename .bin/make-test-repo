@@ -1,0 +1,13 @@
+#!/bin/sh
+
+cd /tmp
+rm -rf test-repo
+mkdir test-repo
+cd test-repo
+git init
+git config user.name "Test"
+git config user.email "test@test.com"
+git config commit.gpgsign false
+echo "test" > file.txt
+git add .
+git commit -m "initial"
