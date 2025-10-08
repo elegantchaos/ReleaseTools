@@ -41,15 +41,14 @@ struct TagCommand: AsyncParsableCommand {
 
   @Option(help: "The git repo to tag. Defaults to current directory.") var repo: String?
   @Option(help: "The version to use for the tag (e.g., 1.2.3). If not specified, will try to determine from project files.") var tagVersion: String?
+  @Option(help: "Explicit build number to use for the tag.") var explicitBuild: String?
 
   @OptionGroup() var options: CommonOptions
-  @OptionGroup() var buildOptions: BuildOptions
 
   func run() async throws {
     let parsed = try OptionParser(
       options: options,
-      command: Self.configuration,
-      buildOptions: buildOptions
+      command: Self.configuration
     )
 
     let repoURL: URL
@@ -68,8 +67,18 @@ struct TagCommand: AsyncParsableCommand {
     // Get or determine the version
     let version = try await getVersion(using: git, parsed: parsed, repoURL: repoURL)
 
-    // Calculate the build number (platform-agnostic)
-    let build = try await parsed.nextPlatformAgnosticBuildNumber(in: repoURL, using: git)
+    // Get the build number (either explicit or calculated)
+    let build: UInt
+    if let explicitBuild {
+      guard let explicitBuildNumber = UInt(explicitBuild) else {
+        throw UpdateBuildError.invalidExplicitBuild(explicitBuild)
+      }
+      parsed.verbose("Using explicit build number: \(explicitBuildNumber)")
+      build = explicitBuildNumber
+    } else {
+      // Calculate the build number (platform-agnostic)
+      build = try await parsed.nextPlatformAgnosticBuildNumber(in: repoURL, using: git)
+    }
 
     // Get current commit
     let commitResult = git.run(["rev-list", "--max-count", "1", "HEAD"])

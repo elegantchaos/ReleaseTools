@@ -27,7 +27,6 @@ struct SubmitCommand: AsyncParsableCommand {
   @OptionGroup() var apiIssuer: ApiIssuerOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
-  @OptionGroup() var buildOptions: BuildOptions
 
   func run() async throws {
     let parsed = try OptionParser(
@@ -36,8 +35,7 @@ struct SubmitCommand: AsyncParsableCommand {
       scheme: scheme,
       apiKey: apiKey,
       apiIssuer: apiIssuer,
-      platform: platform,
-      buildOptions: buildOptions
+      platform: platform
     )
 
     try await ArchiveCommand.archive(parsed: parsed, xcconfig: xcconfig)

@@ -3,45 +3,24 @@
 //  All code (c) 2025 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+// This file contains build number calculation methods.
+//
+// Active methods:
+// - nextPlatformAgnosticBuildNumber: Used by TagCommand to calculate the next build number
+// - processAllPlatformAgnosticVersionTags: Helper for processing platform-agnostic tags
+// - processAllVersionTags: Helper for processing platform-specific tags
+//
+// Deprecated methods (stubbed with fatalError):
+// - nextBuildNumberAndCommit: Replaced by buildNumberAndCommitFromHEAD in OptionParser.swift
+
 import Foundation
 
 extension OptionParser {
 
-  /// Return the build number to use for the next build, and the commit tag it was build from.
+  /// DEPRECATED: Return the build number to use for the next build, and the commit tag it was build from.
+  /// This method is no longer used. Use buildNumberAndCommitFromHEAD() instead.
   func nextBuildNumberAndCommit(in url: URL, using git: GitRunner) async throws -> (String, String) {
-    git.cwd = url
-
-    // get next build number
-    let build: UInt
-    if let explicitBuild {
-      // use explicitly specified build number
-      guard let explicitBuildNumber = UInt(explicitBuild) else {
-        throw UpdateBuildError.invalidExplicitBuild(explicitBuild)
-      }
-      build = explicitBuildNumber
-      verbose("Using explicit build number: \(build)")
-    } else {
-      // optionally use the build number from an existing tag for another platform
-      var adoptedBuild: UInt? = nil
-      if useExistingTag {
-        adoptedBuild = try await getBuildFromExistingTag(using: git, currentPlatform: platform)
-      }
-
-      if let adoptedBuild {
-        build = adoptedBuild
-      } else if incrementBuildTag {
-        build = try await getBuildByIncrementingTag(using: git, platform: platform)
-      } else {
-        build = try await getBuildByCommitCount(using: git, offset: buildOffset)
-      }
-    }
-
-    // get current commit
-    let result = git.run(["rev-list", "--max-count", "1", "HEAD"])
-    try await result.throwIfFailed(UpdateBuildError.gettingCommitFailed)
-    let commit = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-
-    return (String(build), commit)
+    fatalError("nextBuildNumberAndCommit is deprecated. Use buildNumberAndCommitFromHEAD() instead.")
   }
 
   /// Find the highest build number for any platform and for the current platform.
@@ -164,54 +143,41 @@ extension OptionParser {
   /// Also checks platform-specific tags to ensure we don't create duplicate build numbers.
   func nextPlatformAgnosticBuildNumber(in url: URL, using git: GitRunner) async throws -> UInt {
     git.cwd = url
+    await ensureTagsUpToDate(using: git)
 
-    if let explicitBuild {
-      guard let explicitBuildNumber = UInt(explicitBuild) else {
-        throw UpdateBuildError.invalidExplicitBuild(explicitBuild)
+    var maxBuild: UInt = 0
+    var maxTag: String?
+    var isPlatformSpecific = false
+
+    // Check platform-agnostic tags
+    try await processAllPlatformAgnosticVersionTags(using: git) { build, tag in
+      if build > maxBuild {
+        maxBuild = build
+        maxTag = tag
+        isPlatformSpecific = false
       }
-      verbose("Using explicit build number: \(explicitBuildNumber)")
-      return explicitBuildNumber
     }
 
-    if incrementBuildTag {
-      await ensureTagsUpToDate(using: git)
-
-      var maxBuild: UInt = 0
-      var maxTag: String?
-      var isPlatformSpecific = false
-
-      // Check platform-agnostic tags
-      try await processAllPlatformAgnosticVersionTags(using: git) { build, tag in
-        if build > maxBuild {
-          maxBuild = build
-          maxTag = tag
-          isPlatformSpecific = false
-        }
+    // Also check platform-specific tags to avoid conflicts
+    try await processAllVersionTags(using: git) { platform, build, tag in
+      if build > maxBuild {
+        maxBuild = build
+        maxTag = tag
+        isPlatformSpecific = true
       }
+    }
 
-      // Also check platform-specific tags to avoid conflicts
-      try await processAllVersionTags(using: git) { platform, build, tag in
-        if build > maxBuild {
-          maxBuild = build
-          maxTag = tag
-          isPlatformSpecific = true
-        }
-      }
-
-      if let maxTag {
-        if isPlatformSpecific {
-          log("Highest existing tag was \(maxTag) (converting from platform-specific to platform-agnostic tags).")
-        } else {
-          log("Highest existing tag was \(maxTag).")
-        }
+    if let maxTag {
+      if isPlatformSpecific {
+        log("Highest existing tag was \(maxTag) (converting from platform-specific to platform-agnostic tags).")
       } else {
-        log("No existing tags found.")
+        log("Highest existing tag was \(maxTag).")
       }
-
-      return maxBuild + 1
     } else {
-      return try await getBuildByCommitCount(using: git, offset: buildOffset)
+      log("No existing tags found.")
     }
+
+    return maxBuild + 1
   }
 }
 

@@ -45,25 +45,19 @@ struct ArchiveCommand: AsyncParsableCommand {
   @OptionGroup() var scheme: SchemeOption
   @OptionGroup() var platform: PlatformOption
   @OptionGroup() var options: CommonOptions
-  @OptionGroup() var buildOptions: BuildOptions
 
   func run() async throws {
     let parsed = try OptionParser(
       options: options,
       command: Self.configuration,
       scheme: scheme,
-      platform: platform,
-      buildOptions: buildOptions
+      platform: platform
     )
 
     try await Self.archive(parsed: parsed, xcconfig: xcconfig)
   }
 
   static func archive(parsed: OptionParser, xcconfig: String? = nil) async throws {
-    // Check for version tag at HEAD
-    try await parsed.ensureVersionTagAtHEAD()
-
-    parsed.log("Updating VersionInfo.h...")
     let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
     let (build, commit) = try await Generation.generateHeader(
       parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)

@@ -77,10 +77,6 @@ class OptionParser {
   var apiIssuer: String = ""
   var package: String = ""
   var workspace: String = ""
-  var buildOffset: UInt = 0
-  var incrementBuildTag: Bool = true
-  var useExistingTag: Bool = true
-  var explicitBuild: String?
   var archive: XcodeArchive!
 
   let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -129,7 +125,6 @@ class OptionParser {
     apiKey: ApiKeyOption? = nil,
     apiIssuer: ApiIssuerOption? = nil,
     platform: PlatformOption? = nil,
-    buildOptions: BuildOptions? = nil,
     setDefaultPlatform: Bool = true
   ) throws {
 
@@ -144,51 +139,6 @@ class OptionParser {
     // load settings from the .rt.json file if it exists
     workspaceSettingsURL = URL(filePath: ".rt.json")!
     workspaceSettings = (try? WorkspaceSettings.load(url: workspaceSettingsURL)) ?? WorkspaceSettings()
-
-    // remember the build offset if it was supplied
-    if let buildOptions, let offset = buildOptions.offset {
-      // ... on the command line
-      buildOffset = offset
-
-    } else if let offset = getSettings().offset {
-      // ... or as a default setting
-      buildOffset = offset
-    }
-
-    // remember the commit counting setting if it was supplied
-    if let setting = getSettings().incrementTag {
-      // ... as a default setting
-      incrementBuildTag = setting
-    }
-
-    // remember the useExistingTag setting if supplied in settings
-    if let useExisting = getSettings().useExistingTag {
-      useExistingTag = useExisting
-    }
-
-    // remember the explicitBuild setting if supplied
-    if let buildOptions, let explicit = buildOptions.explicitBuild {
-      // ... on the command line
-      explicitBuild = explicit
-    } else if let explicit = getSettings().explicitBuild {
-      // ... or as a default setting
-      explicitBuild = explicit
-    }
-
-    if let buildOptions, buildOptions.incrementTag {
-      // ... a true value on the command line takes precedence
-      incrementBuildTag = true
-    }
-
-    if let buildOptions, buildOptions.useExistingTag {
-      // ... enabling on the command line takes precedence
-      useExistingTag = true
-    }
-
-    // useExistingTag implies incrementBuildTag (for fallback behavior)
-    if useExistingTag {
-      incrementBuildTag = true
-    }
 
     // if we've specified the scheme, we also need the workspace
     if requirements.contains(.workspace) || scheme != nil {
@@ -246,40 +196,6 @@ class OptionParser {
         throw GeneralError.infoUnreadable(archiveURL.path)
       }
     }
-
-    // validate that explicitBuild is not used with conflicting options
-    try validateBuildOptionConflicts(buildOptions: buildOptions)
-  }
-
-  /// Lightweight initializer intended for tests where we only need build-number logic.
-  /// It avoids ArgumentParser plumbing and workspace inference.
-  init(testingPlatform: String, incrementBuildTag: Bool, adoptOtherPlatformBuild: Bool, buildOffset: UInt = 0, explicitBuild: String? = nil) {
-    showOutput = false
-    showCommands = false
-    verbose = false
-    semaphore = nil
-    error = nil
-
-    workspaceSettingsURL = URL(fileURLWithPath: ".rt.json")
-    workspaceSettings = WorkspaceSettings()
-
-    platform = testingPlatform
-    scheme = ""
-    apiKey = ""
-    apiIssuer = ""
-    package = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).lastPathComponent
-    workspace = ""
-    self.buildOffset = buildOffset
-    self.incrementBuildTag = incrementBuildTag
-    self.useExistingTag = adoptOtherPlatformBuild
-    self.explicitBuild = explicitBuild
-
-    // useExistingTag implies incrementBuildTag (for fallback behavior)
-    if self.useExistingTag {
-      self.incrementBuildTag = true
-    }
-
-    archive = nil
   }
 
   func defaultKey(for key: String, platform: String) -> String {
@@ -323,35 +239,6 @@ class OptionParser {
   func fail(_ error: Error) {
     self.error = error
     // semaphore?.signal()
-  }
-
-  /// Validates that explicitBuild is not used with conflicting options.
-  private func validateBuildOptionConflicts(buildOptions: BuildOptions?) throws {
-    if explicitBuild != nil {
-      var conflictingOptions: [String] = []
-
-      if let buildOptions, buildOptions.useExistingTag {
-        conflictingOptions.append("--existing-tag")
-      } else if getSettings().useExistingTag == true {
-        conflictingOptions.append("useExistingTag setting")
-      }
-
-      if let buildOptions, buildOptions.incrementTag {
-        conflictingOptions.append("--increment-tag")
-      } else if getSettings().incrementTag == true {
-        conflictingOptions.append("incrementTag setting")
-      }
-
-      if let buildOptions, buildOptions.offset != nil {
-        conflictingOptions.append("--offset")
-      } else if getSettings().offset != nil {
-        conflictingOptions.append("offset setting")
-      }
-
-      if !conflictingOptions.isEmpty {
-        throw ValidationError("--explicit-build cannot be used with: \(conflictingOptions.joined(separator: ", "))")
-      }
-    }
   }
 
   /// Check if there's a platform-agnostic version tag at HEAD, throw an error if not found

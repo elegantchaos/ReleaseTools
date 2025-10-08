@@ -75,10 +75,6 @@ public class WorkspaceSettings: Codable {
 
 public class BasicSettings: Codable {
   public var keychain: String?
-  public var offset: UInt?
-  public var incrementTag: Bool?
-  public var useExistingTag: Bool?
-  public var explicitBuild: String?
   public var apiKey: String?
   public var apiIssuer: String?
 
@@ -88,10 +84,6 @@ public class BasicSettings: Codable {
   public func merge(with other: BasicSettings?) {
     if let other {
       keychain = other.keychain ?? keychain
-      offset = other.offset ?? offset
-      incrementTag = other.incrementTag ?? incrementTag
-      useExistingTag = other.useExistingTag ?? useExistingTag
-      explicitBuild = other.explicitBuild ?? explicitBuild
       apiKey = other.apiKey ?? apiKey
       apiIssuer = other.apiIssuer ?? apiIssuer
     }
@@ -103,17 +95,8 @@ public class BasicSettings: Codable {
       case "keychain":
         keychain = value
         migrated = true
-      case "offset":
-        offset = UInt(value)
-        migrated = true
-      case "increment-tag":
-        incrementTag = Bool(value)
-        migrated = true
-      case "existing-tag":
-        useExistingTag = Bool(value)
-        migrated = true
-      case "explicit-build":
-        explicitBuild = value
+      case "offset", "increment-tag", "existing-tag", "explicit-build":
+        // Deprecated - no longer used
         migrated = true
       case "api-key":
         apiKey = value

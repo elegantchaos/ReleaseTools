@@ -79,7 +79,8 @@ struct ArchiveCommandTests {
     FileManager.default.changeCurrentDirectoryPath(repo.path)
     defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
 
-    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false)
+    let options = try CommonOptions.parse([])
+    let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
 
     await #expect(throws: GeneralError.noVersionTagAtHEAD) {
       try await parsed.ensureVersionTagAtHEAD()
@@ -97,7 +98,8 @@ struct ArchiveCommandTests {
     FileManager.default.changeCurrentDirectoryPath(repo.path)
     defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
 
-    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false)
+    let options = try CommonOptions.parse([])
+    let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
 
     // Should not throw
     try await parsed.ensureVersionTagAtHEAD()
@@ -114,7 +116,8 @@ struct ArchiveCommandTests {
     FileManager.default.changeCurrentDirectoryPath(repo.path)
     defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
 
-    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false)
+    let options = try CommonOptions.parse([])
+    let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
 
     await #expect(throws: GeneralError.noVersionTagAtHEAD) {
       try await parsed.ensureVersionTagAtHEAD()
@@ -134,7 +137,8 @@ struct ArchiveCommandTests {
     FileManager.default.changeCurrentDirectoryPath(repo.path)
     defer { FileManager.default.changeCurrentDirectoryPath(originalDir) }
 
-    let parsed = OptionParser(testingPlatform: "macOS", incrementBuildTag: false, adoptOtherPlatformBuild: false)
+    let options = try CommonOptions.parse([])
+    let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
 
     // Should not throw as long as there's at least one platform-agnostic version tag
     try await parsed.ensureVersionTagAtHEAD()

@@ -20,6 +20,7 @@ struct Generation {
     try? FileManager.default.createDirectory(
       at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
     try header.write(to: headerURL, atomically: true, encoding: .utf8)
+    parsed.log("Updated \(headerURL.lastPathComponent).")
     return (build, commit)
   }
 
@@ -45,6 +46,7 @@ struct Generation {
       parsed.log("Updating build number to \(build).")
       do {
         try new.write(to: configURL, atomically: true, encoding: .utf8)
+        parsed.log("Updated \(configURL.lastPathComponent).")
       } catch {
         throw UpdateBuildError.writingConfigFailed
       }
@@ -66,7 +68,6 @@ struct Generation {
     let (build, commit) = try await parsed.buildNumberAndCommitFromHEAD(in: repoURL, using: git)
 
     if var info = info as? [String: Any] {
-      print(info)
       if let existing = info["CFBundleVersion"] as? String, existing == build {
         parsed.log("Build number is \(build).")
       } else {
@@ -76,10 +77,12 @@ struct Generation {
         let data = try PropertyListSerialization.data(
           fromPropertyList: info, format: .xml, options: 0)
         try data.write(to: destURL, options: .atomic)
+        parsed.log("Updated \(destURL.lastPathComponent).")
 
         let headerURL = destURL.deletingLastPathComponent().appendingPathComponent("RTInfo.h")
         let header = "#define CURRENT_PROJECT_VERSION \(build)\n#define CURRENT_PROJECT_COMMIT \(commit)"
         try header.write(to: headerURL, atomically: true, encoding: .utf8)
+        parsed.log("Updated \(headerURL.lastPathComponent).")
       }
     }
   }

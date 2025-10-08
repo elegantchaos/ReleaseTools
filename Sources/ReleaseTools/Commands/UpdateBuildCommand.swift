@@ -50,13 +50,11 @@ struct UpdateBuildCommand: AsyncParsableCommand {
   @Option(help: "The git repo to derive the build number from.") var repo: String?
 
   @OptionGroup() var options: CommonOptions
-  @OptionGroup() var buildOptions: BuildOptions
 
   func run() async throws {
     let parsed = try OptionParser(
       options: options,
-      command: Self.configuration,
-      buildOptions: buildOptions
+      command: Self.configuration
     )
 
     if let header = header, let repo = repo {

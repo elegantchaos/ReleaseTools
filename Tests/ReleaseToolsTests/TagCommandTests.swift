@@ -10,6 +10,7 @@ import Testing
 
 @testable import ReleaseTools
 
+@Suite(.serialized)
 struct TagCommandTests {
 
   // MARK: - Helpers
@@ -82,7 +83,7 @@ struct TagCommandTests {
 
     let git = gitRunner(for: repo)
 
-    // Run the tag command with explicit version
+    // Run the tag command with explicit version and build number
     var command = try TagCommand.parse([
       "--repo", repo.path,
       "--tag-version", "1.2.3",
@@ -90,7 +91,7 @@ struct TagCommandTests {
     ])
     try await command.run()
 
-    // Verify the tag was created
+    // Verify the tag was created with the explicit build number
     let tags = await runGit(git, ["tag", "--points-at", "HEAD"])
     #expect(tags.stdout.contains("v1.2.3-42"))
   }
@@ -157,11 +158,10 @@ struct TagCommandTests {
 
     let git = gitRunner(for: repo)
 
-    // Run the tag command with increment-tag (no platform)
+    // Run the tag command (always increments tag now)
     var command = try TagCommand.parse([
       "--repo", repo.path,
       "--tag-version", "1.0.0",
-      "--increment-tag",
     ])
     try await command.run()
 
@@ -181,12 +181,11 @@ struct TagCommandTests {
 
     let git = gitRunner(for: repo)
 
-    // Run the tag command with increment-tag
+    // Run the tag command
     // It should find the highest platform-specific tag (15) and increment it
     let command = try TagCommand.parse([
       "--repo", repo.path,
       "--tag-version", "1.0.1",
-      "--increment-tag",
     ])
     try await command.run()
 
@@ -206,12 +205,11 @@ struct TagCommandTests {
 
     let git = gitRunner(for: repo)
 
-    // Run the tag command with increment-tag
+    // Run the tag command
     // It should use the highest build number (20 from iOS) and increment it
     let command = try TagCommand.parse([
       "--repo", repo.path,
       "--tag-version", "1.0.1",
-      "--increment-tag",
     ])
     try await command.run()
 
@@ -231,12 +229,11 @@ struct TagCommandTests {
 
     let git = gitRunner(for: repo)
 
-    // Run the tag command with increment-tag
+    // Run the tag command
     // It should use the highest build number (30 from agnostic) and increment it
     let command = try TagCommand.parse([
       "--repo", repo.path,
       "--tag-version", "1.0.1",
-      "--increment-tag",
     ])
     try await command.run()
 
