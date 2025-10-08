@@ -145,6 +145,39 @@ extension OptionParser {
     throw GeneralError.noVersionTagAtHEAD
   }
 
+  /// Get the version string from the highest existing tag.
+  /// Returns the version (e.g., "1.2.3") or nil if no tags exist.
+  func versionFromHighestTag() async throws -> String? {
+    await ensureTagsUpToDate(using: git)
+
+    var highestVersion: String?
+    var highestBuild: UInt = 0
+
+    // Check platform-agnostic tags first
+    let agnosticPattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
+    try await processAllPlatformAgnosticVersionTags { build, tag in
+      if build > highestBuild {
+        if let match = tag.firstMatch(of: agnosticPattern) {
+          highestVersion = String(match.version)
+          highestBuild = build
+        }
+      }
+    }
+
+    // Also check platform-specific tags
+    let specificPattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
+    try await processAllVersionTags { _, build, tag in
+      if build > highestBuild {
+        if let match = tag.firstMatch(of: specificPattern) {
+          highestVersion = String(match.version)
+          highestBuild = build
+        }
+      }
+    }
+
+    return highestVersion
+  }
+
   /// Ensure tags are up-to-date by fetching from remote, ignoring failures if no remote exists.
   private func ensureTagsUpToDate(using git: GitRunner) async {
     let fetchResult = git.run(["fetch", "--tags"])

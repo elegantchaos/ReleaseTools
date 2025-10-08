@@ -38,9 +38,10 @@ struct TagCommandTests {
 
     // Command should fail
     #expect(result.state != .succeeded, "Command should have failed but succeeded")
+    let output = result.stdout + result.stderr
     #expect(
-      result.stderr.contains("already exists") || result.stderr.contains("tagAlreadyExists"),
-      "Error message should mention tag already exists: \(result.stderr)")
+      output.contains("already exists") || output.contains("tagAlreadyExists"),
+      "Error message should mention tag already exists. stdout: \(result.stdout), stderr: \(result.stderr)")
   }
 
   @Test func allowsNonVersionTagsAtHEAD() async throws {
@@ -116,5 +117,47 @@ struct TagCommandTests {
 
     // Verify the tag was created with build number 31 (30 + 1)
     try await repo.expectHeadTagsContains(["v1.0.1-31"])
+  }
+
+  @Test func usesVersionFromHighestTag() async throws {
+    let repo = try await TestRepo()
+
+    // Create tags with different versions
+    try await repo.tag(name: "v1.0.0-5")
+    try await repo.tag(name: "v2.3.1-10")
+    try await repo.commit(message: "new commit")
+
+    // Run tag command without specifying version
+    // It should use version 2.3.1 from the highest tag (build 10)
+    await repo.checkedRT(["tag"])
+
+    // Verify it created v2.3.1-11 (same version, incremented build)
+    try await repo.expectHeadTagsContains(["v2.3.1-11"])
+  }
+
+  @Test func fallsBackToDefaultVersion() async throws {
+    let repo = try await TestRepo()
+
+    // No tags exist, should fall back to 1.0.0
+    await repo.checkedRT(["tag"])
+
+    // Verify it created v1.0.0-1
+    try await repo.expectHeadTagsContains(["v1.0.0-1"])
+  }
+
+  @Test func usesVersionFromPlatformSpecificTag() async throws {
+    let repo = try await TestRepo()
+
+    // Create only platform-specific tags
+    try await repo.tag(name: "v3.5.0-15-iOS")
+    try await repo.tag(name: "v3.5.0-10-macOS")
+    try await repo.commit(message: "new commit")
+
+    // Run tag command without specifying version
+    // It should use version 3.5.0 from the highest platform-specific tag
+    await repo.checkedRT(["tag"])
+
+    // Verify it created v3.5.0-16 (same version, incremented build from 15)
+    try await repo.expectHeadTagsContains(["v3.5.0-16"])
   }
 }

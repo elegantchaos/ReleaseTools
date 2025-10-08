@@ -12,7 +12,6 @@ enum TagError: Runner.Error {
   case gettingVersionFailed
   case gettingBuildFailed
   case creatingTagFailed
-  case noVersionFound
 
   func description(for session: Runner.Session) async -> String {
     async let stderr = session.stderr.string
@@ -25,8 +24,6 @@ enum TagError: Runner.Error {
         return "Failed to calculate the build number.\n\n\(await stderr)"
       case .creatingTagFailed:
         return "Failed to create the git tag.\n\n\(await stderr)"
-      case .noVersionFound:
-        return "Could not determine the version. Please ensure your project has a MARKETING_VERSION or CFBundleShortVersionString set."
     }
   }
 }
@@ -106,72 +103,20 @@ struct TagCommand: AsyncParsableCommand {
     }
   }
 
-  /// Get the version string, either from the --version option or by detecting it from project files
+  /// Get the version string, either from the --version option or from the highest existing tag
   private func getVersion(parsed: OptionParser) async throws -> String {
     if let tagVersion = tagVersion {
       return tagVersion
     }
 
-    // Try to find version from common project files
-    // Look for .xcodeproj or Package.swift
-    let fm = FileManager.default
-
-    // Try to find an Info.plist or xcconfig file with version info
-    if let version = try? findVersionInDirectory(parsed.rootURL, fileManager: fm) {
-      parsed.verbose("Found version: \(version)")
+    // Try to get version from the highest existing tag
+    if let version = try await parsed.versionFromHighestTag() {
+      parsed.verbose("Found version from highest tag: \(version)")
       return version
     }
 
-    throw TagError.noVersionFound
-  }
-
-  /// Search for version information in project files
-  private func findVersionInDirectory(_ url: URL, fileManager: FileManager) throws -> String? {
-    // Look for xcconfig files
-    if let enumerator = fileManager.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
-      for case let fileURL as URL in enumerator {
-        let filename = fileURL.lastPathComponent
-
-        // Check xcconfig files
-        if filename.hasSuffix(".xcconfig") {
-          if let version = try? extractVersionFromXCConfig(fileURL) {
-            return version
-          }
-        }
-
-        // Check Info.plist files
-        if filename == "Info.plist" {
-          if let version = try? extractVersionFromPlist(fileURL) {
-            return version
-          }
-        }
-      }
-    }
-
-    return nil
-  }
-
-  /// Extract version from an xcconfig file
-  private func extractVersionFromXCConfig(_ url: URL) throws -> String? {
-    let content = try String(contentsOf: url, encoding: .utf8)
-    let pattern = #/MARKETING_VERSION\s*=\s*([^\s;]+)/#
-
-    if let match = content.firstMatch(of: pattern) {
-      return String(match.1)
-    }
-
-    return nil
-  }
-
-  /// Extract version from a plist file
-  private func extractVersionFromPlist(_ url: URL) throws -> String? {
-    let data = try Data(contentsOf: url)
-    if let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
-      let version = plist["CFBundleShortVersionString"] as? String
-    {
-      return version
-    }
-
-    return nil
+    // Fall back to 1.0.0 if no tags exist
+    parsed.verbose("No existing tags found, using default version: 1.0.0")
+    return "1.0.0"
   }
 }
