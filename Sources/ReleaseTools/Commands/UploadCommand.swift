@@ -148,8 +148,7 @@ struct UploadCommand: AsyncParsableCommand {
     // no errors, so tag the commit
     parsed.log("Upload was accepted.")
     parsed.log("Tagging.")
-    let git = parsed.gitRunnerAtRoot()
-    let tagResult = git.run([
+    let tagResult = parsed.git.run([
       "tag", parsed.versionTag, "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)

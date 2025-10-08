@@ -11,8 +11,7 @@ struct Generation {
   static func generateHeader(parsed: OptionParser, header: String, requireHEADTag: Bool) async throws -> (String, String) {
     let headerURL = URL(fileURLWithPath: header)
 
-    let git = parsed.gitRunnerAtRoot()
-    let (build, commit) = try await parsed.buildNumberAndCommit(using: git, requireHeadTag: requireHEADTag)
+    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: requireHEADTag)
     parsed.log("Setting build number to \(build).")
     let header =
       "#define CURRENT_PROJECT_VERSION \(build)\n#define CURRENT_PROJECT_COMMIT \(commit)"
@@ -35,8 +34,7 @@ struct Generation {
       configURL = URL(fileURLWithPath: "Configs/BuildNumber.xcconfig")
     }
 
-    let git = parsed.gitRunnerAtRoot()
-    let (build, commit) = try await parsed.buildNumberAndCommit(using: git, requireHeadTag: false)
+    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
     let new = "CURRENT_PROJECT_VERSION = \(build)\nCURRENT_PROJECT_COMMIT = \(commit)"
 
     if let existing = try? String(contentsOf: configURL, encoding: .utf8), existing == new {
@@ -50,7 +48,7 @@ struct Generation {
         throw UpdateBuildError.writingConfigFailed
       }
 
-      let result = git.run(["update-index", "--assume-unchanged", configURL.path])
+      let result = parsed.git.run(["update-index", "--assume-unchanged", configURL.path])
       try await result.throwIfFailed(UpdateBuildError.updatingIndexFailed)
     }
   }
@@ -62,8 +60,7 @@ struct Generation {
     let data = try Data(contentsOf: plistURL)
     let info = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
 
-    let git = parsed.gitRunnerAtRoot()
-    let (build, commit) = try await parsed.buildNumberAndCommit(using: git, requireHeadTag: false)
+    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     if var info = info as? [String: Any] {
       if let existing = info["CFBundleVersion"] as? String, existing == build {

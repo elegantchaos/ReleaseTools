@@ -79,6 +79,7 @@ class OptionParser {
   var workspace: String = ""
   var archive: XcodeArchive!
 
+  let git: GitRunner
   let rootURL: URL
   let homeURL = FileManager.default.homeDirectoryForCurrentUser
   var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
@@ -128,6 +129,9 @@ class OptionParser {
     platform: PlatformOption? = nil,
     setDefaultPlatform: Bool = true
   ) throws {
+    let git = GitRunner()
+    git.cwd = rootURL
+    self.git = git
 
     self.rootURL = rootURL
     showOutput = options.showOutput
@@ -241,43 +245,6 @@ class OptionParser {
   func fail(_ error: Error) {
     self.error = error
     // semaphore?.signal()
-  }
-
-  func gitRunnerAtRoot() -> GitRunner {
-    let git = GitRunner()
-    git.cwd = rootURL
-    return git
-  }
-
-  /// Check if there's a platform-agnostic version tag at HEAD, throw an error if not found
-  func ensureVersionTagAtHEAD() async throws {
-    let git = gitRunnerAtRoot()
-
-    // Get tags pointing at HEAD
-    let result = git.run(["tag", "--points-at", "HEAD"])
-    let state = await result.waitUntilExit()
-
-    guard case .succeeded = state else {
-      // If we can't check tags, throw an error to be safe
-      throw GeneralError.noVersionTagAtHEAD
-    }
-
-    // Look for platform-agnostic version tags: v<version>-<build>
-    let pattern = #/^v\d+\.\d+(\.\d+)*-\d+$/#
-    var foundVersionTag = false
-
-    for await line in await result.stdout.lines {
-      let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
-      if tag.firstMatch(of: pattern) != nil {
-        verbose("Found version tag at HEAD: \(tag)")
-        foundVersionTag = true
-        break
-      }
-    }
-
-    if !foundVersionTag {
-      throw GeneralError.noVersionTagAtHEAD
-    }
   }
 
 }

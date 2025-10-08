@@ -23,7 +23,7 @@ struct VersionTagTests {
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     await #expect(throws: GeneralError.noVersionTagAtHEAD) {
-      try await parsed.ensureVersionTagAtHEAD()
+      _ = try await parsed.versionTagAtHEAD()
     }
   }
 
@@ -37,7 +37,7 @@ struct VersionTagTests {
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     // Should not throw
-    try await parsed.ensureVersionTagAtHEAD()
+    _ = try await parsed.versionTagAtHEAD()
   }
 
   @Test func ignoresPlatformSpecificTags() async throws {
@@ -49,7 +49,7 @@ struct VersionTagTests {
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     await #expect(throws: GeneralError.noVersionTagAtHEAD) {
-      try await parsed.ensureVersionTagAtHEAD()
+      _ = try await parsed.versionTagAtHEAD()
     }
   }
 
@@ -65,7 +65,7 @@ struct VersionTagTests {
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     // Should not throw as long as there's at least one platform-agnostic version tag
-    try await parsed.ensureVersionTagAtHEAD()
+    _ = try await parsed.versionTagAtHEAD()
   }
 
   // MARK: - Tests for requireHeadTag = false
@@ -76,7 +76,7 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(using: repo.git, requireHeadTag: false)
+    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     // Should return build number 1 when no tags exist
     #expect(build == "1")
@@ -91,11 +91,12 @@ struct VersionTagTests {
 
     // Create a platform-agnostic tag
     try await repo.tag(name: "v1.0.0-5")
+    try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(using: repo.git, requireHeadTag: false)
+    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     // Should return next build number (6)
     #expect(build == "6")
@@ -110,11 +111,12 @@ struct VersionTagTests {
 
     // Create a platform-specific tag
     try await repo.tag(name: "v1.0.0-10-iOS")
+    try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(using: repo.git, requireHeadTag: false)
+    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     // Should return next build number (11), converting from platform-specific
     #expect(build == "11")
@@ -132,11 +134,12 @@ struct VersionTagTests {
     try await repo.tag(name: "v1.0.0-10-iOS")
     try await repo.tag(name: "v1.0.0-8-macOS")
     try await repo.tag(name: "v0.9.0-20")
+    try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(using: repo.git, requireHeadTag: false)
+    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     // Should return next build number based on highest (20 + 1 = 21)
     #expect(build == "21")
@@ -158,7 +161,7 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(using: repo.git, requireHeadTag: false)
+    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     // Should return next build number
     #expect(build == "2")
@@ -175,11 +178,12 @@ struct VersionTagTests {
     // Create tags where platform-agnostic has higher build number
     try await repo.tag(name: "v1.0.0-30")
     try await repo.tag(name: "v1.0.0-20-iOS")
+    try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, _) = try await parsed.buildNumberAndCommit(using: repo.git, requireHeadTag: false)
+    let (build, _) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     // Should use the highest build number (30) and return 31
     #expect(build == "31")
@@ -191,11 +195,12 @@ struct VersionTagTests {
     // Create tags where platform-specific has higher build number
     try await repo.tag(name: "v1.0.0-10")
     try await repo.tag(name: "v1.0.0-25-macOS")
+    try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
     let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, _) = try await parsed.buildNumberAndCommit(using: repo.git, requireHeadTag: false)
+    let (build, _) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     // Should use the highest build number (25) and return 26
     #expect(build == "26")

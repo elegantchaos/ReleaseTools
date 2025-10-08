@@ -50,13 +50,11 @@ struct TagCommand: AsyncParsableCommand {
       command: Self.configuration
     )
 
-    let git = parsed.gitRunnerAtRoot()
-
     // Check if there's already a version tag at HEAD
-    try await ensureNoExistingTag(using: git, parsed: parsed)
+    try await ensureNoExistingTag(parsed: parsed)
 
     // Get or determine the version
-    let version = try await getVersion(using: git, parsed: parsed, repoURL: parsed.rootURL)
+    let version = try await getVersion(parsed: parsed)
 
     // Get the build number (either explicit or calculated)
     let build: UInt
@@ -68,11 +66,11 @@ struct TagCommand: AsyncParsableCommand {
       build = explicitBuildNumber
     } else {
       // Calculate the build number (platform-agnostic)
-      build = try await parsed.nextPlatformAgnosticBuildNumber(using: git)
+      build = try await parsed.nextPlatformAgnosticBuildNumber()
     }
 
     // Get current commit
-    let commitResult = git.run(["rev-list", "--max-count", "1", "HEAD"])
+    let commitResult = parsed.git.run(["rev-list", "--max-count", "1", "HEAD"])
     try await commitResult.throwIfFailed(TagError.gettingBuildFailed)
     let commit = await commitResult.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
@@ -81,16 +79,16 @@ struct TagCommand: AsyncParsableCommand {
 
     parsed.log("Creating tag: \(tagName) at commit \(commit)")
 
-    let tagResult = git.run(["tag", tagName, commit])
+    let tagResult = parsed.git.run(["tag", tagName, commit])
     try await tagResult.throwIfFailed(TagError.creatingTagFailed)
 
     parsed.log("Successfully created tag: \(tagName)")
   }
 
   /// Check if there's already a version tag at HEAD and throw an error if found
-  private func ensureNoExistingTag(using git: GitRunner, parsed: OptionParser) async throws {
+  private func ensureNoExistingTag(parsed: OptionParser) async throws {
     // Get tags pointing at HEAD
-    let result = git.run(["tag", "--points-at", "HEAD"])
+    let result = parsed.git.run(["tag", "--points-at", "HEAD"])
     let state = await result.waitUntilExit()
 
     guard case .succeeded = state else {
@@ -109,7 +107,7 @@ struct TagCommand: AsyncParsableCommand {
   }
 
   /// Get the version string, either from the --version option or by detecting it from project files
-  private func getVersion(using git: GitRunner, parsed: OptionParser, repoURL: URL) async throws -> String {
+  private func getVersion(parsed: OptionParser) async throws -> String {
     if let tagVersion = tagVersion {
       return tagVersion
     }
@@ -119,7 +117,7 @@ struct TagCommand: AsyncParsableCommand {
     let fm = FileManager.default
 
     // Try to find an Info.plist or xcconfig file with version info
-    if let version = try? findVersionInDirectory(repoURL, fileManager: fm) {
+    if let version = try? findVersionInDirectory(parsed.rootURL, fileManager: fm) {
       parsed.verbose("Found version: \(version)")
       return version
     }

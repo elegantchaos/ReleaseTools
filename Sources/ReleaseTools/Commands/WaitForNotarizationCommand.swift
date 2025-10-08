@@ -87,8 +87,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     }
 
     parsed.log("Tagging.")
-    let git = parsed.gitRunnerAtRoot()
-    let tagResult = git.run([
+    let tagResult = parsed.git.run([
       "tag", parsed.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)

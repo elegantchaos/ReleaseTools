@@ -40,7 +40,6 @@ struct ChangesCommand: AsyncParsableCommand {
       setDefaultPlatform: false
     )
 
-    let git = parsed.gitRunnerAtRoot()
     var arguments = ["log", "--pretty=- %s %b"]
     if let other = other {
       arguments.append("\(version)..\(other)")
@@ -49,7 +48,7 @@ struct ChangesCommand: AsyncParsableCommand {
     }
 
     do {
-      let result = git.run(arguments)
+      let result = parsed.git.run(arguments)
       let output = await result.stdout.string
       try output.write(to: parsed.changesURL, atomically: true, encoding: .utf8)
       NSWorkspace.shared.open(parsed.changesURL)
