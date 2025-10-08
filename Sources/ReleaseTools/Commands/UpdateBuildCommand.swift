@@ -49,7 +49,6 @@ struct UpdateBuildCommand: AsyncParsableCommand {
   @Option(help: "The header file to generate.") var header: String?
   @Option(help: "The .plist file to update.") var plist: String?
   @Option(help: "The .plist file to update.") var plistDest: String?
-  @Option(help: "The git repo to derive the build number from.") var repo: String?
 
   @OptionGroup() var options: CommonOptions
 
@@ -59,10 +58,10 @@ struct UpdateBuildCommand: AsyncParsableCommand {
       command: Self.configuration
     )
 
-    if let header = header, let repo = repo {
-      _ = try await Generation.generateHeader(parsed: parsed, header: header, repo: repo)
-    } else if let plist = plist, let dest = plistDest, let repo = repo {
-      try await Generation.generatePlist(parsed: parsed, source: plist, dest: dest, repo: repo)
+    if let header = header {
+      _ = try await Generation.generateHeader(parsed: parsed, header: header, requireHEADTag: false)
+    } else if let plist = plist, let dest = plistDest {
+      try await Generation.generatePlist(parsed: parsed, source: plist, dest: dest)
     } else {
       try await Generation.generateConfig(parsed: parsed, config: config)
     }

@@ -60,7 +60,7 @@ struct ArchiveCommand: AsyncParsableCommand {
   static func archive(parsed: OptionParser, xcconfig: String? = nil) async throws {
     let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
     let (build, commit) = try await Generation.generateHeader(
-      parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)
+      parsed: parsed, header: infoHeaderPath, requireHEADTag: true)
     parsed.log("Archiving scheme \(parsed.scheme)...")
 
     let xcode = XCodeBuildRunner(parsed: parsed)

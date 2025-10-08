@@ -8,12 +8,11 @@ import Foundation
 /// Functionality for generating build-related files.
 struct Generation {
   /// Generate a header file containing the build number and commit hash.
-  static func generateHeader(parsed: OptionParser, header: String, repo: String) async throws -> (String, String) {
+  static func generateHeader(parsed: OptionParser, header: String, requireHEADTag: Bool) async throws -> (String, String) {
     let headerURL = URL(fileURLWithPath: header)
-    let repoURL = URL(fileURLWithPath: repo)
 
     let git = parsed.gitRunnerAtRoot()
-    let (build, commit) = try await parsed.buildNumberAndCommitFromHEAD(in: repoURL, using: git)
+    let (build, commit) = try await parsed.buildNumberAndCommit(using: git, requireHeadTag: requireHEADTag)
     parsed.log("Setting build number to \(build).")
     let header =
       "#define CURRENT_PROJECT_VERSION \(build)\n#define CURRENT_PROJECT_COMMIT \(commit)"
@@ -37,7 +36,7 @@ struct Generation {
     }
 
     let git = parsed.gitRunnerAtRoot()
-    let (build, commit) = try await parsed.buildNumberAndCommitFromHEAD(in: configURL.deletingLastPathComponent(), using: git)
+    let (build, commit) = try await parsed.buildNumberAndCommit(using: git, requireHeadTag: false)
     let new = "CURRENT_PROJECT_VERSION = \(build)\nCURRENT_PROJECT_COMMIT = \(commit)"
 
     if let existing = try? String(contentsOf: configURL, encoding: .utf8), existing == new {
@@ -57,15 +56,14 @@ struct Generation {
   }
 
   /// Generate or update a plist file containing the build number and commit hash, and also generate a header file alongside it.
-  static func generatePlist(parsed: OptionParser, source: String, dest: String, repo: String) async throws {
+  static func generatePlist(parsed: OptionParser, source: String, dest: String) async throws {
     let plistURL = URL(fileURLWithPath: source)
     let destURL = URL(fileURLWithPath: dest)
-    let repoURL = URL(fileURLWithPath: repo)
     let data = try Data(contentsOf: plistURL)
     let info = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
 
     let git = parsed.gitRunnerAtRoot()
-    let (build, commit) = try await parsed.buildNumberAndCommitFromHEAD(in: repoURL, using: git)
+    let (build, commit) = try await parsed.buildNumberAndCommit(using: git, requireHeadTag: false)
 
     if var info = info as? [String: Any] {
       if let existing = info["CFBundleVersion"] as? String, existing == build {

@@ -3,104 +3,62 @@
 //  All code (c) 2025 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-// This file contains build number calculation methods.
-//
-// Active methods:
-// - nextPlatformAgnosticBuildNumber: Used by TagCommand to calculate the next build number
-// - processAllPlatformAgnosticVersionTags: Helper for processing platform-agnostic tags
-// - processAllVersionTags: Helper for processing platform-specific tags
-//
-// Deprecated methods (stubbed with fatalError):
-// - nextBuildNumberAndCommit: Replaced by buildNumberAndCommitFromHEAD in OptionParser.swift
-
 import Foundation
 
 extension OptionParser {
 
-  /// DEPRECATED: Return the build number to use for the next build, and the commit tag it was build from.
-  /// This method is no longer used. Use buildNumberAndCommitFromHEAD() instead.
-  func nextBuildNumberAndCommit(in url: URL, using git: GitRunner) async throws -> (String, String) {
-    fatalError("nextBuildNumberAndCommit is deprecated. Use buildNumberAndCommitFromHEAD() instead.")
-  }
+  /// Get the build number and commit from an existing platform-agnostic version tag at HEAD
+  func buildNumberAndCommit(using git: GitRunner, requireHeadTag: Bool = true) async throws -> (String, String) {
+    if requireHeadTag {
+      // Get tags pointing at HEAD
+      let result = git.run(["tag", "--points-at", "HEAD"])
+      let state = await result.waitUntilExit()
 
-  /// Find the highest build number for any platform and for the current platform.
-  /// If the highest for any platform is greater than the current platform, use it.
-  /// If they are equal, increment it. Otherwise, use the current platform's max.
-  private func getBuildFromExistingTag(using git: GitRunner, currentPlatform: String) async throws -> UInt? {
-    await ensureTagsUpToDate(using: git)
-
-    var maxAny: UInt = 0
-    var maxCurrent: UInt = 0
-    var maxTag: String?
-    var maxPlatformTag: String?
-
-    try await processAllVersionTags(using: git) { platform, build, tag in
-      if build > maxAny {
-        maxAny = build
-        maxTag = tag
+      guard case .succeeded = state else {
+        throw GeneralError.noVersionTagAtHEAD
       }
 
-      if platform == currentPlatform, build > maxCurrent {
-        maxCurrent = build
-        maxPlatformTag = tag
+      // Look for platform-agnostic version tags: v<version>-<build>
+      let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
+
+      for await line in await result.stdout.lines {
+        let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let match = tag.firstMatch(of: pattern) {
+          let build = String(match.build)
+          verbose("Found version tag at HEAD: \(tag) with build \(build)")
+
+          // Get the commit SHA
+          let commitResult = git.run(["rev-parse", "HEAD"])
+          let commitState = await commitResult.waitUntilExit()
+          guard case .succeeded = commitState else {
+            throw UpdateBuildError.gettingCommitFailed
+          }
+          guard let commit = await commitResult.stdout.string.split(separator: "\n").first else {
+            throw UpdateBuildError.parsingCommitFailed
+          }
+
+          return (build, commit.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
       }
-    }
 
-    guard maxAny >= maxCurrent else {
-      // something is wrong if the max for the current platform is greater than the max for any platform
-      throw UpdateBuildError.inconsistentTagState(currentPlatform: currentPlatform)
-    }
-
-    guard maxAny > 0 else {
-      // no existing tags at all
-      return nil
-    }
-
-    if maxAny > maxCurrent {
-      verbose("Adopting build number \(maxAny) from another platform tag: \(maxTag!).")
-      return maxAny
+      throw GeneralError.noVersionTagAtHEAD
     } else {
-      let result = maxCurrent + 1
-      verbose("Highest tag \(maxPlatformTag!) was from this platform, so incrementing the build number to \(result).")
-      return result
-    }
-  }
-
-  /// Return the build number to use for the next build.
-  /// We calculate the build number by counting the commits in the repo.
-  private func getBuildByCommitCount(using git: GitRunner, offset: UInt) async throws -> UInt {
-    let result = git.run(["rev-list", "--count", "HEAD"])
-    try await result.throwIfFailed(UpdateBuildError.gettingBuildFailed)
-
-    let count = await result.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-    let build = (UInt(count) ?? 1) + offset
-
-    return build
-  }
-
-  /// Return the build number to use for the next build.
-  /// We calculate the build number by searching the repo tags for the
-  /// highest existing build number, and adding 1 to it.
-  private func getBuildByIncrementingTag(using git: GitRunner, platform: String) async throws -> UInt {
-    await ensureTagsUpToDate(using: git)
-
-    var maxBuild: UInt = 0
-    var maxTag: String?
-    try await processAllVersionTags(using: git) { tagPlatform, build, tag in
-      if tagPlatform == platform, build > maxBuild {
-        maxBuild = build
-        maxTag = tag
+      // New behavior: calculate build number from highest existing tag + 1
+      // Get the commit SHA first
+      let commitResult = git.run(["rev-parse", "HEAD"])
+      let commitState = await commitResult.waitUntilExit()
+      guard case .succeeded = commitState else {
+        throw UpdateBuildError.gettingCommitFailed
       }
-    }
+      guard let commit = await commitResult.stdout.string.split(separator: "\n").first else {
+        throw UpdateBuildError.parsingCommitFailed
+      }
 
-    if let maxTag {
-      log("Highest existing tag for \(platform) was \(maxTag).")
-    } else {
-      log("No existing tags found for \(platform).")
-    }
+      // Calculate the next build number
+      let buildNumber = try await nextPlatformAgnosticBuildNumber(using: git)
 
-    // add 1 for the new build number
-    return maxBuild + 1
+      return (String(buildNumber), commit.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
   }
 
   /// Fetch all version tags, extract platform as String and build as UInt, and process each with the provided closure if both are non-nil.
@@ -178,13 +136,13 @@ extension OptionParser {
 
     return maxBuild + 1
   }
-}
 
-/// Ensure tags are up-to-date by fetching from remote, ignoring failures if no remote exists.
-private func ensureTagsUpToDate(using git: GitRunner) async {
-  let fetchResult = git.run(["fetch", "--tags"])
-  let fetchState = await fetchResult.waitUntilExit()
-  if case .failed(_) = fetchState {
-    // Ignore fetch failures (e.g., no remote configured) and continue with local tags
+  /// Ensure tags are up-to-date by fetching from remote, ignoring failures if no remote exists.
+  private func ensureTagsUpToDate(using git: GitRunner) async {
+    let fetchResult = git.run(["fetch", "--tags"])
+    let fetchState = await fetchResult.waitUntilExit()
+    if case .failed(_) = fetchState {
+      // Ignore fetch failures (e.g., no remote configured) and continue with local tags
+    }
   }
 }
