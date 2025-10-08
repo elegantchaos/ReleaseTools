@@ -8,12 +8,13 @@ import Files
 import Foundation
 import Runner
 
-enum GeneralError: Error, CustomStringConvertible, Sendable {
+enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
   case infoUnreadable(_ path: String)
   case missingWorkspace
   case apiKeyAndIssuer
   case noDefaultScheme(_ platform: String)
   case taggingFailed
+  case noVersionTagAtHEAD
 
   public var description: String {
     switch self {
@@ -43,6 +44,13 @@ enum GeneralError: Error, CustomStringConvertible, Sendable {
         return """
           No scheme specified for \(platform).
           Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
+          """
+
+      case .noVersionTagAtHEAD:
+        return """
+          No version tag found at HEAD.
+          Please create a version tag before archiving using:
+            \(CommandLine.name) tag --tag-version <version> [--increment-tag]
           """
     }
   }
@@ -274,6 +282,8 @@ class OptionParser {
     archive = nil
   }
 
+
+
   func defaultKey(for key: String, platform: String) -> String {
     if platform.isEmpty {
       return "\(key).default.\(workspace)"
@@ -343,6 +353,38 @@ class OptionParser {
       if !conflictingOptions.isEmpty {
         throw ValidationError("--explicit-build cannot be used with: \(conflictingOptions.joined(separator: ", "))")
       }
+    }
+  }
+
+  /// Check if there's a platform-agnostic version tag at HEAD, throw an error if not found
+  func ensureVersionTagAtHEAD() async throws {
+    let git = GitRunner()
+    git.cwd = rootURL
+    
+    // Get tags pointing at HEAD
+    let result = git.run(["tag", "--points-at", "HEAD"])
+    let state = await result.waitUntilExit()
+    
+    guard case .succeeded = state else {
+      // If we can't check tags, throw an error to be safe
+      throw GeneralError.noVersionTagAtHEAD
+    }
+    
+    // Look for platform-agnostic version tags: v<version>-<build>
+    let pattern = #/^v\d+\.\d+(\.\d+)*-\d+$/#
+    var foundVersionTag = false
+    
+    for await line in await result.stdout.lines {
+      let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
+      if tag.firstMatch(of: pattern) != nil {
+        verbose("Found version tag at HEAD: \(tag)")
+        foundVersionTag = true
+        break
+      }
+    }
+    
+    if !foundVersionTag {
+      throw GeneralError.noVersionTagAtHEAD
     }
   }
 }

@@ -83,7 +83,7 @@ struct UpdateBuildCommand: AsyncParsableCommand {
       if let existing = info["CFBundleVersion"] as? String, existing == build {
         parsed.log("Build number is \(build).")
       } else {
-        parsed.log("Setting build number to \(build).")
+        parsed.log("Using build number \(build).")
         info["CFBundleVersion"] = build
         info["Commit"] = commit
         let data = try PropertyListSerialization.data(
