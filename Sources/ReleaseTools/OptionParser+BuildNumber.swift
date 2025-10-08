@@ -29,11 +29,12 @@ extension OptionParser {
 
           // Get the commit SHA
           let commitResult = git.run(["rev-parse", "HEAD"])
+          let commitOutput = await commitResult.stdout.string
           let commitState = await commitResult.waitUntilExit()
           guard case .succeeded = commitState else {
             throw UpdateBuildError.gettingCommitFailed
           }
-          guard let commit = await commitResult.stdout.string.split(separator: "\n").first else {
+          guard let commit = commitOutput.split(separator: "\n").first else {
             throw UpdateBuildError.parsingCommitFailed
           }
 
@@ -46,11 +47,12 @@ extension OptionParser {
       // New behavior: calculate build number from highest existing tag + 1
       // Get the commit SHA first
       let commitResult = git.run(["rev-parse", "HEAD"])
+      let commitOutput = await commitResult.stdout.string
       let commitState = await commitResult.waitUntilExit()
       guard case .succeeded = commitState else {
         throw UpdateBuildError.gettingCommitFailed
       }
-      guard let commit = await commitResult.stdout.string.split(separator: "\n").first else {
+      guard let commit = commitOutput.split(separator: "\n").first else {
         throw UpdateBuildError.parsingCommitFailed
       }
 
