@@ -79,7 +79,7 @@ class OptionParser {
   var workspace: String = ""
   var archive: XcodeArchive!
 
-  let rootURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+  let rootURL: URL
   let homeURL = FileManager.default.homeDirectoryForCurrentUser
   var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
   var exportedAppURL: URL { return exportURL.appendingPathComponent(archive.name) }
@@ -118,6 +118,7 @@ class OptionParser {
   }
 
   init(
+    root rootURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
     requires requirements: Set<Requirement> = [],
     options: CommonOptions,
     command: CommandConfiguration,
@@ -128,6 +129,7 @@ class OptionParser {
     setDefaultPlatform: Bool = true
   ) throws {
 
+    self.rootURL = rootURL
     showOutput = options.showOutput
     showCommands = options.showCommands
     verbose = options.verbose
