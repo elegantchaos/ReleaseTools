@@ -9,25 +9,30 @@ import Files
 import Foundation
 import Runner
 
-enum UpdateBuildError: Runner.Error {
-  case fetchingTagsFailed
-  case gettingBuildFailed
+enum UpdateBuildError: LocalizedError {
+  case fetchingTagsFailed(stderr: String)
+  case gettingBuildFailed(stderr: String)
   case gettingCommitFailed
   case parsingCommitFailed
-  case writingConfigFailed
-  case updatingIndexFailed
+  case writingConfigFailed(stderr: String)
+  case updatingIndexFailed(stderr: String)
   case invalidExplicitBuild(String)
   case inconsistentTagState(currentPlatform: String)
 
-  func description(for session: Runner.Session) async -> String {
-    async let stderr = session.stderr.string
+  var errorDescription: String? {
     switch self {
-      case .fetchingTagsFailed: return "Failed to fetch tags from git.\n\n\(await stderr)"
-      case .gettingBuildFailed: return "Failed to get the build number from git.\n\n\(await stderr)"
-      case .gettingCommitFailed: return "Failed to get the commit from git.\n\n\(await stderr)"
-      case .parsingCommitFailed: return "Failed to parse the commit information from git.\n\n\(await stderr)"
-      case .writingConfigFailed: return "Failed to write the config file.\n\n\(await stderr)"
-      case .updatingIndexFailed: return "Failed to tell git to ignore the config file.\n\n\(await stderr)"
+      case .fetchingTagsFailed(let stderr):
+        return "Failed to fetch tags from git.\n\n\(stderr)"
+      case .gettingBuildFailed(let stderr):
+        return "Failed to get the build number from git.\n\n\(stderr)"
+      case .gettingCommitFailed:
+        return "Failed to get the commit from git."
+      case .parsingCommitFailed:
+        return "Failed to parse the commit information from git."
+      case .writingConfigFailed(let stderr):
+        return "Failed to write the config file.\n\n\(stderr)"
+      case .updatingIndexFailed(let stderr):
+        return "Failed to tell git to ignore the config file.\n\n\(stderr)"
       case .invalidExplicitBuild(let value):
         return "Invalid explicit build number: \(value). Must be a positive integer."
       case .inconsistentTagState(let currentPlatform):

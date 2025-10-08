@@ -16,13 +16,14 @@ struct SchemesSpec: Decodable {
   let workspace: WorkspaceSpec
 }
 
-enum ArchiveError: Runner.Error {
-  case archiveFailed
+enum ArchiveError: LocalizedError {
+  case archiveFailed(stderr: String)
   case noVersionTagAtHEAD
 
-  func description(for session: Runner.Session) async -> String {
+  var errorDescription: String? {
     switch self {
-      case .archiveFailed: return "Archiving failed.\n\n\(await session.stderr.string)"
+      case .archiveFailed(let stderr):
+        return "Archiving failed.\n\n\(stderr)"
       case .noVersionTagAtHEAD:
         return """
           No version tag found at HEAD.
@@ -94,7 +95,11 @@ struct ArchiveCommand: AsyncParsableCommand {
     }
 
     let result = xcode.run(args)
-    try await result.throwIfFailed(ArchiveError.archiveFailed)
+    let state = await result.waitUntilExit()
+    if case .failed = state {
+      let stderr = await result.stderr.string
+      throw ArchiveError.archiveFailed(stderr: stderr)
+    }
     parsed.log("Archived scheme \(parsed.scheme).")
   }
 }

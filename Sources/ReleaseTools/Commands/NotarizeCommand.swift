@@ -21,15 +21,16 @@ extension NotarizeError: LocalizedError {
   }
 }
 
-enum NotarizeRunnerError: Runner.Error {
-  case compressingFailed
-  case notarizingFailed
+enum NotarizeRunnerError: LocalizedError {
+  case compressingFailed(stderr: String)
+  case notarizingFailed(stderr: String)
 
-  func description(for session: Runner.Session) async -> String {
-    async let stderr = session.stderr.string
+  var errorDescription: String? {
     switch self {
-      case .compressingFailed: return "Compressing failed.\n\(await stderr)"
-      case .notarizingFailed: return "Notarizing failed.\n\(await stderr)"
+      case .compressingFailed(let stderr):
+        return "Compressing failed.\n\(stderr)"
+      case .notarizingFailed(let stderr):
+        return "Notarizing failed.\n\(stderr)"
     }
   }
 }
@@ -60,7 +61,11 @@ struct NotarizeCommand: AsyncParsableCommand {
     let ditto = DittoRunner(parsed: parsed)
 
     let zipResult = ditto.zip(parsed.exportedAppURL, as: parsed.exportedZipURL)
-    try await zipResult.throwIfFailed(NotarizeRunnerError.compressingFailed)
+    let zipState = await zipResult.waitUntilExit()
+    if case .failed = zipState {
+      let stderr = await zipResult.stderr.string
+      throw NotarizeRunnerError.compressingFailed(stderr: stderr)
+    }
 
     parsed.log("Uploading \(parsed.versionTag) to notarization service.")
     let xcrun = XCRunRunner(parsed: parsed)
@@ -74,7 +79,11 @@ struct NotarizeCommand: AsyncParsableCommand {
       "--file", parsed.exportedZipURL.path,
       "--output-format", "xml",
     ])
-    try await result.throwIfFailed(NotarizeRunnerError.notarizingFailed)
+    let state = await result.waitUntilExit()
+    if case .failed = state {
+      let stderr = await result.stderr.string
+      throw NotarizeRunnerError.notarizingFailed(stderr: stderr)
+    }
 
     parsed.log("Requested notarization.")
     do {

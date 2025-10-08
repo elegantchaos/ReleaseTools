@@ -7,23 +7,22 @@ import ArgumentParser
 import Foundation
 import Runner
 
-enum TagError: Runner.Error {
+enum TagError: LocalizedError {
   case tagAlreadyExists(String)
-  case gettingVersionFailed
-  case gettingBuildFailed
-  case creatingTagFailed
+  case gettingVersionFailed(stderr: String)
+  case gettingBuildFailed(stderr: String)
+  case creatingTagFailed(stderr: String)
 
-  func description(for session: Runner.Session) async -> String {
-    async let stderr = session.stderr.string
+  var errorDescription: String? {
     switch self {
       case .tagAlreadyExists(let tag):
         return "A version tag already exists at HEAD: \(tag)"
-      case .gettingVersionFailed:
-        return "Failed to get the version information.\n\n\(await stderr)"
-      case .gettingBuildFailed:
-        return "Failed to calculate the build number.\n\n\(await stderr)"
-      case .creatingTagFailed:
-        return "Failed to create the git tag.\n\n\(await stderr)"
+      case .gettingVersionFailed(let stderr):
+        return "Failed to get the version information.\n\n\(stderr)"
+      case .gettingBuildFailed(let stderr):
+        return "Failed to calculate the build number.\n\n\(stderr)"
+      case .creatingTagFailed(let stderr):
+        return "Failed to create the git tag.\n\n\(stderr)"
     }
   }
 }
@@ -75,7 +74,11 @@ struct TagCommand: AsyncParsableCommand {
     parsed.log("Creating tag: \(tagName) at commit \(commit)")
 
     let tagResult = parsed.git.run(["tag", tagName, commit])
-    try await tagResult.throwIfFailed(TagError.creatingTagFailed)
+    let state = await tagResult.waitUntilExit()
+    if case .failed = state {
+      let stderr = await tagResult.stderr.string
+      throw TagError.creatingTagFailed(stderr: stderr)
+    }
 
     parsed.log("Successfully created tag: \(tagName)")
   }

@@ -20,13 +20,13 @@ extension ExportError: LocalizedError {
   }
 }
 
-enum ExportRunnerError: Runner.Error {
-  case exportFailed
+enum ExportRunnerError: LocalizedError {
+  case exportFailed(stderr: String)
 
-  func description(for session: Runner.Session) async -> String {
-    async let stderr = session.stderr.string
+  var errorDescription: String? {
     switch self {
-      case .exportFailed: return "Exporting failed.\n\(await stderr)"
+      case .exportFailed(let stderr):
+        return "Exporting failed.\n\(stderr)"
     }
   }
 }
@@ -80,7 +80,11 @@ struct ExportCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
     ])
 
-    try await result.throwIfFailed(ExportRunnerError.exportFailed)
+    let state = await result.waitUntilExit()
+    if case .failed = state {
+      let stderr = await result.stderr.string
+      throw ExportRunnerError.exportFailed(stderr: stderr)
+    }
     parsed.log("Exported \(parsed.scheme).")
   }
 }

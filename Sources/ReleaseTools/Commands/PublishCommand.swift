@@ -7,15 +7,16 @@ import ArgumentParser
 import Foundation
 import Runner
 
-enum PublishError: Runner.Error {
-  case commitFailed
-  case pushFailed
+enum PublishError: LocalizedError {
+  case commitFailed(stderr: String)
+  case pushFailed(stderr: String)
 
-  func description(for session: Runner.Session) async -> String {
-    async let stderr = session.stderr.string
+  var errorDescription: String? {
     switch self {
-      case .commitFailed: return "Failed to commit the appcast feed and updates.\n\n\(await stderr)"
-      case .pushFailed: return "Failed to push the appcast feed and updates.\n\n\(await stderr)"
+      case .commitFailed(let stderr):
+        return "Failed to commit the appcast feed and updates.\n\n\(stderr)"
+      case .pushFailed(let stderr):
+        return "Failed to push the appcast feed and updates.\n\n\(stderr)"
     }
   }
 }
@@ -46,14 +47,26 @@ struct PublishCommand: AsyncParsableCommand {
 
     parsed.log("Committing updates.")
     var result = git.run(["add", updates.path])
-    try await result.throwIfFailed(PublishError.commitFailed)
+    var state = await result.waitUntilExit()
+    if case .failed = state {
+      let stderr = await result.stderr.string
+      throw PublishError.commitFailed(stderr: stderr)
+    }
 
     let message = "v\(parsed.archive.version), build \(parsed.archive.build)"
     result = git.run(["commit", "-a", "-m", message])
-    try await result.throwIfFailed(PublishError.commitFailed)
+    state = await result.waitUntilExit()
+    if case .failed = state {
+      let stderr = await result.stderr.string
+      throw PublishError.commitFailed(stderr: stderr)
+    }
 
     parsed.log("Pushing updates.")
     let pushResult = git.run(["push"])
-    try await pushResult.throwIfFailed(PublishError.pushFailed)
+    state = await pushResult.waitUntilExit()
+    if case .failed = state {
+      let stderr = await pushResult.stderr.string
+      throw PublishError.pushFailed(stderr: stderr)
+    }
   }
 }
