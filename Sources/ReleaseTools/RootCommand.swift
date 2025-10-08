@@ -20,11 +20,9 @@ struct RootCommand: AsyncParsableCommand {
       subcommands: [
         AppcastCommand.self,
         ArchiveCommand.self,
-        BootstrapCommand.self,
         ChangesCommand.self,
         CompressCommand.self,
         ExportCommand.self,
-        InstallCommand.self,
         NotarizeCommand.self,
         PublishCommand.self,
         SubmitCommand.self,

@@ -12,7 +12,6 @@ let package = Package(
   products: [
     .executable(name: "rt", targets: ["ReleaseTools"]),
     .executable(name: "ReleaseTools", targets: ["ReleaseTools"]),
-    .library(name: "Resources", targets: ["Resources"]),
     .plugin(name: "rt-plugin", targets: ["ReleaseToolsPlugin"]),
   ],
 
@@ -36,20 +35,9 @@ let package = Package(
         "Files",
         "Logger",
         "Runner",
-        "Resources",
       ],
       plugins: [
         .plugin(name: "VersionatorPlugin", package: "Versionator")
-      ]
-    ),
-
-    .target(
-      name: "Resources",
-      dependencies: [
-        "Files"
-      ],
-      resources: [
-        .copy("Scripts")
       ]
     ),
 

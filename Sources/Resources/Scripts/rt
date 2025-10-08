@@ -1,4 +1,0 @@
-#!/bin/bash
-
-source "Extras/Scripts/bootstrap-tools"
-"$RT" "$@"
