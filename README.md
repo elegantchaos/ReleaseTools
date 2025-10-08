@@ -72,69 +72,47 @@ The latter requires running `rt update-build` in a script phase, and so slightly
 
 ## When Archiving
 
-When archiving, the injection is done by:
+When archiving, the injected build number is based solely on the value of the git version tag attached to the current HEAD commit.
 
-- generating a `VersionInfo.h` header file
-- overriding some build settings on the command line when invoking `xcodebuild`, so that the header file is included by the Info.plist preprocessor.
+This version must be in the form `vX.Y.Z-BUILD` where `X.Y.Z` is the semantic version, and `BUILD` is the build number.
 
-The constants defined by the `VersionInfo.h` file are:
+If there is not a tag in this format at HEAD, the `archive`/`submit` commands will refuse to run.
+
+If the tag is present, then it is parsed and used to set the value of two constants:
 - CURRENT_PROJECT_VERSION: the calculated build number
 - CURRENT_PROJECT_COMMIT: the full git commit hash
 
-The build settings supplied on the command line are:
+The archive command then generates a `VersionInfo.h` header file, and overrides some build settings on the command line when invoking `xcodebuild`, so that the header file is included by the Info.plist preprocessor.
+
+The build settings supplied to `xcodebuild` on the command line are:
 - INFOPLIST_PREFIX_HEADER: set to the location of the generated `VersionInfo.h` file
 - INFOPLIST_PREPROCESS: set to YES
 - CURRENT_PROJECT_VERSION: set to the calculated build number
 - CURRENT_PROJECT_COMMIT: the full git commit hash
 
-This causes any occurences of the text `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT` to be replaced in the Info.plist file.
+By turning on the Info.plist preprocessing, and using our generated header file, we cause any occurences of the strings `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT` in the Info.plist file to be replaced with the values of the corresponding constants.
 
-It should also allow any occurences of `${CURRENT_PROJECT_VERSION}` and `${CURRENT_PROJECT_COMMIT}` to be replaced in build settings or build scripts.
+By also defining the two variables directly as command line arguments when we invoke xcodebuild, we also allow any occurences of `${CURRENT_PROJECT_VERSION}` and `${CURRENT_PROJECT_COMMIT}` to be replaced in other build settings or build scripts.
 
 ## When Building
 
-When using the `update-build` command, you can generate the header file as described above. You can then configure your project to use it.
+When using the `update-build` command, the requirement for there to be a version tag on the HEAD commit is removed. 
 
-You can also generate an `.xcconfig` file which defines the build settings `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT`, and have your project include that.
+If there is a tag on HEAD, we use it, but if not, we simply look for the highest version tag on any commit in the current branch, and speculatively add 1 to it. This is intended as a way to inject the likely future version number that will be used when we eventually submit the build.
+
+Like the `archive` / `submit` commands, the `update-build` command generates a `VersionInfo.h` file.
+
+It also optionally generates an `.xcconfig` file which defines the build settings `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT`, and have your project include that.
 
 Finally, you can also specify the path of source and destination `.plist` files. A new copy of the source file will be written to the destination, with the latest build and commit values written into the `CFBundleVersion` and `Commit` keys.
 
-## Build Number Strategies
+## Incrementing The Build Number
 
-ReleaseTools supports several strategies for generating the build number, which can be controlled via command-line flags or the `.rt.json` settings file:
+ReleaseTools supports automatically incrementing the version tag, using the `rt tag` command.
 
-1. **Explicit Build Number**
-   - Use `--explicit-build <number>` to specify the exact build number to use. This takes precedence over all other options. Cannot be combined with `--existing-tag`, `--increment-tag`, or `--offset`.
-   - Generally this is useful if you want to completely reset the build number sequence.
-   - Example: `rt archive --explicit-build 1234`
+This command finds the oldest previous tag in the correct format, increments the build number by one, and uses git to create and push a new tag.
 
-2. **Increment Highest Existing Tag**
-   - Use `--increment-tag` (or set `"incrementTag": true` in `.rt.json`) to find the highest build number for the current platform in tags of the form `vX.Y.Z-build-platform`, and increment it by one. If no tags are found, falls back to commit count.
-   - Example: `rt archive --increment-tag`
 
-3. **Adopt Build Number from Existing Tag**
-   - Use `--existing-tag` (or set `"useExistingTag": true` in `.rt.json`) to scan all version tags for all platforms. The tool finds the highest build number for any platform and for the platform being built. If another platform has a higher build number, it uses that. If the highest for any platform matches the current platform, it increments it. 
-   - This is useful when cutting simultaneous releases across platforms and you want them to share the same build number or keep them in sync. Typically you will use `--increment-tag` when building the first platform, then `--existing-tag` for the subsequent platforms. This should ensure that they all share the same number.
-   - Example: `rt submit --platform macOS --existing-tag`
-
-4. **Commit Count**
-   - If none of the above options are specified, the build number is set to the number of commits in the repository (`git rev-list --count HEAD`).
-   - If you are generally not releasing from multiple branches, this method is often sufficient, and for many years, it was all I did. However, the commit count is based on the current branch, and so it is possible for it to end up going down if you switch to a branch with fewer commits, and generally being inconsistent between branches. For most situations, using tags is probably more reliable.
-
-### Option Precedence and Conflicts
-- `--explicit-build` cannot be used with `--existing-tag`, `--increment-tag`, or `--offset`. If conflicting options are provided, the tool will report an error.
-- If `--existing-tag` is specified, it implies `--increment-tag` for fallback behavior.
-- If no options are specified, commit count is used by default.
-
-### Examples
-- Use explicit build number:
-  `rt update-build --explicit-build 5000`
-- Adopt build number from another platform's tag at HEAD:
-  `rt archive --existing-tag`
-- Increment highest existing tag for platform:
-  `rt archive --increment-tag`
-- Use commit count (default):
-  `rt archive`
 
 
 # The Full Toolchain
