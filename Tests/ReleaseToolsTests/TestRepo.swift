@@ -120,7 +120,7 @@ class TestRepo {
     transcript += "\(r.stdout)\n"
     transcript += "\(r.stderr)\n"
 
-    #expect(r.state == .succeeded, Comment(rawValue: r.stderr), sourceLocation: sourceLocation)
+    #expect(r.state == .succeeded, Comment(rawValue: "\(transcript)\n\n\(r.stderr)"), sourceLocation: sourceLocation)
     return r
   }
 
