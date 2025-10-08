@@ -141,6 +141,78 @@ extension OptionParser {
       }
     }
   }
+
+  /// Fetch all platform-agnostic version tags (format: v<version>-<build>), and process each with the provided closure.
+  func processAllPlatformAgnosticVersionTags(
+    using git: GitRunner,
+    process: @escaping (_ build: UInt, _ tag: String) async -> Void
+  ) async throws {
+    let pattern: Regex<(Substring, version: Substring, Substring?, build: Substring)> = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
+    let tagsResult = git.run(["tag"])
+    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
+    for await tag in await tagsResult.stdout.lines {
+      if let parsed = tag.firstMatch(of: pattern) {
+        if let build = UInt(parsed.output.build) {
+          await process(build, tag)
+        }
+      }
+    }
+  }
+
+  /// Calculate build number for platform-agnostic tags.
+  /// Returns the highest existing build number + 1, or 1 if no tags exist.
+  /// Also checks platform-specific tags to ensure we don't create duplicate build numbers.
+  func nextPlatformAgnosticBuildNumber(in url: URL, using git: GitRunner) async throws -> UInt {
+    git.cwd = url
+
+    if let explicitBuild {
+      guard let explicitBuildNumber = UInt(explicitBuild) else {
+        throw UpdateBuildError.invalidExplicitBuild(explicitBuild)
+      }
+      verbose("Using explicit build number: \(explicitBuildNumber)")
+      return explicitBuildNumber
+    }
+
+    if incrementBuildTag {
+      await ensureTagsUpToDate(using: git)
+
+      var maxBuild: UInt = 0
+      var maxTag: String?
+      var isPlatformSpecific = false
+
+      // Check platform-agnostic tags
+      try await processAllPlatformAgnosticVersionTags(using: git) { build, tag in
+        if build > maxBuild {
+          maxBuild = build
+          maxTag = tag
+          isPlatformSpecific = false
+        }
+      }
+
+      // Also check platform-specific tags to avoid conflicts
+      try await processAllVersionTags(using: git) { platform, build, tag in
+        if build > maxBuild {
+          maxBuild = build
+          maxTag = tag
+          isPlatformSpecific = true
+        }
+      }
+
+      if let maxTag {
+        if isPlatformSpecific {
+          log("Highest existing tag was \(maxTag) (converting from platform-specific to platform-agnostic tags).")
+        } else {
+          log("Highest existing tag was \(maxTag).")
+        }
+      } else {
+        log("No existing tags found.")
+      }
+
+      return maxBuild + 1
+    } else {
+      return try await getBuildByCommitCount(using: git, offset: buildOffset)
+    }
+  }
 }
 
 /// Ensure tags are up-to-date by fetching from remote, ignoring failures if no remote exists.

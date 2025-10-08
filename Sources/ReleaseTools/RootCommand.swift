@@ -28,6 +28,7 @@ struct RootCommand: AsyncParsableCommand {
         NotarizeCommand.self,
         PublishCommand.self,
         SubmitCommand.self,
+        TagCommand.self,
         UpdateBuildCommand.self,
         UploadCommand.self,
         WaitForNotarizationCommand.self,
