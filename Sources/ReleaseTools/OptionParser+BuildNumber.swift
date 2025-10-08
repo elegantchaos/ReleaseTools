@@ -141,8 +141,7 @@ extension OptionParser {
   /// Calculate build number for platform-agnostic tags.
   /// Returns the highest existing build number + 1, or 1 if no tags exist.
   /// Also checks platform-specific tags to ensure we don't create duplicate build numbers.
-  func nextPlatformAgnosticBuildNumber(in url: URL, using git: GitRunner) async throws -> UInt {
-    git.cwd = url
+  func nextPlatformAgnosticBuildNumber(using git: GitRunner) async throws -> UInt {
     await ensureTagsUpToDate(using: git)
 
     var maxBuild: UInt = 0

@@ -244,7 +244,6 @@ class OptionParser {
   /// Check if there's a platform-agnostic version tag at HEAD, throw an error if not found
   func ensureVersionTagAtHEAD() async throws {
     let git = GitRunner()
-    git.cwd = rootURL
 
     // Get tags pointing at HEAD
     let result = git.run(["tag", "--points-at", "HEAD"])

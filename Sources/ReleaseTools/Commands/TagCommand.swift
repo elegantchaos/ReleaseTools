@@ -39,7 +39,6 @@ struct TagCommand: AsyncParsableCommand {
     )
   }
 
-  @Option(help: "The git repo to tag. Defaults to current directory.") var repo: String?
   @Option(help: "The version to use for the tag (e.g., 1.2.3). If not specified, will try to determine from project files.") var tagVersion: String?
   @Option(help: "Explicit build number to use for the tag.") var explicitBuild: String?
 
@@ -51,21 +50,13 @@ struct TagCommand: AsyncParsableCommand {
       command: Self.configuration
     )
 
-    let repoURL: URL
-    if let repo = repo {
-      repoURL = URL(fileURLWithPath: repo)
-    } else {
-      repoURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-    }
-
     let git = GitRunner()
-    git.cwd = repoURL
 
     // Check if there's already a version tag at HEAD
     try await ensureNoExistingTag(using: git, parsed: parsed)
 
     // Get or determine the version
-    let version = try await getVersion(using: git, parsed: parsed, repoURL: repoURL)
+    let version = try await getVersion(using: git, parsed: parsed, repoURL: parsed.rootURL)
 
     // Get the build number (either explicit or calculated)
     let build: UInt
@@ -77,7 +68,7 @@ struct TagCommand: AsyncParsableCommand {
       build = explicitBuildNumber
     } else {
       // Calculate the build number (platform-agnostic)
-      build = try await parsed.nextPlatformAgnosticBuildNumber(in: repoURL, using: git)
+      build = try await parsed.nextPlatformAgnosticBuildNumber(using: git)
     }
 
     // Get current commit
