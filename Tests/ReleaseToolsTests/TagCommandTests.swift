@@ -17,7 +17,7 @@ struct TagCommandTests {
     let repo = try await TestRepo()
 
     // Run the tag command with explicit version and build number
-    await repo.checkedRT(["tag", "--tag-version", "1.2.3", "--explicit-build", "42"])
+    await repo.checkedRT(["tag", "--explicit-version", "1.2.3", "--explicit-build", "42"])
 
     // Verify the tag was created with the explicit build number
     try await repo.expectHeadTagsContains(["v1.2.3-42"])
@@ -34,7 +34,7 @@ struct TagCommandTests {
     #expect(tags.contains("v1.0.0-1"), "Tag v1.0.0-1 should exist at HEAD, found: \(tags)")
 
     // Try to create another tag - should fail
-    let result = await repo.runRT(["tag", "--tag-version", "1.0.0", "--explicit-build", "2"])
+    let result = await repo.runRT(["tag", "--explicit-version", "1.0.0", "--explicit-build", "2"])
 
     // Command should fail
     #expect(result.state != .succeeded, "Command should have failed but succeeded")
@@ -51,7 +51,7 @@ struct TagCommandTests {
     try await repo.tag(name: "some-other-tag")
 
     // Run the tag command - should succeed despite the other tag
-    await repo.checkedRT(["tag", "--tag-version", "1.0.0", "--explicit-build", "1"])
+    await repo.checkedRT(["tag", "--explicit-version", "1.0.0", "--explicit-build", "1"])
 
     // Verify both tags exist
     try await repo.expectHeadTagsContains(["v1.0.0-1", "some-other-tag"])
@@ -65,7 +65,7 @@ struct TagCommandTests {
     try await repo.commit(message: "second commit")
 
     // Run the tag command (always increments tag now)
-    await repo.checkedRT(["tag", "--tag-version", "1.0.0"])
+    await repo.checkedRT(["tag", "--explicit-version", "1.0.0"])
 
     // Verify the tag was created with build number 6
     try await repo.expectHeadTagsContains(["v1.0.0-6"])
@@ -81,7 +81,7 @@ struct TagCommandTests {
 
     // Run the tag command
     // It should find the highest platform-specific tag (15) and increment it
-    await repo.checkedRT(["tag", "--tag-version", "1.0.1"])
+    await repo.checkedRT(["tag", "--explicit-version", "1.0.1"])
 
     // Verify the tag was created with build number 16 (15 + 1)
     try await repo.expectHeadTagsContains(["v1.0.1-16"])
@@ -97,7 +97,7 @@ struct TagCommandTests {
 
     // Run the tag command
     // It should use the highest build number (20 from iOS) and increment it
-    await repo.checkedRT(["tag", "--tag-version", "1.0.1"])
+    await repo.checkedRT(["tag", "--explicit-version", "1.0.1"])
 
     // Verify the tag was created with build number 21 (20 + 1)
     try await repo.expectHeadTagsContains(["v1.0.1-21"])
@@ -113,7 +113,7 @@ struct TagCommandTests {
 
     // Run the tag command
     // It should use the highest build number (30 from agnostic) and increment it
-    await repo.checkedRT(["tag", "--tag-version", "1.0.1"])
+    await repo.checkedRT(["tag", "--explicit-version", "1.0.1"])
 
     // Verify the tag was created with build number 31 (30 + 1)
     try await repo.expectHeadTagsContains(["v1.0.1-31"])

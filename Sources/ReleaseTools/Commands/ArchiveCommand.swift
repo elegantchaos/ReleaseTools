@@ -27,7 +27,7 @@ enum ArchiveError: Runner.Error {
         return """
           No version tag found at HEAD.
           Please create a version tag before archiving using:
-            rt tag --tag-version <version> [--increment-tag]
+            rt tag --explicit-version <version> [--increment-tag]
           """
     }
   }

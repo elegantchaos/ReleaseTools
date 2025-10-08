@@ -178,6 +178,27 @@ extension OptionParser {
     return highestVersion
   }
 
+  /// Check if there's already a version tag at HEAD and throw an error if found
+  func ensureNoExistingTag() async throws {
+    // Get tags pointing at HEAD
+    let result = git.run(["tag", "--points-at", "HEAD"])
+    let state = await result.waitUntilExit()
+
+    guard case .succeeded = state else {
+      // If we can't check tags, continue anyway
+      return
+    }
+
+    let pattern = #/^v\d+\.\d+(\.\d+)*-\d+$/#
+
+    for await line in await result.stdout.lines {
+      let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
+      if tag.firstMatch(of: pattern) != nil {
+        throw TagError.tagAlreadyExists(tag)
+      }
+    }
+  }
+
   /// Ensure tags are up-to-date by fetching from remote, ignoring failures if no remote exists.
   private func ensureTagsUpToDate(using git: GitRunner) async {
     let fetchResult = git.run(["fetch", "--tags"])

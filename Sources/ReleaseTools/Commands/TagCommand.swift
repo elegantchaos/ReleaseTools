@@ -36,7 +36,7 @@ struct TagCommand: AsyncParsableCommand {
     )
   }
 
-  @Option(help: "The version to use for the tag (e.g., 1.2.3). If not specified, will try to determine from project files.") var tagVersion: String?
+  @Option(help: "The version to use for the tag (e.g., 1.2.3). If not specified, will try to determine from project files.") var explicitVersion: String?
   @Option(help: "Explicit build number to use for the tag.") var explicitBuild: String?
 
   @OptionGroup() var options: CommonOptions
@@ -48,7 +48,7 @@ struct TagCommand: AsyncParsableCommand {
     )
 
     // Check if there's already a version tag at HEAD
-    try await ensureNoExistingTag(parsed: parsed)
+    try await parsed.ensureNoExistingTag()
 
     // Get or determine the version
     let version = try await getVersion(parsed: parsed)
@@ -82,30 +82,9 @@ struct TagCommand: AsyncParsableCommand {
     parsed.log("Successfully created tag: \(tagName)")
   }
 
-  /// Check if there's already a version tag at HEAD and throw an error if found
-  private func ensureNoExistingTag(parsed: OptionParser) async throws {
-    // Get tags pointing at HEAD
-    let result = parsed.git.run(["tag", "--points-at", "HEAD"])
-    let state = await result.waitUntilExit()
-
-    guard case .succeeded = state else {
-      // If we can't check tags, continue anyway
-      return
-    }
-
-    let pattern = #/^v\d+\.\d+(\.\d+)*-\d+$/#
-
-    for await line in await result.stdout.lines {
-      let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
-      if tag.firstMatch(of: pattern) != nil {
-        throw TagError.tagAlreadyExists(tag)
-      }
-    }
-  }
-
-  /// Get the version string, either from the --version option or from the highest existing tag
+  /// Get the version string, either from the --explicit-version option or from the highest existing tag
   private func getVersion(parsed: OptionParser) async throws -> String {
-    if let tagVersion = tagVersion {
+    if let tagVersion = explicitVersion {
       return tagVersion
     }
 

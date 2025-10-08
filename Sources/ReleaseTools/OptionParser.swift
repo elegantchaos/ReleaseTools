@@ -50,7 +50,7 @@ enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
         return """
           No version tag found at HEAD.
           Please create a version tag before archiving using:
-            \(CommandLine.name) tag --tag-version <version> [--increment-tag]
+            \(CommandLine.name) tag --explicit-version <version> [--increment-tag]
           """
     }
   }
