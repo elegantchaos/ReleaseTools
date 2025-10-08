@@ -46,7 +46,7 @@ struct VersionTagTests {
     // Create only a platform-specific tag (should not count)
     try await repo.tag(name: "v1.2.3-42-iOS")
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(options: options, command: ArchiveCommand.configuration)
+    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     await #expect(throws: GeneralError.noVersionTagAtHEAD) {
       try await parsed.ensureVersionTagAtHEAD()

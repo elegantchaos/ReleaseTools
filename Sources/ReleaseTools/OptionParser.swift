@@ -243,9 +243,15 @@ class OptionParser {
     // semaphore?.signal()
   }
 
+  func gitRunnerAtRoot() -> GitRunner {
+    let git = GitRunner()
+    git.cwd = rootURL
+    return git
+  }
+
   /// Check if there's a platform-agnostic version tag at HEAD, throw an error if not found
   func ensureVersionTagAtHEAD() async throws {
-    let git = GitRunner()
+    let git = gitRunnerAtRoot()
 
     // Get tags pointing at HEAD
     let result = git.run(["tag", "--points-at", "HEAD"])
@@ -301,7 +307,10 @@ class OptionParser {
         guard case .succeeded = commitState else {
           throw UpdateBuildError.gettingCommitFailed
         }
-        let commit = await commitResult.stdout.lines.first(where: { _ in true }) ?? ""
+        guard let commit = await commitResult.stdout.string.split(separator: "\n").first else {
+          throw UpdateBuildError.parsingCommitFailed
+        }
+
         return (build, commit.trimmingCharacters(in: .whitespacesAndNewlines))
       }
     }

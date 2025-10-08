@@ -14,6 +14,7 @@ enum UpdateBuildError: Runner.Error {
   case fetchingTagsFailed
   case gettingBuildFailed
   case gettingCommitFailed
+  case parsingCommitFailed
   case writingConfigFailed
   case updatingIndexFailed
   case invalidExplicitBuild(String)
@@ -25,6 +26,7 @@ enum UpdateBuildError: Runner.Error {
       case .fetchingTagsFailed: return "Failed to fetch tags from git.\n\n\(await stderr)"
       case .gettingBuildFailed: return "Failed to get the build number from git.\n\n\(await stderr)"
       case .gettingCommitFailed: return "Failed to get the commit from git.\n\n\(await stderr)"
+      case .parsingCommitFailed: return "Failed to parse the commit information from git.\n\n\(await stderr)"
       case .writingConfigFailed: return "Failed to write the config file.\n\n\(await stderr)"
       case .updatingIndexFailed: return "Failed to tell git to ignore the config file.\n\n\(await stderr)"
       case .invalidExplicitBuild(let value):

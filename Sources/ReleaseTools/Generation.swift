@@ -12,7 +12,7 @@ struct Generation {
     let headerURL = URL(fileURLWithPath: header)
     let repoURL = URL(fileURLWithPath: repo)
 
-    let git = GitRunner()
+    let git = parsed.gitRunnerAtRoot()
     let (build, commit) = try await parsed.buildNumberAndCommitFromHEAD(in: repoURL, using: git)
     parsed.log("Setting build number to \(build).")
     let header =
@@ -36,7 +36,7 @@ struct Generation {
       configURL = URL(fileURLWithPath: "Configs/BuildNumber.xcconfig")
     }
 
-    let git = GitRunner()
+    let git = parsed.gitRunnerAtRoot()
     let (build, commit) = try await parsed.buildNumberAndCommitFromHEAD(in: configURL.deletingLastPathComponent(), using: git)
     let new = "CURRENT_PROJECT_VERSION = \(build)\nCURRENT_PROJECT_COMMIT = \(commit)"
 
@@ -64,7 +64,7 @@ struct Generation {
     let data = try Data(contentsOf: plistURL)
     let info = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
 
-    let git = GitRunner()
+    let git = parsed.gitRunnerAtRoot()
     let (build, commit) = try await parsed.buildNumberAndCommitFromHEAD(in: repoURL, using: git)
 
     if var info = info as? [String: Any] {

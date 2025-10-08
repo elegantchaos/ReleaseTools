@@ -40,7 +40,7 @@ struct ChangesCommand: AsyncParsableCommand {
       setDefaultPlatform: false
     )
 
-    let git = GitRunner()
+    let git = parsed.gitRunnerAtRoot()
     var arguments = ["log", "--pretty=- %s %b"]
     if let other = other {
       arguments.append("\(version)..\(other)")

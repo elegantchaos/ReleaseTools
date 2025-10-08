@@ -50,7 +50,7 @@ struct TagCommand: AsyncParsableCommand {
       command: Self.configuration
     )
 
-    let git = GitRunner()
+    let git = parsed.gitRunnerAtRoot()
 
     // Check if there's already a version tag at HEAD
     try await ensureNoExistingTag(using: git, parsed: parsed)

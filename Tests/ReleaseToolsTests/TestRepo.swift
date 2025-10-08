@@ -53,6 +53,10 @@ class TestRepo {
     try await initGitRepo()
   }
 
+  deinit {
+    print(transcript)
+  }
+
   /// Initialize the git repository with initial commit
   private func initGitRepo() async throws {
     await checkedGit(["init"])
@@ -112,9 +116,9 @@ class TestRepo {
   @discardableResult
   func checkedGit(_ args: [String], sourceLocation: SourceLocation = #_sourceLocation) async -> (stdout: String, stderr: String, state: RunState) {
     let r = await runGit(args)
-    transcript += "> git \(args.joined(separator: " "))"
-    transcript += r.stdout
-    transcript += r.stderr
+    transcript += "> git \(args.joined(separator: " "))\n"
+    transcript += "\(r.stdout)\n"
+    transcript += "\(r.stderr)\n"
 
     #expect(r.state == .succeeded, Comment(rawValue: r.stderr), sourceLocation: sourceLocation)
     return r
