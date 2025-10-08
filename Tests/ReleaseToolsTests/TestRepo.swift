@@ -53,9 +53,9 @@ class TestRepo {
     try await initGitRepo()
   }
 
-  deinit {
-    print(transcript)
-  }
+  // deinit {
+  //   print(transcript)
+  // }
 
   /// Initialize the git repository with initial commit
   private func initGitRepo() async throws {

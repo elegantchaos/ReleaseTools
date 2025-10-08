@@ -8,7 +8,7 @@ import Foundation
 /// Functionality for generating build-related files.
 struct Generation {
   /// Generate a header file containing the build number and commit hash.
-  static func generateHeader(parsed: OptionParser, header: String, requireHEADTag: Bool) async throws -> (String, String) {
+  static func generateHeader(parsed: OptionParser, header: String, requireHEADTag: Bool) async throws -> (UInt, String) {
     let headerURL = URL(fileURLWithPath: header)
 
     let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: requireHEADTag)
@@ -63,7 +63,7 @@ struct Generation {
     let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
     if var info = info as? [String: Any] {
-      if let existing = info["CFBundleVersion"] as? String, existing == build {
+      if let existing = (info["CFBundleVersion"] as? String).map({ UInt($0) }), existing == build {
         parsed.log("Build number is \(build).")
       } else {
         parsed.log("Using build number \(build).")

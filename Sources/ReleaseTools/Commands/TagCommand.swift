@@ -67,9 +67,7 @@ struct TagCommand: AsyncParsableCommand {
     }
 
     // Get current commit
-    let commitResult = parsed.git.run(["rev-list", "--max-count", "1", "HEAD"])
-    try await commitResult.throwIfFailed(TagError.gettingBuildFailed)
-    let commit = await commitResult.stdout.string.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    let commit = try await parsed.git.headCommit()
 
     // Create the tag in format: v<version>-<build>
     let tagName = "v\(version)-\(build)"

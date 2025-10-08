@@ -7,52 +7,39 @@ import Foundation
 
 extension OptionParser {
 
+  // MARK: - Constants
+
+  /// Pattern for platform-agnostic version tags: v<version>-<build> (e.g., v1.2.3-42)
+  private nonisolated(unsafe) static let platformAgnosticTagPattern: Regex<(Substring, version: Substring, Substring?, build: Substring)> =
+    #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
+
+  /// Pattern for platform-specific version tags: v<version>-<build>-<platform> (e.g., v1.2.3-42-iOS)
+  private nonisolated(unsafe) static let platformSpecificTagPattern: Regex<(Substring, version: Substring, Substring?, build: Substring, platform: Substring)> =
+    #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
+
+  // MARK: - Methods
+
   /// Get the build number and commit from an existing platform-agnostic version tag at HEAD
-  func buildNumberAndCommit(requireHeadTag: Bool = true) async throws -> (String, String) {
+  func buildNumberAndCommit(requireHeadTag: Bool = true) async throws -> (build: UInt, commit: String) {
+    let commit = try await git.headCommit()
+    let build: UInt
     if requireHeadTag {
-      let build = try await versionTagAtHEAD().build
-
-      // Get the commit SHA
-      let commitResult = git.run(["rev-parse", "HEAD"])
-      let commitOutput = await commitResult.stdout.string
-      let commitState = await commitResult.waitUntilExit()
-      guard case .succeeded = commitState else {
-        throw UpdateBuildError.gettingCommitFailed
-      }
-      guard let commit = commitOutput.split(separator: "\n").first else {
-        throw UpdateBuildError.parsingCommitFailed
-      }
-
-      return (build, commit.trimmingCharacters(in: .whitespacesAndNewlines))
+      build = try await versionTagAtHEAD().build
     } else {
-      // New behavior: calculate build number from highest existing tag + 1
-      // Get the commit SHA first
-      let commitResult = git.run(["rev-parse", "HEAD"])
-      let commitOutput = await commitResult.stdout.string
-      let commitState = await commitResult.waitUntilExit()
-      guard case .succeeded = commitState else {
-        throw UpdateBuildError.gettingCommitFailed
-      }
-      guard let commit = commitOutput.split(separator: "\n").first else {
-        throw UpdateBuildError.parsingCommitFailed
-      }
-
-      // Calculate the next build number
-      let buildNumber = try await nextPlatformAgnosticBuildNumber()
-
-      return (String(buildNumber), commit.trimmingCharacters(in: .whitespacesAndNewlines))
+      build = try await nextPlatformAgnosticBuildNumber()
     }
+
+    return (build, commit)
   }
 
   /// Fetch all version tags, extract platform as String and build as UInt, and process each with the provided closure if both are non-nil.
   private func processAllVersionTags(
     process: @escaping (_ platform: String, _ build: UInt, _ tag: String) async -> Void
   ) async throws {
-    let pattern: Regex<(Substring, version: Substring, Substring?, build: Substring, platform: Substring)> = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
     let tagsResult = git.run(["tag"])
     try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
     for await tag in await tagsResult.stdout.lines {
-      if let parsed = tag.firstMatch(of: pattern) {
+      if let parsed = tag.firstMatch(of: Self.platformSpecificTagPattern) {
         let platform = String(parsed.output.platform)
         if let build = UInt(parsed.output.build) {
           await process(platform, build, tag)
@@ -65,11 +52,10 @@ extension OptionParser {
   func processAllPlatformAgnosticVersionTags(
     process: @escaping (_ build: UInt, _ tag: String) async -> Void
   ) async throws {
-    let pattern: Regex<(Substring, version: Substring, Substring?, build: Substring)> = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
     let tagsResult = git.run(["tag"])
     try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
     for await tag in await tagsResult.stdout.lines {
-      if let parsed = tag.firstMatch(of: pattern) {
+      if let parsed = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
         if let build = UInt(parsed.output.build) {
           await process(build, tag)
         }
@@ -121,7 +107,7 @@ extension OptionParser {
   /// Get the platform-agnostic version tag at HEAD.
   /// Returns the tag and build number from the tag.
   /// Throw an error if one is not found.
-  func versionTagAtHEAD() async throws -> (tag: String, build: String) {
+  func versionTagAtHEAD() async throws -> (tag: String, build: UInt) {
 
     // Get tags pointing at HEAD
     let result = git.run(["tag", "--points-at", "HEAD"])
@@ -130,13 +116,10 @@ extension OptionParser {
       throw GeneralError.noVersionTagAtHEAD
     }
 
-    // Look for platform-agnostic version tags: v<version>-<build>
-    let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
-
     for await line in await result.stdout.lines {
       let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
-      if let match = tag.firstMatch(of: pattern) {
-        let build = String(match.build)
+      if let match = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
+        let build = UInt(match.build) ?? 0
         verbose("Found version tag at HEAD: \(tag) with build \(build)")
         return (tag, build)
       }
@@ -154,10 +137,9 @@ extension OptionParser {
     var highestBuild: UInt = 0
 
     // Check platform-agnostic tags first
-    let agnosticPattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
     try await processAllPlatformAgnosticVersionTags { build, tag in
       if build > highestBuild {
-        if let match = tag.firstMatch(of: agnosticPattern) {
+        if let match = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
           highestVersion = String(match.version)
           highestBuild = build
         }
@@ -165,10 +147,9 @@ extension OptionParser {
     }
 
     // Also check platform-specific tags
-    let specificPattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
     try await processAllVersionTags { _, build, tag in
       if build > highestBuild {
-        if let match = tag.firstMatch(of: specificPattern) {
+        if let match = tag.firstMatch(of: Self.platformSpecificTagPattern) {
           highestVersion = String(match.version)
           highestBuild = build
         }
@@ -189,11 +170,9 @@ extension OptionParser {
       return
     }
 
-    let pattern = #/^v\d+\.\d+(\.\d+)*-\d+$/#
-
     for await line in await result.stdout.lines {
       let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
-      if tag.firstMatch(of: pattern) != nil {
+      if tag.firstMatch(of: Self.platformAgnosticTagPattern) != nil {
         throw TagError.tagAlreadyExists(tag)
       }
     }
