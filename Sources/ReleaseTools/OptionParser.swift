@@ -282,8 +282,6 @@ class OptionParser {
     archive = nil
   }
 
-
-
   func defaultKey(for key: String, platform: String) -> String {
     if platform.isEmpty {
       return "\(key).default.\(workspace)"
@@ -360,20 +358,20 @@ class OptionParser {
   func ensureVersionTagAtHEAD() async throws {
     let git = GitRunner()
     git.cwd = rootURL
-    
+
     // Get tags pointing at HEAD
     let result = git.run(["tag", "--points-at", "HEAD"])
     let state = await result.waitUntilExit()
-    
+
     guard case .succeeded = state else {
       // If we can't check tags, throw an error to be safe
       throw GeneralError.noVersionTagAtHEAD
     }
-    
+
     // Look for platform-agnostic version tags: v<version>-<build>
     let pattern = #/^v\d+\.\d+(\.\d+)*-\d+$/#
     var foundVersionTag = false
-    
+
     for await line in await result.stdout.lines {
       let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
       if tag.firstMatch(of: pattern) != nil {
@@ -382,9 +380,44 @@ class OptionParser {
         break
       }
     }
-    
+
     if !foundVersionTag {
       throw GeneralError.noVersionTagAtHEAD
     }
+  }
+
+  /// Get the build number and commit from an existing platform-agnostic version tag at HEAD
+  func buildNumberAndCommitFromHEAD(in directory: URL, using git: GitRunner) async throws -> (String, String) {
+    git.cwd = directory
+
+    // Get tags pointing at HEAD
+    let result = git.run(["tag", "--points-at", "HEAD"])
+    let state = await result.waitUntilExit()
+
+    guard case .succeeded = state else {
+      throw GeneralError.noVersionTagAtHEAD
+    }
+
+    // Look for platform-agnostic version tags: v<version>-<build>
+    let pattern = #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
+
+    for await line in await result.stdout.lines {
+      let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
+      if let match = tag.firstMatch(of: pattern) {
+        let build = String(match.build)
+        verbose("Found version tag at HEAD: \(tag) with build \(build)")
+
+        // Get the commit SHA
+        let commitResult = git.run(["rev-parse", "HEAD"])
+        let commitState = await commitResult.waitUntilExit()
+        guard case .succeeded = commitState else {
+          throw UpdateBuildError.gettingCommitFailed
+        }
+        let commit = await commitResult.stdout.lines.first(where: { _ in true }) ?? ""
+        return (build, commit.trimmingCharacters(in: .whitespacesAndNewlines))
+      }
+    }
+
+    throw GeneralError.noVersionTagAtHEAD
   }
 }

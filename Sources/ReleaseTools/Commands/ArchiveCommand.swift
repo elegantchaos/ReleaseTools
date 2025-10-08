@@ -23,7 +23,7 @@ enum ArchiveError: Runner.Error {
   func description(for session: Runner.Session) async -> String {
     switch self {
       case .archiveFailed: return "Archiving failed.\n\n\(await session.stderr.string)"
-      case .noVersionTagAtHEAD: 
+      case .noVersionTagAtHEAD:
         return """
           No version tag found at HEAD.
           Please create a version tag before archiving using:
@@ -62,10 +62,10 @@ struct ArchiveCommand: AsyncParsableCommand {
   static func archive(parsed: OptionParser, xcconfig: String? = nil) async throws {
     // Check for version tag at HEAD
     try await parsed.ensureVersionTagAtHEAD()
-    
+
     parsed.log("Updating VersionInfo.h...")
     let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
-    let (build, commit) = try await UpdateBuildCommand.generateHeader(
+    let (build, commit) = try await Generation.generateHeader(
       parsed: parsed, header: infoHeaderPath, repo: parsed.rootURL.path)
     parsed.log("Archiving scheme \(parsed.scheme)...")
 
