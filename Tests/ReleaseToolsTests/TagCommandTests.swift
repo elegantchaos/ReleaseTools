@@ -20,7 +20,7 @@ struct TagCommandTests {
     await repo.checkedRT(["tag", "--tag-version", "1.2.3", "--explicit-build", "42"])
 
     // Verify the tag was created with the explicit build number
-    #expect(try await repo.headTagsContains(["v1.2.3-42"]))
+    try await repo.expectHeadTagsContains(["v1.2.3-42"])
   }
 
   @Test func failsIfTagAlreadyExists() async throws {
@@ -53,7 +53,7 @@ struct TagCommandTests {
     await repo.checkedRT(["tag", "--tag-version", "1.0.0", "--explicit-build", "1"])
 
     // Verify both tags exist
-    #expect(try await repo.headTagsContains(["v1.0.0-1", "some-other-tag"]))
+    try await repo.expectHeadTagsContains(["v1.0.0-1", "some-other-tag"])
   }
 
   @Test func calculatesIncrementalBuildNumber() async throws {
@@ -67,7 +67,7 @@ struct TagCommandTests {
     await repo.checkedRT(["tag", "--tag-version", "1.0.0"])
 
     // Verify the tag was created with build number 6
-    #expect(try await repo.headTagsContains(["v1.0.0-6"]))
+    try await repo.expectHeadTagsContains(["v1.0.0-6"])
   }
 
   @Test func convertsFromPlatformSpecificTags() async throws {
@@ -83,7 +83,7 @@ struct TagCommandTests {
     await repo.checkedRT(["tag", "--tag-version", "1.0.1"])
 
     // Verify the tag was created with build number 16 (15 + 1)
-    #expect(try await repo.headTagsContains(["v1.0.1-16"]))
+    try await repo.expectHeadTagsContains(["v1.0.1-16"])
   }
 
   @Test func prefersPlatformSpecificOverAgnosticWhenHigher() async throws {
@@ -99,7 +99,7 @@ struct TagCommandTests {
     await repo.checkedRT(["tag", "--tag-version", "1.0.1"])
 
     // Verify the tag was created with build number 21 (20 + 1)
-    #expect(try await repo.headTagsContains(["v1.0.1-21"]))
+    try await repo.expectHeadTagsContains(["v1.0.1-21"])
   }
 
   @Test func prefersAgnosticOverPlatformSpecificWhenHigher() async throws {
@@ -115,6 +115,6 @@ struct TagCommandTests {
     await repo.checkedRT(["tag", "--tag-version", "1.0.1"])
 
     // Verify the tag was created with build number 31 (30 + 1)
-    #expect(try await repo.headTagsContains(["v1.0.1-31"]))
+    try await repo.expectHeadTagsContains(["v1.0.1-31"])
   }
 }

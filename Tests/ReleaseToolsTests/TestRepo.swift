@@ -92,14 +92,17 @@ class TestRepo {
     return tags
   }
 
-  func headTagsContains(_ tags: [String]) async throws -> Bool {
+  func expectHeadTagsContains(_ tags: [String]) async throws {
     let existingTags = try await headTags()
+    var contained = true
     for tag in tags {
       if !existingTags.contains(tag) {
-        return false
+        contained = false
+        break
       }
     }
-    return true
+
+    #expect(contained, "Expected tags \(tags) to be contained in \(existingTags)")
   }
 
   /// Run a git command with GitRunner and capture stdout/stderr/exit code
