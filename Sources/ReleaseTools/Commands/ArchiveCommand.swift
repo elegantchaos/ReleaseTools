@@ -73,7 +73,6 @@ struct ArchiveCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
       "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)",
       "INFOPLIST_PREPROCESS=YES",
-      "CURRENT_PROJECT_VERSION=\(buildInfo.build)",
       "RT_BUILD=\(buildInfo.build)",
       "RT_COMMIT=\(buildInfo.commit)",
       "RT_VERSION=\(buildInfo.version)",

@@ -13,8 +13,11 @@ extension ReleaseEngine {
 
     let buildInfo = try await buildInfoFromTag(requireHeadTag: requireHEADTag)
     log("Setting build number to \(buildInfo.build).")
-    let header =
-      "#define RT_BUILD \(buildInfo.build)\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"\(buildInfo.version)\""
+    let header = """
+      #define RT_BUILD \(buildInfo.build)
+      #define RT_COMMIT \(buildInfo.commit)
+      #define RT_VERSION \(buildInfo.version)
+      """
     try? FileManager.default.createDirectory(
       at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
     try header.write(to: headerURL, atomically: true, encoding: .utf8)
