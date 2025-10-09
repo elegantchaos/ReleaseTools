@@ -1,27 +1,30 @@
 # ReleaseTools Copilot Instructions
 
 ## Project Overview
-ReleaseTools (`rt`) is a Swift CLI tool for iOS/macOS release automation - a simpler alternative to Fastlane. It handles build numbering, archiving, exporting, App Store uploads, and notarization workflows.
+ReleaseTools (`rt`) is a Swift CLI tool for iOS/macOS release automation - a simpler alternative to Fastlane. 
+
+It handles build numbering, archiving, exporting, App Store uploads, and notarization workflows.
 
 ## Architecture
 
 ### Command Structure (ArgumentParser)
 - **Root**: `RootCommand.swift` registers all subcommands via `CommandConfiguration.subcommands`
 - **Commands**: Each in `Sources/ReleaseTools/Commands/*Command.swift` implements `AsyncParsableCommand`
-- **Common pattern**: Commands create an `OptionParser` for common options, parse additional command-specific options, then call local methods to perform tasks
-- **Shared options**: `CommonOptions`, `SchemeOption`, `PlatformOption` via `@OptionGroup()`
+- **Common pattern**: Commands parse their options and then create a `ReleaseEngine` object. They then use this engine, along with local methods, to perform the command's task.
+- **Shared options**: Some commands have common options. These are grouped into reusable structs like `CommonOptions`, `SchemeOption`, `PlatformOption` via `@OptionGroup()`
 
 ### Core Components
-- **OptionParser**: Central state manager for workspace settings, git operations, and file paths. Initialized with command config + options
+- **ReleaseEngine**: Central state manager for workspace settings, git operations, and file paths. Initialized with command config + options
 - **Runners**: Wrappers around shell commands (`GitRunner`, `XCodeBuildRunner`, `XCRunRunner`, `DittoRunner`) - subclass `Runner` from external package
 - **WorkspaceSettings**: JSON config (`.rt.json`) with scheme-based, platform-based, and wildcard (`*`) settings hierarchies
-- **Generation**: Static utilities for generating version headers/configs
 
-### Version Tag System
-**Critical Pattern**: Tags follow `v<version>-<build>` (platform-agnostic) or `v<version>-<build>-<platform>` (platform-specific)
+### Version Tags
+We use git tags to track version and build numbers. 
+Tags follow `v<version>-<build>` where version is a semantic version and build is an integer.
+An old platform-specific version of the tag format is still supported for compatibility: `v<version>-<build>-<platform>`.
 - Examples: `v1.2.3-42`, `v1.2.3-42-iOS`
-- `OptionParser+BuildNumber.swift`: Tag parsing, build number calculation, highest tag detection
-- Archive command requires tag at HEAD; `update-build` command looks for the highest tag in the history.
+- `ReleaseEngine+BuildNumber.swift` contains code to parse tags, calculate next build numbers, and find highest tags.
+- The archive command requires a tag at HEAD; The `update-build` command looks for the highest tag in the history.
 
 ## Build & Test
 
@@ -78,26 +81,23 @@ rt upload               # Upload to App Store Connect
 - Swift code is fully async/await where appropriate.
 - All commands are `async throws` - use `AsyncParsableCommand`
 - Runner sessions use `waitUntilExit()` for status, async sequences for output streams
-- Pattern: `for await line in await result.stdout.lines { ... }`
+- When we need to analyse the output of an external process line-by-line, we use the pattern: `for await line in await result.stdout.lines { ... }`
+- For short outputs, we can also use `let output = try await result.stdout.string` to get the full output as a string.
 
 ### Settings & Defaults
 - Settings merge: `*` → scheme → platform → `scheme.platform` (most specific wins)
 - Workspace/scheme inferred from folder name if not specified
 - `.rt.json` format: `{"defaultScheme": "...", "settings": {"*": {...}, "scheme": {...}}}`
 
-### Naming Conventions
-- Private helpers start with lowercase: `findHighestTag()`, `getAllTags()`
-- Public/internal APIs use camelCase without prefix
-- Regex patterns: `platformAgnosticTagPattern`, `platformSpecificTagPattern`
+### Coding Conventions
+- Use standard Swift naming conventions
 - Error cases: descriptive names like `noVersionTagAtHEAD`, `archiveFailed`
-- Prefer methods on structs over free functions. Prefer private methods over public where possible.
-
-## Common Pitfalls
-
-1. **Tag fetching**: Always call `ensureTagsUpToDate(using: git)` before reading tags (handles repos without remotes gracefully)
-2. **Async iteration**: Collect tags into array if needed for multiple passes - async sequences can't be replayed
-3. **Platform defaults**: Commands support `--platform` but default to `macOS` if not in settings
-4. **HEAD tag requirement**: `archive`/`submit` require version tag at HEAD; `update-build` does not
+- Prefer methods on structs over free functions. 
+- Prefer private methods over public where possible.
+- When adding new code, generate comments for public methods, types, and properties using `///` syntax
+- When adding or changing code, also update or add relevant tests in `Tests/ReleaseToolsTests/`
+- When adding or changing code, also update this file to reflect the changes.
+- When adding or changing code, also update the README.md file to reflect the changes.
 
 ## Dependencies
 - **ArgumentParser**: Command-line parsing
