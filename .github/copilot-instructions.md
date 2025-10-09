@@ -43,6 +43,16 @@ swift test                              # Run tests (uses Swift Testing framewor
 - Tests should be fully isolated and not depend on external state.
 - Running tests in parallel should be fine.
 
+### Validating Your Code Changes
+- When validating your code changes, prefer adding or updating tests to cover the new or changed functionality.
+- If you need to run commands on the local machine to validate your changes:
+  - Create temporary content in a directory called AgentTests/ at the root of the workspace
+  - This directory should be ignored by git via .gitignore
+  - It is ok to run commands manually in this directory to validate your changes, but do not commit any files here.
+  - Make sub-directories as needed to organize different test scenarios.
+  - It is ok to leave temporary files here, but try to keep it tidy.
+  - Periodically you can ask to clean up this directory if it gets too cluttered.
+
 ## Key Workflows
 
 ### Creating Version Tags
@@ -98,6 +108,9 @@ rt upload               # Upload to App Store Connect
 - When adding or changing code, also update or add relevant tests in `Tests/ReleaseToolsTests/`
 - When adding or changing code, also update this file to reflect the changes.
 - When adding or changing code, also update the README.md file to reflect the changes.
+- Do not add // MARK comments to separate sections of code
+  - use extensions where appropriate, to group related functionality
+  - for tests, use suites and sub-suites instead of // MARK comments
 
 ## Dependencies
 - **ArgumentParser**: Command-line parsing
