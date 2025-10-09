@@ -29,7 +29,7 @@ ReleaseTools (`rt`) is a Swift CLI tool for iOS/macOS release automation - a sim
 ```bash
 swift build                             # Build tool
 swift run rt <subcommand> [options]     # Run without installing
-swift test --no-parallel                # Run tests (uses Swift Testing framework)
+swift test                              # Run tests (uses Swift Testing framework)
 ```
 
 ### Test Infrastructure
@@ -37,6 +37,8 @@ swift test --no-parallel                # Run tests (uses Swift Testing framewor
 - Each test repo has dedicated `GitRunner` and `Runner` instances pointing to `.build/debug/rt`
 - Tests use `@Test` attribute (Swift Testing) not XCTest
 - Pattern: `@Test func testName() async throws { let repo = try await TestRepo(); ... }`
+- Tests should be fully isolated and not depend on external state.
+- Running tests in parallel should be fine.
 
 ## Key Workflows
 
@@ -73,6 +75,7 @@ rt upload               # Upload to App Store Connect
 - Use `throwIfFailed(_:)` on `Runner.Session` to throw typed errors
 
 ### Async Patterns
+- Swift code is fully async/await where appropriate.
 - All commands are `async throws` - use `AsyncParsableCommand`
 - Runner sessions use `waitUntilExit()` for status, async sequences for output streams
 - Pattern: `for await line in await result.stdout.lines { ... }`
@@ -93,9 +96,8 @@ rt upload               # Upload to App Store Connect
 
 1. **Tag fetching**: Always call `ensureTagsUpToDate(using: git)` before reading tags (handles repos without remotes gracefully)
 2. **Async iteration**: Collect tags into array if needed for multiple passes - async sequences can't be replayed
-3. **Test isolation**: Tests create independent git repos; flakiness usually indicates async timing issues in tag collection
-4. **Platform defaults**: Commands support `--platform` but default to `macOS` if not in settings
-5. **HEAD tag requirement**: `archive`/`submit` require version tag at HEAD; `update-build` does not
+3. **Platform defaults**: Commands support `--platform` but default to `macOS` if not in settings
+4. **HEAD tag requirement**: `archive`/`submit` require version tag at HEAD; `update-build` does not
 
 ## Dependencies
 - **ArgumentParser**: Command-line parsing

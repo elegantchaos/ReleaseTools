@@ -12,7 +12,7 @@ enum TagError: Runner.Error {
   case gettingVersionFailed
   case gettingBuildFailed
   case creatingTagFailed
-  
+
   func description(for session: Runner.Session) async -> String {
     switch self {
       case .tagAlreadyExists(let tag):
