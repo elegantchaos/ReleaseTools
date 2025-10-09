@@ -30,18 +30,16 @@ extension WaitForNotarizationError: LocalizedError {
   }
 }
 
-enum WaitForNotarizationRunnerError: LocalizedError {
-  case fetchingNotarizationStatusFailed(Runner.Session)
-  case exportingNotarizedAppFailed(Runner.Session)
+enum WaitForNotarizationRunnerError: Runner.Error {
+  case fetchingNotarizationStatusFailed
+  case exportingNotarizedAppFailed
 
-  var errorDescription: String? {
-    get async {
-      switch self {
-        case .fetchingNotarizationStatusFailed(let session):
-          return "Fetching notarization status failed.\n\(await session.stderr.string)"
-        case .exportingNotarizedAppFailed(let session):
-          return "Exporting notarized app failed.\n\(await session.stderr.string)"
-      }
+  func description(for session: Runner.Session) async -> String {
+    switch self {
+      case .fetchingNotarizationStatusFailed:
+        return "Fetching notarization status failed.\n\(await session.stderr.string)"
+      case .exportingNotarizedAppFailed:
+        return "Exporting notarized app failed.\n\(await session.stderr.string)"
     }
   }
 }
@@ -119,10 +117,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
         try? fm.copyItem(at: parsed.exportedAppURL, to: stapledAppURL)
         let xcrun = XCRunRunner(parsed: parsed)
         let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
-        let state = await result.waitUntilExit()
-        if case .failed = state {
-          throw WaitForNotarizationRunnerError.exportingNotarizedAppFailed(result)
-        }
+        try await result.throwIfFailed(WaitForNotarizationRunnerError.exportingNotarizedAppFailed)
       } else {
         throw WaitForNotarizationError.missingArchive
       }
@@ -141,10 +136,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       "--apiKey", parsed.apiKey,
       "--output-format", "xml",
     ])
-    let state = await result.waitUntilExit()
-    if case .failed = state {
-      throw WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed(result)
-    }
+    try await result.throwIfFailed(WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed)
 
     parsed.log("Received response.")
     let data = await result.stdout.data

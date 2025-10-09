@@ -52,15 +52,13 @@ extension UploadError: LocalizedError {
   }
 }
 
-enum UploadRunnerError: LocalizedError {
-  case uploadingFailed(Runner.Session)
+enum UploadRunnerError: Runner.Error {
+  case uploadingFailed
 
-  var errorDescription: String? {
-    get async {
-      switch self {
-        case .uploadingFailed(let session):
-          return "Uploading failed.\n\(await session.stderr.string)"
-      }
+  func description(for session: Runner.Session) async -> String {
+    switch self {
+      case .uploadingFailed:
+        return "Uploading failed.\n\(await session.stderr.string)"
     }
   }
 }
@@ -116,10 +114,7 @@ struct UploadCommand: AsyncParsableCommand {
     // check for a non-zero result
     // unfortunately altool doesn't always return a non-zero error
     // (or maybe xcrun doesn't pass it on?)
-    let uploadState = await uploadResult.waitUntilExit()
-    if case .failed = uploadState {
-      throw UploadRunnerError.uploadingFailed(uploadResult)
-    }
+    try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
 
     parsed.log("Finished uploading.")
 

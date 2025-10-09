@@ -49,10 +49,7 @@ struct Generation {
       }
 
       let result = parsed.git.run(["update-index", "--assume-unchanged", configURL.path])
-      let state = await result.waitUntilExit()
-      if case .failed = state {
-        throw UpdateBuildError.updatingIndexFailed(result)
-      }
+      try await result.throwIfFailed(UpdateBuildError.updatingIndexFailed)
     }
   }
 

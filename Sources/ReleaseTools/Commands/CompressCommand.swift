@@ -7,15 +7,13 @@ import ArgumentParser
 import Foundation
 import Runner
 
-enum CompressError: LocalizedError {
-  case compressFailed(Runner.Session)
+enum CompressError: Runner.Error {
+  case compressFailed
 
-  var errorDescription: String? {
-    get async {
-      switch self {
-        case .compressFailed(let session):
-          return "Compressing failed.\n\(await session.stderr.string)"
-      }
+  func description(for session: Runner.Session) async -> String {
+    switch self {
+      case .compressFailed:
+        return "Compressing failed.\n\(await session.stderr.string)"
     }
   }
 }
@@ -48,10 +46,7 @@ struct CompressCommand: AsyncParsableCommand {
     let destination = updates.url.appendingPathComponent(parsed.archive.versionedZipName)
 
     let result = ditto.zip(stapledAppURL, as: destination)
-    let state = await result.waitUntilExit()
-    if case .failed = state {
-      throw CompressError.compressFailed(result)
-    }
+    try await result.throwIfFailed(CompressError.compressFailed)
 
     parsed.log(
       "Saving copy of archive to \(website.websiteURL.path) as \(parsed.archive.unversionedZipName)."

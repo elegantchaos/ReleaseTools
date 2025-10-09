@@ -37,10 +37,7 @@ extension OptionParser {
     process: @escaping (_ platform: String, _ build: UInt, _ tag: String) async -> Void
   ) async throws {
     let tagsResult = git.run(["tag"])
-    let state = await tagsResult.waitUntilExit()
-    if case .failed = state {
-      throw UpdateBuildError.gettingBuildFailed(tagsResult)
-    }
+    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
     for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: Self.platformSpecificTagPattern) {
         let platform = String(parsed.output.platform)
@@ -56,10 +53,7 @@ extension OptionParser {
     process: @escaping (_ build: UInt, _ tag: String) async -> Void
   ) async throws {
     let tagsResult = git.run(["tag"])
-    let state = await tagsResult.waitUntilExit()
-    if case .failed = state {
-      throw UpdateBuildError.gettingBuildFailed(tagsResult)
-    }
+    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
     for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
         if let build = UInt(parsed.output.build) {

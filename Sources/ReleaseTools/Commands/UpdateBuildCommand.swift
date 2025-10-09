@@ -9,36 +9,34 @@ import Files
 import Foundation
 import Runner
 
-enum UpdateBuildError: LocalizedError {
-  case fetchingTagsFailed(Runner.Session)
-  case gettingBuildFailed(Runner.Session)
+enum UpdateBuildError: Runner.Error {
+  case fetchingTagsFailed
+  case gettingBuildFailed
   case gettingCommitFailed
   case parsingCommitFailed
   case writingConfigFailed(String)
-  case updatingIndexFailed(Runner.Session)
+  case updatingIndexFailed
   case invalidExplicitBuild(String)
   case inconsistentTagState(currentPlatform: String)
 
-  var errorDescription: String? {
-    get async {
-      switch self {
-        case .fetchingTagsFailed(let session):
-          return "Failed to fetch tags from git.\n\n\(await session.stderr.string)"
-        case .gettingBuildFailed(let session):
-          return "Failed to get the build number from git.\n\n\(await session.stderr.string)"
-        case .gettingCommitFailed:
-          return "Failed to get the commit from git."
-        case .parsingCommitFailed:
-          return "Failed to parse the commit information from git."
-        case .writingConfigFailed(let errorMsg):
-          return "Failed to write the config file.\n\n\(errorMsg)"
-        case .updatingIndexFailed(let session):
-          return "Failed to tell git to ignore the config file.\n\n\(await session.stderr.string)"
-        case .invalidExplicitBuild(let value):
-          return "Invalid explicit build number: \(value). Must be a positive integer."
-        case .inconsistentTagState(let currentPlatform):
-          return "Inconsistent tag state: highest build for platform (\(currentPlatform)) is greater than highest build for any platform. This should not happen. Please check your tags."
-      }
+  func description(for session: Runner.Session) async -> String {
+    switch self {
+      case .fetchingTagsFailed:
+        return "Failed to fetch tags from git.\n\n\(await session.stderr.string)"
+      case .gettingBuildFailed:
+        return "Failed to get the build number from git.\n\n\(await session.stderr.string)"
+      case .gettingCommitFailed:
+        return "Failed to get the commit from git."
+      case .parsingCommitFailed:
+        return "Failed to parse the commit information from git."
+      case .writingConfigFailed(let message):
+        return "Failed to write the config file.\n\n\(message)"
+      case .updatingIndexFailed:
+        return "Failed to tell git to ignore the config file.\n\n\(await session.stderr.string)"
+      case .invalidExplicitBuild(let value):
+        return "Invalid explicit build number: \(value). Must be a positive integer."
+      case .inconsistentTagState(let currentPlatform):
+        return "Inconsistent tag state: highest build for platform (\(currentPlatform)) is greater than highest build for any platform. This should not happen. Please check your tags."
     }
   }
 }
