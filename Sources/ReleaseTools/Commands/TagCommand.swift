@@ -8,15 +8,15 @@ import Foundation
 import Runner
 
 enum TagError: Runner.Error {
-  case tagAlreadyExists(String)
+  case tagAlreadyExists(ReleaseEngine.BuildInfo)
   case gettingVersionFailed
   case gettingBuildFailed
   case creatingTagFailed
 
   func description(for session: Runner.Session) async -> String {
     switch self {
-      case .tagAlreadyExists(let tag):
-        return "A version tag already exists at HEAD: \(tag)"
+      case .tagAlreadyExists(let info):
+        return "A version tag already exists at HEAD: \(info)"
       case .gettingVersionFailed:
         return "Failed to get the version information.\n\n\(await session.stderr.string)"
       case .gettingBuildFailed:

@@ -53,14 +53,12 @@ struct ArchiveCommand: AsyncParsableCommand {
       command: Self.configuration
     )
 
-    _ = try await engine.versionTagAtHEAD()
-
     try await Self.archive(engine: engine, xcconfig: xcconfig)
   }
 
   static func archive(engine: ReleaseEngine, xcconfig: String? = nil) async throws {
     let infoHeaderPath = "\(engine.buildURL.path)/VersionInfo.h"
-    let (build, commit) = try await engine.generateHeader(
+    let buildInfo = try await engine.generateHeader(
       header: infoHeaderPath, requireHEADTag: true)
     engine.log("Archiving scheme \(engine.scheme)...")
 
@@ -73,8 +71,9 @@ struct ArchiveCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
       "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)",
       "INFOPLIST_PREPROCESS=YES",
-      "RT_BUILD=\(build)",
-      "RT_COMMIT=\(commit)",
+      "RT_BUILD=\(buildInfo.build)",
+      "RT_COMMIT=\(buildInfo.commit)",
+      "RT_VERSION=\(buildInfo.version)",
     ]
 
     if let config = xcconfig {

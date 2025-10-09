@@ -7,8 +7,6 @@ import Foundation
 
 extension ReleaseEngine {
 
-  // MARK: - Constants
-
   /// Pattern for platform-agnostic version tags: v<version>-<build> (e.g., v1.2.3-42)
   private nonisolated(unsafe) static let platformAgnosticTagPattern: Regex<(Substring, version: Substring, Substring?, build: Substring)> =
     #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
@@ -17,19 +15,30 @@ extension ReleaseEngine {
   private nonisolated(unsafe) static let platformSpecificTagPattern: Regex<(Substring, version: Substring, Substring?, build: Substring, platform: Substring)> =
     #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
 
-  // MARK: - Methods
-
-  /// Get the build number and commit from an existing platform-agnostic version tag at HEAD
-  func buildNumberAndCommit(requireHeadTag: Bool = true) async throws -> (build: UInt, commit: String) {
-    let commit = try await git.headCommit()
+  /// Information about a build including build number, commit hash, and version string
+  struct BuildInfo {
+    /// The build number (e.g., 42)
     let build: UInt
-    if requireHeadTag {
-      build = try await versionTagAtHEAD().build
-    } else {
-      build = try await nextPlatformAgnosticBuildNumber()
-    }
+    /// The full commit hash (e.g., "f13a5c4e2bde037cafdc8706abbd7e93013b2102")
+    let commit: String
+    /// The semantic version string (e.g., "1.2.3")
+    let version: String
+  }
 
-    return (build, commit)
+  /// Get build information including build number, commit hash, and version string
+  /// - Parameter requireHeadTag: If true, requires a version tag at HEAD and extracts info from it.
+  ///                           If false, calculates next build number and uses version from highest existing tag.
+  func buildInfoFromTag(requireHeadTag: Bool = true) async throws -> BuildInfo {
+    if requireHeadTag {
+      // versionTagAtHEAD already returns complete BuildInfo with all parsed information
+      return try await versionTagAtHEAD()
+    } else {
+      // For incremental builds, we need to calculate the next build number
+      let commit = try await git.headCommit()
+      let build = try await nextPlatformAgnosticBuildNumber()
+      let version = try await versionFromHighestTag() ?? "1.0.0"
+      return BuildInfo(build: build, commit: commit, version: version)
+    }
   }
 
   /// Fetch all version tags, extract platform as String and build as UInt, and process each with the provided closure if both are non-nil.
@@ -105,9 +114,9 @@ extension ReleaseEngine {
   }
 
   /// Get the platform-agnostic version tag at HEAD.
-  /// Returns the tag and build number from the tag.
+  /// Returns BuildInfo with build number, commit hash, and version from the tag.
   /// Throw an error if one is not found.
-  func versionTagAtHEAD() async throws -> (tag: String, build: UInt) {
+  func versionTagAtHEAD() async throws -> BuildInfo {
 
     // Get tags pointing at HEAD
     let result = git.run(["tag", "--points-at", "HEAD"])
@@ -116,12 +125,15 @@ extension ReleaseEngine {
       throw GeneralError.noVersionTagAtHEAD
     }
 
+    let commit = try await git.headCommit()
+
     for await line in await result.stdout.lines {
       let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
       if let match = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
         let build = UInt(match.build) ?? 0
+        let version = String(match.version)
         verbose("Found version tag at HEAD: \(tag) with build \(build)")
-        return (tag, build)
+        return BuildInfo(build: build, commit: commit, version: version)
       }
     }
 
@@ -161,20 +173,12 @@ extension ReleaseEngine {
 
   /// Check if there's already a version tag at HEAD and throw an error if found
   func ensureNoExistingTag() async throws {
-    // Get tags pointing at HEAD
-    let result = git.run(["tag", "--points-at", "HEAD"])
-    let state = await result.waitUntilExit()
-
-    guard case .succeeded = state else {
-      // If we can't check tags, continue anyway
+    do {
+      let info = try await versionTagAtHEAD()
+      throw TagError.tagAlreadyExists(info)
+    } catch GeneralError.noVersionTagAtHEAD {
+      // This is what we want - no existing tag
       return
-    }
-
-    for await line in await result.stdout.lines {
-      let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
-      if tag.firstMatch(of: Self.platformAgnosticTagPattern) != nil {
-        throw TagError.tagAlreadyExists(tag)
-      }
     }
   }
 

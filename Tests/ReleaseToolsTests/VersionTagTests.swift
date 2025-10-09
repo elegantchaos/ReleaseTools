@@ -76,14 +76,14 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
     // Should return build number 1 when no tags exist
-    #expect(build == 1)
+    #expect(buildInfo.build == 1)
 
     // Verify commit SHA is valid (40 character hex string)
-    #expect(commit.count == 40)
-    #expect(commit.allSatisfy { $0.isHexDigit })
+    #expect(buildInfo.commit.count == 40)
+    #expect(buildInfo.commit.allSatisfy { $0.isHexDigit })
   }
 
   @Test func calculatesNextBuildNumberFromPlatformAgnosticTag() async throws {
@@ -96,14 +96,14 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
     // Should return next build number (6)
-    #expect(build == 6)
+    #expect(buildInfo.build == 6)
 
     // Verify commit SHA is valid
-    #expect(commit.count == 40)
-    #expect(commit.allSatisfy { $0.isHexDigit })
+    #expect(buildInfo.commit.count == 40)
+    #expect(buildInfo.commit.allSatisfy { $0.isHexDigit })
   }
 
   @Test func calculatesNextBuildNumberFromPlatformSpecificTag() async throws {
@@ -116,14 +116,14 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
     // Should return next build number (11), converting from platform-specific
-    #expect(build == 11)
+    #expect(buildInfo.build == 11)
 
     // Verify commit SHA is valid
-    #expect(commit.count == 40)
-    #expect(commit.allSatisfy { $0.isHexDigit })
+    #expect(buildInfo.commit.count == 40)
+    #expect(buildInfo.commit.allSatisfy { $0.isHexDigit })
   }
 
   @Test func calculatesNextBuildNumberFromMultipleTags() async throws {
@@ -139,14 +139,14 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
     // Should return next build number based on highest (20 + 1 = 21)
-    #expect(build == 21)
+    #expect(buildInfo.build == 21)
 
     // Verify commit SHA is valid
-    #expect(commit.count == 40)
-    #expect(commit.allSatisfy { $0.isHexDigit })
+    #expect(buildInfo.commit.count == 40)
+    #expect(buildInfo.commit.allSatisfy { $0.isHexDigit })
   }
 
   @Test func returnsCurrentHeadCommitWhenRequireHeadTagIsFalse() async throws {
@@ -161,15 +161,15 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
     // Should return next build number
-    #expect(build == 2)
+    #expect(buildInfo.build == 2)
 
     // Verify it returns the current HEAD commit, not the tag's commit
     let headResult = await repo.checkedGit(["rev-parse", "HEAD"])
     let headCommit = headResult.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-    #expect(commit == headCommit)
+    #expect(buildInfo.commit == headCommit)
   }
 
   @Test func prefersAgnosticOverPlatformSpecificForNextBuild() async throws {
@@ -183,10 +183,10 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, _) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
     // Should use the highest build number (30) and return 31
-    #expect(build == 31)
+    #expect(buildInfo.build == 31)
   }
 
   @Test func prefersPlatformSpecificOverAgnosticForNextBuild() async throws {
@@ -200,9 +200,9 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    let (build, _) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
     // Should use the highest build number (25) and return 26
-    #expect(build == 26)
+    #expect(buildInfo.build == 26)
   }
 }

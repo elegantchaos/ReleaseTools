@@ -7,19 +7,19 @@ import Foundation
 
 /// Functionality for generating build-related files.
 extension ReleaseEngine {
-  /// Generate a header file containing the build number and commit hash.
-  func generateHeader(header: String, requireHEADTag: Bool) async throws -> (UInt, String) {
+  /// Generate a header file containing the build number, commit hash, and version.
+  func generateHeader(header: String, requireHEADTag: Bool) async throws -> BuildInfo {
     let headerURL = URL(fileURLWithPath: header)
 
-    let (build, commit) = try await buildNumberAndCommit(requireHeadTag: requireHEADTag)
-    log("Setting build number to \(build).")
+    let buildInfo = try await buildInfoFromTag(requireHeadTag: requireHEADTag)
+    log("Setting build number to \(buildInfo.build).")
     let header =
-      "#define RT_BUILD \(build)\n#define RT_COMMIT \(commit)"
+      "#define RT_BUILD \(buildInfo.build)\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"\(buildInfo.version)\""
     try? FileManager.default.createDirectory(
       at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
     try header.write(to: headerURL, atomically: true, encoding: .utf8)
     log("Updated \(headerURL.lastPathComponent).")
-    return (build, commit)
+    return buildInfo
   }
 
   /// Generate or update an xcconfig file containing the build number and commit hash.
@@ -34,13 +34,13 @@ extension ReleaseEngine {
       configURL = URL(fileURLWithPath: "Configs/BuildNumber.xcconfig")
     }
 
-    let (build, commit) = try await buildNumberAndCommit(requireHeadTag: false)
-    let new = "RT_BUILD = \(build)\nRT_COMMIT = \(commit)"
+    let buildInfo = try await buildInfoFromTag(requireHeadTag: false)
+    let new = "RT_BUILD = \(buildInfo.build)\nRT_COMMIT = \(buildInfo.commit)\nRT_VERSION = \(buildInfo.version)"
 
     if let existing = try? String(contentsOf: configURL, encoding: .utf8), existing == new {
-      log("Build number is \(build).")
+      log("Build number is \(buildInfo.build).")
     } else {
-      log("Updating build number to \(build).")
+      log("Updating build number to \(buildInfo.build).")
       do {
         try new.write(to: configURL, atomically: true, encoding: .utf8)
         log("Updated \(configURL.lastPathComponent).")
@@ -60,22 +60,23 @@ extension ReleaseEngine {
     let data = try Data(contentsOf: plistURL)
     let info = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
 
-    let (build, commit) = try await buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await buildInfoFromTag(requireHeadTag: false)
 
     if var info = info as? [String: Any] {
-      if let existing = (info["CFBundleVersion"] as? String).map({ UInt($0) }), existing == build {
-        log("Build number is \(build).")
+      if let existing = (info["CFBundleVersion"] as? String).map({ UInt($0) }), existing == buildInfo.build {
+        log("Build number is \(buildInfo.build).")
       } else {
-        log("Using build number \(build).")
-        info["CFBundleVersion"] = build
-        info["Commit"] = commit
+        log("Using build number \(buildInfo.build).")
+        info["CFBundleVersion"] = buildInfo.build
+        info["Commit"] = buildInfo.commit
+        info["Version"] = buildInfo.version
         let data = try PropertyListSerialization.data(
           fromPropertyList: info, format: .xml, options: 0)
         try data.write(to: destURL, options: .atomic)
         log("Updated \(destURL.lastPathComponent).")
 
         let headerURL = destURL.deletingLastPathComponent().appendingPathComponent("RTInfo.h")
-        let header = "#define RT_BUILD \(build)\n#define RT_COMMIT \(commit)"
+        let header = "#define RT_BUILD \(buildInfo.build)\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"\(buildInfo.version)\""
         try header.write(to: headerURL, atomically: true, encoding: .utf8)
         log("Updated \(headerURL.lastPathComponent).")
       }

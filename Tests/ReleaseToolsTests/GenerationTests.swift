@@ -26,15 +26,15 @@ struct GenerationTests {
 
     // Generate header file
     let headerPath = repo.url.appendingPathComponent("VersionInfo.h").path
-    let (build, commit) = try await engine.generateHeader(header: headerPath, requireHEADTag: true)
+    let buildInfo = try await engine.generateHeader(header: headerPath, requireHEADTag: true)
 
     // Verify the build number and commit are correct
-    #expect(build == 42)
-    #expect(!commit.isEmpty)
+    #expect(buildInfo.build == 42)
+    #expect(!buildInfo.commit.isEmpty)
 
     // Verify header file content
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedContent = "#define RT_BUILD 42\n#define RT_COMMIT \(commit)"
+    let expectedContent = "#define RT_BUILD 42\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"1.2.3\""
     #expect(headerContent == expectedContent)
   }
 
@@ -47,15 +47,15 @@ struct GenerationTests {
 
     // Generate header file without requiring HEAD tag
     let headerPath = repo.url.appendingPathComponent("VersionInfo.h").path
-    let (build, commit) = try await engine.generateHeader(header: headerPath, requireHEADTag: false)
+    let buildInfo = try await engine.generateHeader(header: headerPath, requireHEADTag: false)
 
     // Should default to build 1 when no tags exist
-    #expect(build == 1)
-    #expect(!commit.isEmpty)
+    #expect(buildInfo.build == 1)
+    #expect(!buildInfo.commit.isEmpty)
 
     // Verify header file content
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedContent = "#define RT_BUILD 1\n#define RT_COMMIT \(commit)"
+    let expectedContent = "#define RT_BUILD 1\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"1.0.0\""
     #expect(headerContent == expectedContent)
   }
 
@@ -71,15 +71,15 @@ struct GenerationTests {
 
     // Generate header file - should increment from highest existing tag
     let headerPath = repo.url.appendingPathComponent("VersionInfo.h").path
-    let (build, commit) = try await engine.generateHeader(header: headerPath, requireHEADTag: false)
+    let buildInfo = try await engine.generateHeader(header: headerPath, requireHEADTag: false)
 
     // Should increment to build 6
-    #expect(build == 6)
-    #expect(!commit.isEmpty)
+    #expect(buildInfo.build == 6)
+    #expect(!buildInfo.commit.isEmpty)
 
     // Verify header file content
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedContent = "#define RT_BUILD 6\n#define RT_COMMIT \(commit)"
+    let expectedContent = "#define RT_BUILD 6\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"1.0.0\""
     #expect(headerContent == expectedContent)
   }
 
@@ -104,11 +104,11 @@ struct GenerationTests {
     }
 
     // Get the expected commit hash
-    let (_, commit) = try await engine.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await engine.buildInfoFromTag(requireHeadTag: false)
 
     // Verify config file content was still generated correctly
     let configContent = try String(contentsOf: URL(fileURLWithPath: configPath), encoding: .utf8)
-    let expectedContent = "RT_BUILD = 16\nRT_COMMIT = \(commit)"
+    let expectedContent = "RT_BUILD = 16\nRT_COMMIT = \(buildInfo.commit)\nRT_VERSION = 2.1.0"
     #expect(configContent == expectedContent)
   }
 
@@ -135,11 +135,11 @@ struct GenerationTests {
     }
 
     // Get the expected commit hash
-    let (_, commit) = try await engine.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await engine.buildInfoFromTag(requireHeadTag: false)
 
     // Verify config file was updated
     let configContent = try String(contentsOf: URL(fileURLWithPath: configPath), encoding: .utf8)
-    let expectedContent = "RT_BUILD = 11\nRT_COMMIT = \(commit)"
+    let expectedContent = "RT_BUILD = 11\nRT_COMMIT = \(buildInfo.commit)\nRT_VERSION = 1.0.0"
     #expect(configContent == expectedContent)
   }
 
@@ -153,11 +153,11 @@ struct GenerationTests {
     let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Get expected values
-    let (build, commit) = try await engine.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await engine.buildInfoFromTag(requireHeadTag: false)
 
     // Create config with the exact same content that would be generated
     let configPath = repo.url.appendingPathComponent("BuildNumber.xcconfig").path
-    let expectedContent = "RT_BUILD = \(build)\nRT_COMMIT = \(commit)"
+    let expectedContent = "RT_BUILD = \(buildInfo.build)\nRT_COMMIT = \(buildInfo.commit)\nRT_VERSION = \(buildInfo.version)"
     try expectedContent.write(to: URL(fileURLWithPath: configPath), atomically: true, encoding: .utf8)
 
     // Get modification time before calling generateConfig
@@ -189,7 +189,7 @@ struct GenerationTests {
     let sourcePlistPath = repo.url.appendingPathComponent("Info-Source.plist").path
     let sourcePlistDict: [String: Any] = [
       "CFBundleVersion": "1",
-      "CFBundleIdentifier": "com.example.test"
+      "CFBundleIdentifier": "com.example.test",
     ]
     let sourcePlistData = try PropertyListSerialization.data(fromPropertyList: sourcePlistDict, format: .xml, options: 0)
     try sourcePlistData.write(to: URL(fileURLWithPath: sourcePlistPath))
@@ -202,7 +202,7 @@ struct GenerationTests {
     try await engine.generatePlist(source: sourcePlistPath, dest: destPlistPath)
 
     // Get expected commit hash
-    let (_, commit) = try await engine.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await engine.buildInfoFromTag(requireHeadTag: false)
 
     // Verify destination plist was created with updated build number
     let destURL = URL(fileURLWithPath: destPlistPath)
@@ -211,18 +211,19 @@ struct GenerationTests {
 
     // Verify our expected keys were added/updated
     #expect(plist["CFBundleVersion"] as? UInt == 26)
-    #expect(plist["Commit"] as? String == commit)
-    
+    #expect(plist["Commit"] as? String == buildInfo.commit)
+    #expect(plist["Version"] as? String == "3.2.1")
+
     // Verify original unrelated key is preserved
     #expect(plist["CFBundleIdentifier"] as? String == "com.example.test")
-    
-    // Verify expected number of keys (2 original + 1 added Commit = 3 total)
-    #expect(plist.keys.count == 3)
+
+    // Verify expected number of keys (2 original + 2 added Commit,Version = 4 total)
+    #expect(plist.keys.count == 4)
 
     // Verify header file was also generated
     let headerPath = repo.url.appendingPathComponent("RTInfo.h").path
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedHeaderContent = "#define RT_BUILD 26\n#define RT_COMMIT \(commit)"
+    let expectedHeaderContent = "#define RT_BUILD 26\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"3.2.1\""
     #expect(headerContent == expectedHeaderContent)
   }
 
@@ -236,13 +237,13 @@ struct GenerationTests {
     let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Get expected build number
-    let (build, _) = try await engine.buildNumberAndCommit(requireHeadTag: false)
+    let buildInfo = try await engine.buildInfoFromTag(requireHeadTag: false)
 
     // Create source plist with the same build number that would be calculated using dictionary
     let sourcePlistPath = repo.url.appendingPathComponent("Info-Source.plist").path
     let sourcePlistDict: [String: Any] = [
-      "CFBundleVersion": "\(build)",
-      "CFBundleExecutable": "TestApp"
+      "CFBundleVersion": "\(buildInfo.build)",
+      "CFBundleExecutable": "TestApp",
     ]
     let sourcePlistData = try PropertyListSerialization.data(fromPropertyList: sourcePlistDict, format: .xml, options: 0)
     try sourcePlistData.write(to: URL(fileURLWithPath: sourcePlistPath))
@@ -279,7 +280,7 @@ struct GenerationTests {
     let sourcePlistPath = repo.url.appendingPathComponent("Info-Source.plist").path
     let sourcePlistDict: [String: Any] = [
       "CFBundleVersion": "1",
-      "CFBundleName": "TestApp"
+      "CFBundleName": "TestApp",
     ]
     let sourcePlistData = try PropertyListSerialization.data(fromPropertyList: sourcePlistDict, format: .xml, options: 0)
     try sourcePlistData.write(to: URL(fileURLWithPath: sourcePlistPath))
@@ -287,7 +288,7 @@ struct GenerationTests {
     let destPlistPath = repo.url.appendingPathComponent("Info.plist").path
 
     // Generate all files
-    let (headerBuild, headerCommit) = try await engine.generateHeader(header: headerPath, requireHEADTag: false)
+    let headerBuildInfo = try await engine.generateHeader(header: headerPath, requireHEADTag: false)
 
     // Generate config - expect git update-index to fail in test environment
     do {
@@ -301,31 +302,32 @@ struct GenerationTests {
 
     // All should use the same build number (9, incrementing from highest tag 8)
     let expectedBuild: UInt = 9
-    #expect(headerBuild == expectedBuild)
+    #expect(headerBuildInfo.build == expectedBuild)
 
     // Verify header content
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedHeaderContent = "#define RT_BUILD \(expectedBuild)\n#define RT_COMMIT \(headerCommit)"
+    let expectedHeaderContent = "#define RT_BUILD \(expectedBuild)\n#define RT_COMMIT \(headerBuildInfo.commit)\n#define RT_VERSION \"1.1.0\""
     #expect(headerContent == expectedHeaderContent)
 
     // Verify config content
     let configContent = try String(contentsOf: URL(fileURLWithPath: configPath), encoding: .utf8)
-    let expectedConfigContent = "RT_BUILD = \(expectedBuild)\nRT_COMMIT = \(headerCommit)"
+    let expectedConfigContent = "RT_BUILD = \(expectedBuild)\nRT_COMMIT = \(headerBuildInfo.commit)\nRT_VERSION = 1.1.0"
     #expect(configContent == expectedConfigContent)
 
     // Verify plist content
     let plistData = try Data(contentsOf: URL(fileURLWithPath: destPlistPath))
     let plist = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as! [String: Any]
-    
+
     // Verify our expected keys were added/updated
     #expect(plist["CFBundleVersion"] as? UInt == expectedBuild)
-    #expect(plist["Commit"] as? String == headerCommit)
-    
+    #expect(plist["Commit"] as? String == headerBuildInfo.commit)
+    #expect(plist["Version"] as? String == "1.1.0")
+
     // Verify original unrelated key is preserved
     #expect(plist["CFBundleName"] as? String == "TestApp")
-    
-    // Verify expected number of keys (2 original + 1 added Commit = 3 total)
-    #expect(plist.keys.count == 3)
+
+    // Verify expected number of keys (2 original + 2 added Commit,Version = 4 total)
+    #expect(plist.keys.count == 4)
 
     // Verify RTInfo.h was also generated by plist function
     let rtInfoPath = repo.url.appendingPathComponent("RTInfo.h").path
