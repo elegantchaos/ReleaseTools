@@ -50,7 +50,9 @@ struct ArchiveCommand: AsyncParsableCommand {
   func run() async throws {
     let engine = try ReleaseEngine(
       options: options,
-      command: Self.configuration
+      command: Self.configuration,
+      scheme: scheme,
+      platform: platform,
     )
 
     try await Self.archive(engine: engine, xcconfig: xcconfig)
@@ -71,6 +73,7 @@ struct ArchiveCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
       "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)",
       "INFOPLIST_PREPROCESS=YES",
+      "CURRENT_PROJECT_VERSION=\(buildInfo.build)",
       "RT_BUILD=\(buildInfo.build)",
       "RT_COMMIT=\(buildInfo.commit)",
       "RT_VERSION=\(buildInfo.version)",
