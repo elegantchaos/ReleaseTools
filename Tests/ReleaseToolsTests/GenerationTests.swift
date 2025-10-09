@@ -34,7 +34,7 @@ struct GenerationTests {
 
     // Verify header file content
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedContent = "#define RT_BUILD 42\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"1.2.3\""
+    let expectedContent = "#define RT_BUILD 42\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION 1.2.3"
     #expect(headerContent == expectedContent)
   }
 
@@ -55,7 +55,7 @@ struct GenerationTests {
 
     // Verify header file content
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedContent = "#define RT_BUILD 1\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"1.0.0\""
+    let expectedContent = "#define RT_BUILD 1\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION 1.0.0"
     #expect(headerContent == expectedContent)
   }
 
@@ -79,7 +79,7 @@ struct GenerationTests {
 
     // Verify header file content
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedContent = "#define RT_BUILD 6\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"1.0.0\""
+    let expectedContent = "#define RT_BUILD 6\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION 1.0.0"
     #expect(headerContent == expectedContent)
   }
 
@@ -223,7 +223,7 @@ struct GenerationTests {
     // Verify header file was also generated
     let headerPath = repo.url.appendingPathComponent("RTInfo.h").path
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedHeaderContent = "#define RT_BUILD 26\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION \"3.2.1\""
+    let expectedHeaderContent = "#define RT_BUILD 26\n#define RT_COMMIT \(buildInfo.commit)\n#define RT_VERSION 3.2.1"
     #expect(headerContent == expectedHeaderContent)
   }
 
@@ -306,7 +306,7 @@ struct GenerationTests {
 
     // Verify header content
     let headerContent = try String(contentsOf: URL(fileURLWithPath: headerPath), encoding: .utf8)
-    let expectedHeaderContent = "#define RT_BUILD \(expectedBuild)\n#define RT_COMMIT \(headerBuildInfo.commit)\n#define RT_VERSION \"1.1.0\""
+    let expectedHeaderContent = "#define RT_BUILD \(expectedBuild)\n#define RT_COMMIT \(headerBuildInfo.commit)\n#define RT_VERSION 1.1.0"
     #expect(headerContent == expectedHeaderContent)
 
     // Verify config content

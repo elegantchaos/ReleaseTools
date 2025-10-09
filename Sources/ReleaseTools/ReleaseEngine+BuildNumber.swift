@@ -23,6 +23,15 @@ extension ReleaseEngine {
     let commit: String
     /// The semantic version string (e.g., "1.2.3")
     let version: String
+
+    /// C-style #define statements for build info
+    var defines: String {
+      return """
+        #define RT_BUILD \(build)
+        #define RT_COMMIT \(commit)
+        #define RT_VERSION \(version)
+        """
+    }
   }
 
   /// Get build information including build number, commit hash, and version string
