@@ -63,37 +63,37 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
   static let retryDelay = 30
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       requires: [.archive],
       options: options,
       command: Self.configuration,
       platform: platform
     )
 
-    guard let requestUUID = request ?? savedNotarizationReceipt(parsed: parsed) else {
+    guard let requestUUID = request ?? savedNotarizationReceipt(engine: engine) else {
       throw WaitForNotarizationError.loadingNotarizationReceiptFailed
     }
 
-    parsed.log("Requesting notarization status...")
+    engine.log("Requesting notarization status...")
     do {
-      while !(try await check(request: requestUUID, parsed: parsed)) {
-        parsed.log("Will retry in \(Self.retryDelay) seconds...")
+      while !(try await check(request: requestUUID, engine: engine)) {
+        engine.log("Will retry in \(Self.retryDelay) seconds...")
         try await Task.sleep(for: .seconds(Self.retryDelay))
-        parsed.log("Retrying fetch of notarization status...")
+        engine.log("Retrying fetch of notarization status...")
       }
     } catch {
       throw WaitForNotarizationError.fetchingNotarizationStatusThrew(error)
     }
 
-    parsed.log("Tagging.")
-    let tagResult = parsed.git.run([
-      "tag", parsed.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
+    engine.log("Tagging.")
+    let tagResult = engine.git.run([
+      "tag", engine.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)
   }
 
-  func savedNotarizationReceipt(parsed: OptionParser) -> String? {
-    let notarizingReceiptURL = parsed.exportURL.appendingPathComponent("receipt.xml")
+  func savedNotarizationReceipt(engine: ReleaseEngine) -> String? {
+    let notarizingReceiptURL = engine.exportURL.appendingPathComponent("receipt.xml")
     guard let data = try? Data(contentsOf: notarizingReceiptURL),
       let receipt = try? PropertyListSerialization.propertyList(
         from: data, options: [], format: nil) as? [String: Any],
@@ -103,19 +103,19 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     return upload["RequestUUID"]
   }
 
-  func exportNotarized(parsed: OptionParser) async throws {
-    parsed.log("Stapling notarized app.")
+  func exportNotarized(engine: ReleaseEngine) async throws {
+    engine.log("Stapling notarized app.")
 
     do {
       let fm = FileManager.default
       try? fm.createDirectory(
-        at: parsed.stapledURL, withIntermediateDirectories: true, attributes: nil)
+        at: engine.stapledURL, withIntermediateDirectories: true, attributes: nil)
 
-      if let archive = parsed.archive {
-        let stapledAppURL = parsed.stapledURL.appendingPathComponent(archive.name)
+      if let archive = engine.archive {
+        let stapledAppURL = engine.stapledURL.appendingPathComponent(archive.name)
         try? fm.removeItem(at: stapledAppURL)
-        try? fm.copyItem(at: parsed.exportedAppURL, to: stapledAppURL)
-        let xcrun = XCRunRunner(parsed: parsed)
+        try? fm.copyItem(at: engine.exportedAppURL, to: stapledAppURL)
+        let xcrun = XCRunRunner(engine: engine)
         let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
         try await result.throwIfFailed(WaitForNotarizationRunnerError.exportingNotarizedAppFailed)
       } else {
@@ -126,28 +126,28 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     }
   }
 
-  func check(request: String, parsed: OptionParser) async throws -> Bool {
-    let xcrun = XCRunRunner(parsed: parsed)
+  func check(request: String, engine: ReleaseEngine) async throws -> Bool {
+    let xcrun = XCRunRunner(engine: engine)
     let result = xcrun.run([
       "altool",
       "--notarization-info",
       request,
-      "--apiIssuer", parsed.apiIssuer,
-      "--apiKey", parsed.apiKey,
+      "--apiIssuer", engine.apiIssuer,
+      "--apiKey", engine.apiKey,
       "--output-format", "xml",
     ])
     try await result.throwIfFailed(WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed)
 
-    parsed.log("Received response.")
+    engine.log("Received response.")
     let data = await result.stdout.data
     if let receipt = try? PropertyListSerialization.propertyList(
       from: data, options: [], format: nil) as? [String: Any],
       let info = receipt["notarization-info"] as? [String: Any],
       let status = info[asString: "Status"]
     {
-      parsed.log("Status was \(status).")
+      engine.log("Status was \(status).")
       if status == "success" {
-        try await exportNotarized(parsed: parsed)
+        try await exportNotarized(engine: engine)
         return true
       } else if status == "invalid" {
         let message = (info[asString: "Status Message"]) ?? ""
@@ -172,7 +172,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
           }
         }
 
-        parsed.fail(WaitForNotarizationError.notarizationFailed(output))
+        engine.fail(WaitForNotarizationError.notarizationFailed(output))
       }
     }
 

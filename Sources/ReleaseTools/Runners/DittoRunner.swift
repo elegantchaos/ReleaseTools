@@ -7,23 +7,23 @@ import Foundation
 import Runner
 
 class DittoRunner: Runner {
-  let parsed: OptionParser
-  init(parsed: OptionParser) {
-    self.parsed = parsed
+  let engine: ReleaseEngine
+  init(engine: ReleaseEngine) {
+    self.engine = engine
     super.init(command: "ditto")
   }
 
   func run(_ arguments: [String]) -> Session {
-    if parsed.showCommands {
-      parsed.log("ditto " + arguments.joined(separator: " "))
+    if engine.showCommands {
+      engine.log("ditto " + arguments.joined(separator: " "))
     }
 
-    let mode: Runner.Output.Mode = parsed.showOutput ? .both : .capture
+    let mode: Runner.Output.Mode = engine.showOutput ? .both : .capture
     return run(arguments, stdoutMode: mode, stderrMode: mode)
   }
 
   func zip(_ url: URL, as zipURL: URL) -> Session {
-    parsed.log("Compressing \(url.lastPathComponent) to \(zipURL.path).")
+    engine.log("Compressing \(url.lastPathComponent) to \(zipURL.path).")
     return run(["-c", "-k", "--sequesterRsrc", "--keepParent", url.path, zipURL.path])
   }
 }

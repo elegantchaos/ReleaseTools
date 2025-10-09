@@ -33,7 +33,7 @@ struct CompressCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       requires: [.archive],
       options: options,
       command: Self.configuration,
@@ -41,17 +41,17 @@ struct CompressCommand: AsyncParsableCommand {
       platform: platform
     )
 
-    let stapledAppURL = parsed.stapledURL.appendingPathComponent(parsed.archive.name)
-    let ditto = DittoRunner(parsed: parsed)
-    let destination = updates.url.appendingPathComponent(parsed.archive.versionedZipName)
+    let stapledAppURL = engine.stapledURL.appendingPathComponent(engine.archive.name)
+    let ditto = DittoRunner(engine: engine)
+    let destination = updates.url.appendingPathComponent(engine.archive.versionedZipName)
 
     let result = ditto.zip(stapledAppURL, as: destination)
     try await result.throwIfFailed(CompressError.compressFailed)
 
-    parsed.log(
-      "Saving copy of archive to \(website.websiteURL.path) as \(parsed.archive.unversionedZipName)."
+    engine.log(
+      "Saving copy of archive to \(website.websiteURL.path) as \(engine.archive.unversionedZipName)."
     )
-    let latestZip = website.websiteURL.appendingPathComponent(parsed.archive.unversionedZipName)
+    let latestZip = website.websiteURL.appendingPathComponent(engine.archive.unversionedZipName)
     try? FileManager.default.removeItem(at: latestZip)
     try FileManager.default.copyItem(at: destination, to: latestZip)
   }

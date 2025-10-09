@@ -7,10 +7,10 @@ import Foundation
 import Runner
 
 class XCodeBuildRunner: Runner {
-  let parsed: OptionParser
+  let engine: ReleaseEngine
 
-  init(parsed: OptionParser) {
-    self.parsed = parsed
+  init(engine: ReleaseEngine) {
+    self.engine = engine
     super.init(command: "xcodebuild")
   }
 
@@ -31,11 +31,11 @@ class XCodeBuildRunner: Runner {
   }
 
   func run(_ arguments: [String]) -> Session {
-    if parsed.showCommands {
-      parsed.log("\n> xcodebuild \(arguments.joined(separator: " "))\n")
+    if engine.showCommands {
+      engine.log("\n> xcodebuild \(arguments.joined(separator: " "))\n")
     }
 
-    let mode: Runner.Output.Mode = parsed.showOutput ? .both : .capture
+    let mode: Runner.Output.Mode = engine.showOutput ? .both : .capture
     return run(arguments, stdoutMode: mode, stderrMode: mode)
   }
 }

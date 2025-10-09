@@ -35,7 +35,7 @@ struct PublishCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       requires: [.archive],
       options: options,
       command: Self.configuration,
@@ -45,15 +45,15 @@ struct PublishCommand: AsyncParsableCommand {
     let git = GitRunner()
     git.cwd = website.websiteURL
 
-    parsed.log("Committing updates.")
+    engine.log("Committing updates.")
     var result = git.run(["add", updates.path])
     try await result.throwIfFailed(PublishError.commitFailed)
 
-    let message = "v\(parsed.archive.version), build \(parsed.archive.build)"
+    let message = "v\(engine.archive.version), build \(engine.archive.build)"
     result = git.run(["commit", "-a", "-m", message])
     try await result.throwIfFailed(PublishError.commitFailed)
 
-    parsed.log("Pushing updates.")
+    engine.log("Pushing updates.")
     let pushResult = git.run(["push"])
     try await pushResult.throwIfFailed(PublishError.pushFailed)
   }

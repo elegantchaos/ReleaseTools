@@ -56,7 +56,7 @@ enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
   }
 }
 
-class OptionParser {
+class ReleaseEngine {
   enum Requirement {
     case archive
     case workspace

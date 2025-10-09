@@ -41,16 +41,16 @@ struct TagCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       options: options,
       command: Self.configuration
     )
 
     // Check if there's already a version tag at HEAD
-    try await parsed.ensureNoExistingTag()
+    try await engine.ensureNoExistingTag()
 
     // Get or determine the version
-    let version = try await getVersion(parsed: parsed)
+    let version = try await getVersion(engine: engine)
 
     // Get the build number (either explicit or calculated)
     let build: UInt
@@ -58,41 +58,41 @@ struct TagCommand: AsyncParsableCommand {
       guard let explicitBuildNumber = UInt(explicitBuild) else {
         throw UpdateBuildError.invalidExplicitBuild(explicitBuild)
       }
-      parsed.verbose("Using explicit build number: \(explicitBuildNumber)")
+      engine.verbose("Using explicit build number: \(explicitBuildNumber)")
       build = explicitBuildNumber
     } else {
       // Calculate the build number (platform-agnostic)
-      build = try await parsed.nextPlatformAgnosticBuildNumber()
+      build = try await engine.nextPlatformAgnosticBuildNumber()
     }
 
     // Get current commit
-    let commit = try await parsed.git.headCommit()
+    let commit = try await engine.git.headCommit()
 
     // Create the tag in format: v<version>-<build>
     let tagName = "v\(version)-\(build)"
 
-    parsed.log("Creating tag: \(tagName) at commit \(commit)")
+    engine.log("Creating tag: \(tagName) at commit \(commit)")
 
-    let tagResult = parsed.git.run(["tag", tagName, commit])
+    let tagResult = engine.git.run(["tag", tagName, commit])
     try await tagResult.throwIfFailed(TagError.creatingTagFailed)
 
-    parsed.log("Successfully created tag: \(tagName)")
+    engine.log("Successfully created tag: \(tagName)")
   }
 
   /// Get the version string, either from the --explicit-version option or from the highest existing tag
-  private func getVersion(parsed: OptionParser) async throws -> String {
+  private func getVersion(engine: ReleaseEngine) async throws -> String {
     if let tagVersion = explicitVersion {
       return tagVersion
     }
 
     // Try to get version from the highest existing tag
-    if let version = try await parsed.versionFromHighestTag() {
-      parsed.verbose("Found version from highest tag: \(version)")
+    if let version = try await engine.versionFromHighestTag() {
+      engine.verbose("Found version from highest tag: \(version)")
       return version
     }
 
     // Fall back to 1.0.0 if no tags exist
-    parsed.verbose("No existing tags found, using default version: 1.0.0")
+    engine.verbose("No existing tags found, using default version: 1.0.0")
     return "1.0.0"
   }
 }

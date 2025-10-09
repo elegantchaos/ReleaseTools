@@ -48,28 +48,28 @@ struct ArchiveCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       options: options,
-      command: Self.configuration,
-      scheme: scheme,
-      platform: platform
+      command: Self.configuration
     )
 
-    try await Self.archive(parsed: parsed, xcconfig: xcconfig)
+    _ = try await engine.versionTagAtHEAD()
+
+    try await Self.archive(engine: engine, xcconfig: xcconfig)
   }
 
-  static func archive(parsed: OptionParser, xcconfig: String? = nil) async throws {
-    let infoHeaderPath = "\(parsed.buildURL.path)/VersionInfo.h"
-    let (build, commit) = try await parsed.generateHeader(
+  static func archive(engine: ReleaseEngine, xcconfig: String? = nil) async throws {
+    let infoHeaderPath = "\(engine.buildURL.path)/VersionInfo.h"
+    let (build, commit) = try await engine.generateHeader(
       header: infoHeaderPath, requireHEADTag: true)
-    parsed.log("Archiving scheme \(parsed.scheme)...")
+    engine.log("Archiving scheme \(engine.scheme)...")
 
-    let xcode = XCodeBuildRunner(parsed: parsed)
+    let xcode = XCodeBuildRunner(engine: engine)
     var args = [
-      "-workspace", parsed.workspace,
-      "-scheme", parsed.scheme,
+      "-workspace", engine.workspace,
+      "-scheme", engine.scheme,
       "archive",
-      "-archivePath", parsed.archiveURL.path,
+      "-archivePath", engine.archiveURL.path,
       "-allowProvisioningUpdates",
       "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)",
       "INFOPLIST_PREPROCESS=YES",
@@ -81,7 +81,7 @@ struct ArchiveCommand: AsyncParsableCommand {
       args.append(contentsOf: ["-xcconfig", config])
     }
 
-    switch parsed.platform {
+    switch engine.platform {
       case "macOS":
         args.append(contentsOf: ["-destination", "generic/platform=macOS"])
       case "iOS":
@@ -96,6 +96,6 @@ struct ArchiveCommand: AsyncParsableCommand {
 
     let result = xcode.run(args)
     try await result.throwIfFailed(ArchiveError.archiveFailed)
-    parsed.log("Archived scheme \(parsed.scheme).")
+    engine.log("Archived scheme \(engine.scheme).")
   }
 }

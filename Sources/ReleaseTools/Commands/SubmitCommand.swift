@@ -29,7 +29,7 @@ struct SubmitCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       options: options,
       command: Self.configuration,
       scheme: scheme,
@@ -38,10 +38,10 @@ struct SubmitCommand: AsyncParsableCommand {
       platform: platform
     )
 
-    try await ArchiveCommand.archive(parsed: parsed, xcconfig: xcconfig)
-    try await ExportCommand.export(parsed: parsed)
-    parsed.archive = XcodeArchive(url: parsed.archiveURL)
-    try await UploadCommand.upload(parsed: parsed)
+    try await ArchiveCommand.archive(engine: engine, xcconfig: xcconfig)
+    try await ExportCommand.export(engine: engine)
+    engine.archive = XcodeArchive(url: engine.archiveURL)
+    try await UploadCommand.upload(engine: engine)
     // TODO: open page in app portal?
   }
 }

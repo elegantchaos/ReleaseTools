@@ -20,7 +20,7 @@ struct VersionTagTests {
     // Create a non-version tag (should not count)
     try await repo.tag(name: "some-tag")
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     await #expect(throws: GeneralError.noVersionTagAtHEAD) {
       _ = try await parsed.versionTagAtHEAD()
@@ -34,7 +34,7 @@ struct VersionTagTests {
     try await repo.tag(name: "v1.2.3-42")
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     // Should not throw
     _ = try await parsed.versionTagAtHEAD()
@@ -46,7 +46,7 @@ struct VersionTagTests {
     // Create only a platform-specific tag (should not count)
     try await repo.tag(name: "v1.2.3-42-iOS")
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     await #expect(throws: GeneralError.noVersionTagAtHEAD) {
       _ = try await parsed.versionTagAtHEAD()
@@ -62,7 +62,7 @@ struct VersionTagTests {
     try await repo.tag(name: "release-tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     // Should not throw as long as there's at least one platform-agnostic version tag
     _ = try await parsed.versionTagAtHEAD()
@@ -74,7 +74,7 @@ struct VersionTagTests {
     let repo = try await TestRepo()
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
@@ -94,7 +94,7 @@ struct VersionTagTests {
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
@@ -114,7 +114,7 @@ struct VersionTagTests {
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
@@ -137,7 +137,7 @@ struct VersionTagTests {
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
@@ -159,7 +159,7 @@ struct VersionTagTests {
     try await repo.commit(message: "new commit")
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     let (build, commit) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
@@ -181,7 +181,7 @@ struct VersionTagTests {
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     let (build, _) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 
@@ -198,7 +198,7 @@ struct VersionTagTests {
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try OptionParser(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     let (build, _) = try await parsed.buildNumberAndCommit(requireHeadTag: false)
 

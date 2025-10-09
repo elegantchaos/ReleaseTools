@@ -6,7 +6,7 @@
 import Foundation
 
 /// Functionality for generating build-related files.
-extension OptionParser {
+extension ReleaseEngine {
   /// Generate a header file containing the build number and commit hash.
   func generateHeader(header: String, requireHEADTag: Bool) async throws -> (UInt, String) {
     let headerURL = URL(fileURLWithPath: header)

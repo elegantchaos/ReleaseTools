@@ -5,7 +5,7 @@
 
 import Foundation
 
-extension OptionParser {
+extension ReleaseEngine {
 
   // MARK: - Constants
 

@@ -49,7 +49,7 @@ struct NotarizeCommand: AsyncParsableCommand {
 
   func run() async throws {
 
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       requires: [.archive],
       options: options,
       command: Self.configuration,
@@ -57,30 +57,30 @@ struct NotarizeCommand: AsyncParsableCommand {
       platform: platform
     )
 
-    parsed.log("Creating zip archive for notarization.")
-    let ditto = DittoRunner(parsed: parsed)
+    engine.log("Creating zip archive for notarization.")
+    let ditto = DittoRunner(engine: engine)
 
-    let zipResult = ditto.zip(parsed.exportedAppURL, as: parsed.exportedZipURL)
+    let zipResult = ditto.zip(engine.exportedAppURL, as: engine.exportedZipURL)
     try await zipResult.throwIfFailed(NotarizeRunnerError.compressingFailed)
 
-    parsed.log("Uploading \(parsed.versionTag) to notarization service.")
-    let xcrun = XCRunRunner(parsed: parsed)
+    engine.log("Uploading \(engine.versionTag) to notarization service.")
+    let xcrun = XCRunRunner(engine: engine)
     let result = xcrun.run([
       "altool",
       "--notarize-app",
-      "--primary-bundle-id", parsed.archive.identifier,
-      "--apiIssuer", parsed.apiIssuer,
-      "--apiKey", parsed.apiKey,
-      "--team-id", parsed.archive.team,
-      "--file", parsed.exportedZipURL.path,
+      "--primary-bundle-id", engine.archive.identifier,
+      "--apiIssuer", engine.apiIssuer,
+      "--apiKey", engine.apiKey,
+      "--team-id", engine.archive.team,
+      "--file", engine.exportedZipURL.path,
       "--output-format", "xml",
     ])
     try await result.throwIfFailed(NotarizeRunnerError.notarizingFailed)
 
-    parsed.log("Requested notarization.")
+    engine.log("Requested notarization.")
     do {
       let output = await result.stdout.string
-      try output.write(to: parsed.notarizingReceiptURL, atomically: true, encoding: .utf8)
+      try output.write(to: engine.notarizingReceiptURL, atomically: true, encoding: String.Encoding.utf8)
     } catch {
       throw NotarizeError.savingNotarizationReceiptFailed(error)
     }

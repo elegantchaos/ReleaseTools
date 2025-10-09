@@ -57,17 +57,17 @@ struct UpdateBuildCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       options: options,
       command: Self.configuration
     )
 
     if let header = header {
-      _ = try await parsed.generateHeader(header: header, requireHEADTag: false)
+      _ = try await engine.generateHeader(header: header, requireHEADTag: false)
     } else if let plist = plist, let dest = plistDest {
-      try await parsed.generatePlist(source: plist, dest: dest)
+      try await engine.generatePlist(source: plist, dest: dest)
     } else {
-      try await parsed.generateConfig(config: config)
+      try await engine.generateConfig(config: config)
     }
   }
 

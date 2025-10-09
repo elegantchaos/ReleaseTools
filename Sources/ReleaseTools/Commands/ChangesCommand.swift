@@ -33,7 +33,7 @@ struct ChangesCommand: AsyncParsableCommand {
   @OptionGroup() var common: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       requires: [.workspace],
       options: common,
       command: Self.configuration,
@@ -48,10 +48,10 @@ struct ChangesCommand: AsyncParsableCommand {
     }
 
     do {
-      let result = parsed.git.run(arguments)
+      let result = engine.git.run(arguments)
       let output = await result.stdout.string
-      try output.write(to: parsed.changesURL, atomically: true, encoding: .utf8)
-      NSWorkspace.shared.open(parsed.changesURL)
+      try output.write(to: engine.changesURL, atomically: true, encoding: .utf8)
+      NSWorkspace.shared.open(engine.changesURL)
     } catch {
       throw ChangesError.couldntFetchLog(error: error)
     }

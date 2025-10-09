@@ -45,18 +45,18 @@ struct ExportCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       options: options,
       command: Self.configuration,
       scheme: scheme,
       platform: platform
     )
 
-    try await Self.export(parsed: parsed, distribution: distribution)
+    try await Self.export(engine: engine, distribution: distribution)
   }
 
-  static func export(parsed: OptionParser, distribution: Bool = false) async throws {
-    parsed.log(
+  static func export(engine: ReleaseEngine, distribution: Bool = false) async throws {
+    engine.log(
       "Generating export options for \(distribution ? "direct" : "appstore") distribution.")
     do {
       let exportOptions = [
@@ -66,21 +66,21 @@ struct ExportCommand: AsyncParsableCommand {
       ]
       let data = try PropertyListSerialization.data(
         fromPropertyList: exportOptions, format: .xml, options: 0)
-      try data.write(to: parsed.exportOptionsURL)
+      try data.write(to: engine.exportOptionsURL)
     } catch {
       throw ExportError.writingOptionsFailed(error)
     }
 
-    parsed.log("Exporting \(parsed.scheme)...")
-    let xcode = XCodeBuildRunner(parsed: parsed)
-    try? FileManager.default.removeItem(at: parsed.exportURL)
+    engine.log("Exporting \(engine.scheme)...")
+    let xcode = XCodeBuildRunner(engine: engine)
+    try? FileManager.default.removeItem(at: engine.exportURL)
     let result = xcode.run([
-      "-exportArchive", "-archivePath", parsed.archiveURL.path, "-exportPath",
-      parsed.exportURL.path, "-exportOptionsPlist", parsed.exportOptionsURL.path,
+      "-exportArchive", "-archivePath", engine.archiveURL.path, "-exportPath",
+      engine.exportURL.path, "-exportOptionsPlist", engine.exportOptionsURL.path,
       "-allowProvisioningUpdates",
     ])
 
     try await result.throwIfFailed(ExportRunnerError.exportFailed)
-    parsed.log("Exported \(parsed.scheme).")
+    engine.log("Exported \(engine.scheme).")
   }
 }

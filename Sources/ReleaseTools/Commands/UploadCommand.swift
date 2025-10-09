@@ -78,7 +78,7 @@ struct UploadCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       requires: [.archive],
       options: options,
       command: Self.configuration,
@@ -88,25 +88,25 @@ struct UploadCommand: AsyncParsableCommand {
       platform: platform
     )
 
-    try await Self.upload(parsed: parsed)
+    try await Self.upload(engine: engine)
   }
 
-  static func upload(parsed: OptionParser) async throws {
-    parsed.log("Uploading \(parsed.versionTag) to Apple Connect.")
-    let xcrun = XCRunRunner(parsed: parsed)
+  static func upload(engine: ReleaseEngine) async throws {
+    engine.log("Uploading \(engine.versionTag) to Apple Connect.")
+    let xcrun = XCRunRunner(engine: engine)
     let uploadResult: Runner.Session
     uploadResult = xcrun.run([
-      "altool", "--upload-app", "--apiIssuer", parsed.apiIssuer, "--apiKey", parsed.apiKey,
-      "--file", parsed.exportedIPAURL.path, "--output-format", "json", "--type", parsed.platform,
+      "altool", "--upload-app", "--apiIssuer", engine.apiIssuer, "--apiKey", engine.apiKey,
+      "--file", engine.exportedIPAURL.path, "--output-format", "json", "--type", engine.platform,
     ])
 
     // stash a copy of the stdout and stderr in the build folder
     let stdout = await uploadResult.stdout.string
     let stderr = await uploadResult.stderr.string
     do {
-      try? FileManager.default.createDirectory(at: parsed.uploadURL, withIntermediateDirectories: true)
-      try stdout.write(to: parsed.uploadingReceiptURL, atomically: true, encoding: .utf8)
-      try stderr.write(to: parsed.uploadingErrorsURL, atomically: true, encoding: .utf8)
+      try? FileManager.default.createDirectory(at: engine.uploadURL, withIntermediateDirectories: true)
+      try stdout.write(to: engine.uploadingReceiptURL, atomically: true, encoding: .utf8)
+      try stderr.write(to: engine.uploadingErrorsURL, atomically: true, encoding: .utf8)
     } catch {
       throw UploadError.savingUploadReceiptFailed(error)
     }
@@ -116,7 +116,7 @@ struct UploadCommand: AsyncParsableCommand {
     // (or maybe xcrun doesn't pass it on?)
     try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
 
-    parsed.log("Finished uploading.")
+    engine.log("Finished uploading.")
 
     // try to parse the output
     let receipt: UploadReceipt
@@ -146,10 +146,10 @@ struct UploadCommand: AsyncParsableCommand {
     }
 
     // no errors, so tag the commit
-    parsed.log("Upload was accepted.")
-    parsed.log("Tagging.")
-    let tagResult = parsed.git.run([
-      "tag", parsed.versionTag, "-m", "Uploaded with \(CommandLine.name)",
+    engine.log("Upload was accepted.")
+    engine.log("Tagging.")
+    let tagResult = engine.git.run([
+      "tag", engine.versionTag, "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)
 

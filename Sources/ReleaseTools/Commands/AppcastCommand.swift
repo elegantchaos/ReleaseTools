@@ -57,30 +57,30 @@ struct AppcastCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let parsed = try OptionParser(
+    let engine = try ReleaseEngine(
       options: options,
       command: Self.configuration,
       scheme: scheme,
       platform: platform
     )
 
-    let xcode = XCodeBuildRunner(parsed: parsed)
+    let xcode = XCodeBuildRunner(engine: engine)
 
     let keyChainPath =
-      keychain ?? parsed.getSettings().keychain
+      keychain ?? engine.getSettings().keychain
       ?? ("~/Library/Keychains/login.keychain" as NSString).expandingTildeInPath
 
-    parsed.log("Rebuilding appcast.")
+    engine.log("Rebuilding appcast.")
     let fm = FileManager.default
     let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)
     let buildURL = rootURL.appendingPathComponent(".build")
     let result = xcode.run([
-      "build", "-workspace", parsed.workspace, "-scheme", "generate_appcast",
+      "build", "-workspace", engine.workspace, "-scheme", "generate_appcast",
       "BUILD_DIR=\(buildURL.path)",
     ])
     try await result.throwIfFailed(AppcastError.buildAppcastGeneratorFailed)
 
-    let workspaceName = URL(fileURLWithPath: parsed.workspace).deletingPathExtension()
+    let workspaceName = URL(fileURLWithPath: engine.workspace).deletingPathExtension()
       .lastPathComponent
     let keyName = "\(workspaceName) Sparkle Key"
 
@@ -95,28 +95,28 @@ struct AppcastCommand: AsyncParsableCommand {
         }
       }
 
-      parsed.log("Could not find Sparkle key - generating one.")
+      engine.log("Could not find Sparkle key - generating one.")
 
       let keygen = Runner(for: URL(fileURLWithPath: "Dependencies/Sparkle/bin/generate_keys"))
       let keygenResult = keygen.run([])
       try await keygenResult.throwIfFailed(AppcastError.keyGenerationFailed)
 
-      parsed.log("Importing Key.")
+      engine.log("Importing Key.")
 
       let security = Runner(for: URL(fileURLWithPath: "/usr/bin/security"))
       let importResult = security.run([
-        "import", "dsa_priv.pem", "-a", "labl", "\(parsed.scheme) Sparkle Key",
+        "import", "dsa_priv.pem", "-a", "labl", "\(engine.scheme) Sparkle Key",
       ])
       try await importResult.throwIfFailed(AppcastError.keyImportFailed)
 
-      parsed.log("Moving Public Key.")
+      engine.log("Moving Public Key.")
 
       try? fm.moveItem(
         at: rootURL.appendingPathComponent("dsa_pub.pem"),
-        to: rootURL.appendingPathComponent("Sources").appendingPathComponent(parsed.scheme)
+        to: rootURL.appendingPathComponent("Sources").appendingPathComponent(engine.scheme)
           .appendingPathComponent("Resources").appendingPathComponent("dsa_pub.pem"))
 
-      parsed.log("Deleting Private Key.")
+      engine.log("Deleting Private Key.")
 
       try? fm.removeItem(at: rootURL.appendingPathComponent("dsa_priv.pem"))
 
