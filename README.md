@@ -78,21 +78,23 @@ This version must be in the form `vX.Y.Z-BUILD` where `X.Y.Z` is the semantic ve
 
 If there is not a tag in this format at HEAD, the `archive`/`submit` commands will refuse to run.
 
-If the tag is present, then it is parsed and used to set the value of two constants:
-- CURRENT_PROJECT_VERSION: the calculated build number
-- CURRENT_PROJECT_COMMIT: the full git commit hash
+If the tag is present, then it is parsed and used to set the value of three constants:
+- RT_BUILD: the calculated build number
+- RT_COMMIT: the full git commit hash
+- RT_VERSION: the semantic version string (e.g., "1.2.3")
 
 The archive command then generates a `VersionInfo.h` header file, and overrides some build settings on the command line when invoking `xcodebuild`, so that the header file is included by the Info.plist preprocessor.
 
 The build settings supplied to `xcodebuild` on the command line are:
 - INFOPLIST_PREFIX_HEADER: set to the location of the generated `VersionInfo.h` file
 - INFOPLIST_PREPROCESS: set to YES
-- CURRENT_PROJECT_VERSION: set to the calculated build number
-- CURRENT_PROJECT_COMMIT: the full git commit hash
+- RT_BUILD: set to the calculated build number
+- RT_COMMIT: the full git commit hash
+- RT_VERSION: the semantic version string
 
-By turning on the Info.plist preprocessing, and using our generated header file, we cause any occurences of the strings `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT` in the Info.plist file to be replaced with the values of the corresponding constants.
+By turning on the Info.plist preprocessing, and using our generated header file, we cause any occurences of the strings `RT_BUILD`, `RT_COMMIT`, and `RT_VERSION` in the Info.plist file to be replaced with the values of the corresponding constants.
 
-By also defining the two variables directly as command line arguments when we invoke xcodebuild, we also allow any occurences of `${CURRENT_PROJECT_VERSION}` and `${CURRENT_PROJECT_COMMIT}` to be replaced in other build settings or build scripts.
+By also defining the three variables directly as command line arguments when we invoke xcodebuild, we also allow any occurences of `${RT_BUILD}`, `${RT_COMMIT}`, and `${RT_VERSION}` to be replaced in other build settings or build scripts.
 
 ## When Building
 
@@ -102,9 +104,9 @@ If there is a tag on HEAD, we use it, but if not, we simply look for the highest
 
 Like the `archive` / `submit` commands, the `update-build` command generates a `VersionInfo.h` file.
 
-It also optionally generates an `.xcconfig` file which defines the build settings `CURRENT_PROJECT_VERSION` and `CURRENT_PROJECT_COMMIT`, and have your project include that.
+It also optionally generates an `.xcconfig` file which defines the build settings `RT_BUILD`, `RT_COMMIT`, and `RT_VERSION`, and have your project include that.
 
-Finally, you can also specify the path of source and destination `.plist` files. A new copy of the source file will be written to the destination, with the latest build and commit values written into the `CFBundleVersion` and `Commit` keys.
+Finally, you can also specify the path of source and destination `.plist` files. A new copy of the source file will be written to the destination, with the latest build, commit, and version values written into the `CFBundleVersion`, `Commit`, and `Version` keys.
 
 ## Incrementing The Build Number
 
@@ -219,16 +221,17 @@ If you specify the `--header` option with a path to a `.h` file, it
 will be replaced with generated content:
 
 ```c
-#define CURRENT_PROJECT_BUILD <build>
-#define CURRENT_PROJECT_COMMIT <hash>
+#define RT_BUILD <build>
+#define RT_COMMIT <hash>
+#define RT_VERSION "<version>"
 ```
 
-containing the current build and hash values.
+containing the current build number, commit hash, and version string values.
 
 If you specify the `--config` option with a path to an `.xcconfig` file, it will be generated with the same values as above.
 
 If you specify the `--plist` option with a path to a `.plist` file,
-it will be generated, or updates, with two keys `CURRENT_PROJECT_BUILD` and `CURRENT_PROJECT_HASH`.
+it will be generated, or updated, with three keys `CFBundleVersion`, `Commit`, and `Version`.
 
 ### submit
 
