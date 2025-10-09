@@ -63,11 +63,11 @@ struct UpdateBuildCommand: AsyncParsableCommand {
     )
 
     if let header = header {
-      _ = try await Generation.generateHeader(parsed: parsed, header: header, requireHEADTag: false)
+      _ = try await parsed.generateHeader(header: header, requireHEADTag: false)
     } else if let plist = plist, let dest = plistDest {
-      try await Generation.generatePlist(parsed: parsed, source: plist, dest: dest)
+      try await parsed.generatePlist(source: plist, dest: dest)
     } else {
-      try await Generation.generateConfig(parsed: parsed, config: config)
+      try await parsed.generateConfig(config: config)
     }
   }
 
