@@ -131,7 +131,7 @@ extension ReleaseEngine {
       let tag = line.trimmingCharacters(in: .whitespacesAndNewlines)
       if let match = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
         let build = UInt(match.build) ?? 0
-        let version = String(match.version)
+        let version = String(match.version).trimmingCharacters(in: .whitespacesAndNewlines)
         verbose("Found version tag at HEAD: \(tag) with build \(build)")
         return BuildInfo(build: build, commit: commit, version: version)
       }
@@ -168,7 +168,7 @@ extension ReleaseEngine {
       }
     }
 
-    return highestVersion
+    return highestVersion?.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
   /// Check if there's already a version tag at HEAD and throw an error if found
