@@ -73,8 +73,8 @@ struct ArchiveCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
       "INFOPLIST_PREFIX_HEADER=\(infoHeaderPath)",
       "INFOPLIST_PREPROCESS=YES",
-      "CURRENT_PROJECT_VERSION=\(build)",
-      "CURRENT_PROJECT_COMMIT=\(commit)",
+      "RT_BUILD=\(build)",
+      "RT_COMMIT=\(commit)",
     ]
 
     if let config = xcconfig {

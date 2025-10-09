@@ -14,7 +14,7 @@ extension ReleaseEngine {
     let (build, commit) = try await buildNumberAndCommit(requireHeadTag: requireHEADTag)
     log("Setting build number to \(build).")
     let header =
-      "#define CURRENT_PROJECT_VERSION \(build)\n#define CURRENT_PROJECT_COMMIT \(commit)"
+      "#define RT_BUILD \(build)\n#define RT_COMMIT \(commit)"
     try? FileManager.default.createDirectory(
       at: headerURL.deletingLastPathComponent(), withIntermediateDirectories: true)
     try header.write(to: headerURL, atomically: true, encoding: .utf8)
@@ -35,7 +35,7 @@ extension ReleaseEngine {
     }
 
     let (build, commit) = try await buildNumberAndCommit(requireHeadTag: false)
-    let new = "CURRENT_PROJECT_VERSION = \(build)\nCURRENT_PROJECT_COMMIT = \(commit)"
+    let new = "RT_BUILD = \(build)\nRT_COMMIT = \(commit)"
 
     if let existing = try? String(contentsOf: configURL, encoding: .utf8), existing == new {
       log("Build number is \(build).")
@@ -75,7 +75,7 @@ extension ReleaseEngine {
         log("Updated \(destURL.lastPathComponent).")
 
         let headerURL = destURL.deletingLastPathComponent().appendingPathComponent("RTInfo.h")
-        let header = "#define CURRENT_PROJECT_VERSION \(build)\n#define CURRENT_PROJECT_COMMIT \(commit)"
+        let header = "#define RT_BUILD \(build)\n#define RT_COMMIT \(commit)"
         try header.write(to: headerURL, atomically: true, encoding: .utf8)
         log("Updated \(headerURL.lastPathComponent).")
       }
