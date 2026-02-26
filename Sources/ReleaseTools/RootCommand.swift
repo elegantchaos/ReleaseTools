@@ -29,6 +29,7 @@ struct RootCommand: AsyncParsableCommand {
         TagCommand.self,
         UpdateBuildCommand.self,
         UploadCommand.self,
+        ValidateCommand.self,
         WaitForNotarizationCommand.self,
       ],
       defaultSubcommand: nil

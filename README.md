@@ -233,6 +233,13 @@ If you specify the `--config` option with a path to an `.xcconfig` file, it will
 If you specify the `--plist` option with a path to a `.plist` file,
 it will be generated, or updated, with three keys `CFBundleVersion`, `Commit`, and `Version`.
 
+### validate
+
+Runs a standard post-change validation flow for Swift repositories:
+- formats and lints changed Swift files
+- runs broad validation (Xcode when a workspace is available, SwiftPM otherwise)
+- supports targeted validation with `--target <name>`
+
 ### submit
 
 This performs the `archive`, `export` and `upload` commands in order.
