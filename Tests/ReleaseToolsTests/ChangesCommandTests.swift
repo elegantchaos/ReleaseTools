@@ -99,4 +99,15 @@ struct ChangesCommandTests {
     #expect(result.stdout.contains("- subject line"))
     #expect(result.stdout.contains("  - detail line"))
   }
+
+  @Test func summaryFlagPreservesChangesOutput() async throws {
+    let repo = try await TestRepo()
+    try await repo.tag(name: "v1.0.0")
+    try await repo.commit(message: "summary commit")
+
+    let result = await repo.checkedRT(["changes", "--summary"])
+
+    #expect(result.stdout.contains("## Changes since v1.0.0"))
+    #expect(result.stdout.contains("- summary commit"))
+  }
 }

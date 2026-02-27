@@ -6,6 +6,9 @@
 import ArgumentParser
 import Foundation
 import Runner
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
 
 enum ChangesError: Error {
   case repositoryNotFound(path: String)
@@ -58,6 +61,8 @@ struct ChangesCommand: AsyncParsableCommand {
     help: "Include GitHub links in the output when a GitHub origin remote is available."
   )
   var includeLinks = true
+  @Flag(name: .customLong("summary"), help: "Add an AI-generated summary paragraph at the top when available.")
+  var includeSummary = false
 
   private struct GitOutput {
     let state: RunState
@@ -210,7 +215,8 @@ struct ChangesCommand: AsyncParsableCommand {
     startRef: String?,
     endRef: String,
     commits: [Commit],
-    githubURL: URL?
+    githubURL: URL?,
+    summary: String?
   ) -> String {
     var lines: [String] = []
     if let previousTag {
@@ -219,6 +225,10 @@ struct ChangesCommand: AsyncParsableCommand {
       lines.append("## Changes")
     }
     lines.append("")
+    if let summary {
+      lines.append(summary)
+      lines.append("")
+    }
 
     if commits.isEmpty {
       lines.append("- No non-merge commits found in this range.")
@@ -265,6 +275,96 @@ struct ChangesCommand: AsyncParsableCommand {
     return lines.joined(separator: "\n")
   }
 
+  private func summaryParagraph(commits: [Commit]) async -> String? {
+    guard includeSummary, !commits.isEmpty else {
+      return nil
+    }
+
+    #if canImport(FoundationModels)
+      guard let summary = await generateSummaryWithFoundationModels(commits: commits) else {
+        return nil
+      }
+      return validatedSummary(summary, commits: commits)
+    #else
+      return nil
+    #endif
+  }
+
+  private func validatedSummary(_ summary: String, commits: [Commit]) -> String? {
+    let trimmed = summary.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    if trimmed.contains("- ") || trimmed.contains("•") { return nil }
+
+    let commitText = commits
+      .compactMap(\.messageLines.first)
+      .joined(separator: " ")
+
+    let summaryWords = Set(normalizedWords(trimmed))
+    let commitWords = Set(normalizedWords(commitText))
+    guard !summaryWords.isEmpty, !commitWords.isEmpty else {
+      return nil
+    }
+
+    let overlap = summaryWords.intersection(commitWords).count
+    let similarity = Double(overlap) / Double(summaryWords.count)
+    if similarity >= 0.9 {
+      return nil
+    }
+
+    return trimmed
+  }
+
+  private func normalizedWords(_ text: String) -> [String] {
+    text.lowercased()
+      .replacingOccurrences(of: "[^a-z0-9\\s]", with: " ", options: .regularExpression)
+      .split(separator: " ")
+      .map(String.init)
+  }
+
+  #if canImport(FoundationModels)
+    @available(macOS 26.0, *)
+    private func generateSummaryWithFoundationModelsAvailable(commits: [Commit]) async -> String? {
+      let model = SystemLanguageModel.default
+      guard case .available = model.availability else {
+        return nil
+      }
+
+      let bulletList = commits
+        .map { "- \($0.messageLines.first ?? $0.subject)" }
+        .joined(separator: "\n")
+      let prompt = """
+        Write exactly one concise sentence summarizing these release changes.
+        Use past tense.
+        Start directly with the changes (for example, "Enhanced...", "Updated...", "Fixed...").
+        Do not use introductory framing like "The release changes focus on..." or "This release...".
+        Do not include motivations, goals, or marketing language (for example, avoid phrases like "to improve", "to streamline", "to provide better").
+        Keep it strictly informational and concrete.
+        Do not restate the commit list line-by-line, and do not closely paraphrase every item.
+        If a useful higher-level summary is not possible without repeating the list, return an empty string.
+        Do not use markdown list formatting.
+        Do not mention commit hashes.
+        Changes:
+        \(bulletList)
+        """
+
+      do {
+        let session = LanguageModelSession()
+        let response = try await session.respond(to: prompt)
+        let text = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty ? nil : text
+      } catch {
+        return nil
+      }
+    }
+
+    private func generateSummaryWithFoundationModels(commits: [Commit]) async -> String? {
+      guard #available(macOS 26.0, *) else {
+        return nil
+      }
+      return await generateSummaryWithFoundationModelsAvailable(commits: commits)
+    }
+  #endif
+
   func run() async throws {
     let repoURL = URL(fileURLWithPath: repoPath)
     guard FileManager.default.fileExists(atPath: repoURL.path) else {
@@ -280,6 +380,7 @@ struct ChangesCommand: AsyncParsableCommand {
     let range = resolvedStartRef.map { "\($0)..\(endRef)" } ?? endRef
     let commits = try await collectCommits(range: range, in: repoURL)
     let githubURL = includeLinks ? try await githubRemoteURL(in: repoURL) : nil
+    let summary = await summaryParagraph(commits: commits)
 
     print(
       formatChanges(
@@ -288,7 +389,8 @@ struct ChangesCommand: AsyncParsableCommand {
         startRef: resolvedStartRef,
         endRef: endRef,
         commits: commits,
-        githubURL: githubURL
+        githubURL: githubURL,
+        summary: summary
       )
     )
   }
