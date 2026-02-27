@@ -100,7 +100,7 @@ struct ChangesCommandTests {
     #expect(result.stdout.contains("  - detail line"))
   }
 
-  @Test func summaryFlagReplacesTopChangesList() async throws {
+  @Test func summaryFlagShowsSummaryOrFallsBackToTopChangesList() async throws {
     let repo = try await TestRepo()
     try await repo.tag(name: "v1.0.0")
     try await repo.commit(message: "summary commit")
@@ -108,7 +108,11 @@ struct ChangesCommandTests {
     let result = await repo.checkedRT(["changes", "--summary"])
 
     #expect(result.stdout.contains("## Changes since v1.0.0"))
-    #expect(!result.stdout.contains("- summary commit"))
     #expect(result.stdout.contains("## Commits"))
+
+    let marker = "## Changes since v1.0.0\n\n"
+    let afterHeader = result.stdout.components(separatedBy: marker).dropFirst().first ?? ""
+    let beforeCommits = afterHeader.components(separatedBy: "\n## Commits").first ?? ""
+    #expect(!beforeCommits.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
   }
 }

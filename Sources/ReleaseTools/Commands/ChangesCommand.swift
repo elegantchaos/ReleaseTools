@@ -225,11 +225,9 @@ struct ChangesCommand: AsyncParsableCommand {
       lines.append("## Changes")
     }
     lines.append("")
-    if includeSummary {
-      if let summary {
-        lines.append(summary)
-        lines.append("")
-      }
+    if includeSummary, let summary {
+      lines.append(summary)
+      lines.append("")
     } else {
       if commits.isEmpty {
         lines.append("- No non-merge commits found in this range.")
@@ -329,27 +327,21 @@ struct ChangesCommand: AsyncParsableCommand {
       let bulletList = commits
         .map { "- \($0.messageLines.first ?? $0.subject)" }
         .joined(separator: "\n")
+      let instructions = """
+        Summarize release changes in approachable, informational prose.
+        Use past tense. Produce a short paragraph of 1-2 complete sentences with proper punctuation.
+        Start directly with the changes and never use framing like "This release", "The release updates included", or similar preambles.
+        Do not produce list formatting, semicolon-separated clause chains, or marketing language. Do not mention commit hashes.
+        """
       let prompt = """
-        Write a concise summary paragraph (1-2 sentences) of these release changes.
-        The output must read as natural prose with proper grammar and punctuation.
-        It must be readable and approachable.
-        Use past tense.
-        Start directly with the changes (for example, "Enhanced...", "Updated...", "Fixed..."), without preamble.
-        Do not use introductory framing like "The release changes focus on...", "This release...", or "The release updates included...".
-        Do not include motivations, goals, or marketing language (for example, avoid phrases like "to improve", "to streamline", "to provide better").
-        Keep it strictly informational and concrete.
-        Do not format as a list and do not mimic a list within one sentence.
-        Avoid long comma-separated enumerations of changes.
-        Do not produce a series of clauses separated by semicolons.
-        Do not use markdown list formatting.
-        Do not mention commit hashes.
-        Changes:
+        Summarize these release changes:
         \(bulletList)
         """
 
       do {
-        let session = LanguageModelSession()
-        let response = try await session.respond(to: prompt)
+        let session = LanguageModelSession(instructions: instructions)
+        let options = GenerationOptions(temperature: 0.2)
+        let response = try await session.respond(to: prompt, options: options)
         let text = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
         return text.isEmpty ? nil : text
       } catch {
