@@ -6,7 +6,7 @@ let package = Package(
   name: "ReleaseTools",
 
   platforms: [
-    .macOS(.v15)
+    .macOS(.v26)
   ],
 
   products: [
@@ -22,6 +22,7 @@ let package = Package(
     .package(url: "https://github.com/elegantchaos/Runner.git", from: "2.1.5"),
     .package(url: "https://github.com/elegantchaos/Versionator.git", from: "2.0.3"),
     .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+    .package(url: "https://github.com/elegantchaos/ActionBuilderPlugin.git", from: "2.1.2"),
   ],
 
   targets: [
