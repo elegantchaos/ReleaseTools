@@ -3,18 +3,23 @@
 //  All code (c) 2020 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import AppKit
 import ArgumentParser
 import Foundation
+import Runner
 
 enum ChangesError: Error {
-  case couldntFetchLog(error: Error)
+  case repositoryNotFound(path: String)
+  case gitFailed(command: String, error: String)
 }
 
 extension ChangesError: LocalizedError {
   public var errorDescription: String? {
     switch self {
-      case .couldntFetchLog(let error): return "Couldn't fetch the git log.\n\(error.localizedDescription)"
+      case .repositoryNotFound(let path):
+        return "Repository path doesn't exist: \(path)"
+
+      case .gitFailed(let command, let error):
+        return "Git command failed: \(command)\n\(error)"
     }
   }
 }
@@ -27,34 +32,264 @@ struct ChangesCommand: AsyncParsableCommand {
     )
   }
 
-  @Argument(help: "An older version/commit to compare against.") var version: String
-  @Argument(help: "A newer version/commit to compare against the older version. Defaults to HEAD.")
-  var other: String?
-  @OptionGroup() var common: CommonOptions
+  @Option(name: .customLong("repo"), help: "Path to the git repository. Defaults to the current directory.")
+  var repoPath: String = "."
+  @Option(name: .customLong("start"), help: "Start reference for the change range (defaults to the previous tag).")
+  var startRef: String?
+  @Option(name: .customLong("end"), help: "End reference for the change range.")
+  var endRef: String = "HEAD"
+  @Flag(name: .customLong("include-merges"), help: "Include merge commits in the output.")
+  var includeMerges = false
+  @Flag(
+    name: .customLong("commits"),
+    inversion: .prefixedNo,
+    help: "Include a ## Commits section with hash + first-line summaries."
+  )
+  var includeCommits = true
+  @Flag(
+    name: .customLong("range"),
+    inversion: .prefixedNo,
+    help: "Include the range summary line in the output."
+  )
+  var includeRangeLine = true
+  @Flag(
+    name: .customLong("links"),
+    inversion: .prefixedNo,
+    help: "Include GitHub links in the output when a GitHub origin remote is available."
+  )
+  var includeLinks = true
+
+  private struct GitOutput {
+    let state: RunState
+    let stdout: String
+    let stderr: String
+  }
+
+  private struct Commit {
+    let shortHash: String
+    let subject: String
+    let messageLines: [String]
+  }
+
+  private func runGit(_ arguments: [String], in repoURL: URL) async throws -> GitOutput {
+    let git = GitRunner()
+    git.cwd = repoURL
+    let session = git.run(arguments)
+    let state = await session.waitUntilExit()
+    let stdout = await session.stdout.string
+    let stderr = await session.stderr.string
+    return GitOutput(state: state, stdout: stdout, stderr: stderr)
+  }
+
+  private func runGitChecked(_ arguments: [String], in repoURL: URL) async throws -> String {
+    let result = try await runGit(arguments, in: repoURL)
+    guard case .succeeded = result.state else {
+      throw ChangesError.gitFailed(
+        command: "git \(arguments.joined(separator: " "))",
+        error: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+      )
+    }
+    return result.stdout
+  }
+
+  private func resolvedCommit(for ref: String, in repoURL: URL) async throws -> String {
+    let output = try await runGitChecked(["rev-parse", "\(ref)^{commit}"], in: repoURL)
+    return output.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  private func isAncestor(_ ancestorRef: String, of descendantRef: String, in repoURL: URL) async throws -> Bool {
+    let result = try await runGit(["merge-base", "--is-ancestor", ancestorRef, descendantRef], in: repoURL)
+    switch result.state {
+      case .succeeded:
+        return true
+
+      case .failed(let code):
+        if code == 1 {
+          return false
+        }
+        throw ChangesError.gitFailed(
+          command: "git merge-base --is-ancestor \(ancestorRef) \(descendantRef)",
+          error: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+
+      case .startup(let error):
+        throw ChangesError.gitFailed(
+          command: "git merge-base --is-ancestor \(ancestorRef) \(descendantRef)",
+          error: error
+        )
+
+      case .uncaughtSignal, .unknown:
+        throw ChangesError.gitFailed(
+          command: "git merge-base --is-ancestor \(ancestorRef) \(descendantRef)",
+          error: "\(result.state)"
+        )
+    }
+  }
+
+  private func detectPreviousTag(endRef: String, in repoURL: URL) async throws -> String? {
+    let endCommit = try await resolvedCommit(for: endRef, in: repoURL)
+    let tagsOutput = try await runGitChecked(["tag", "--sort=-v:refname"], in: repoURL)
+    let tags = tagsOutput
+      .split(separator: "\n")
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+
+    for tag in tags {
+      guard try await isAncestor(tag, of: endRef, in: repoURL) else {
+        continue
+      }
+
+      let tagCommit = try await resolvedCommit(for: tag, in: repoURL)
+      if tagCommit == endCommit {
+        continue
+      }
+
+      return tag
+    }
+
+    return nil
+  }
+
+  private func collectCommits(range: String, in repoURL: URL) async throws -> [Commit] {
+    var arguments = ["log", "--reverse", "--pretty=format:%h%x1f%B%x1e"]
+    if !includeMerges {
+      arguments.append("--no-merges")
+    }
+    arguments.append(range)
+
+    let output = try await runGitChecked(arguments, in: repoURL)
+    let records = output.split(separator: "\u{1e}")
+    return records.compactMap { record in
+      let parts = record.split(separator: "\u{1f}", maxSplits: 1).map(String.init)
+      guard parts.count == 2 else { return nil }
+
+      let hash = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+      let lines = parts[1]
+        .split(separator: "\n", omittingEmptySubsequences: false)
+        .map { String($0).trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty }
+      let subject = lines.first ?? ""
+      return Commit(shortHash: hash, subject: subject, messageLines: lines)
+    }
+  }
+
+  private func githubRemoteURL(in repoURL: URL) async throws -> URL? {
+    let result = try await runGit(["config", "--get", "remote.origin.url"], in: repoURL)
+    guard case .succeeded = result.state else {
+      return nil
+    }
+
+    let remote = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !remote.isEmpty else {
+      return nil
+    }
+
+    if remote.hasPrefix("git@github.com:") {
+      let suffix = remote.dropFirst("git@github.com:".count)
+      let path = suffix.hasSuffix(".git") ? String(suffix.dropLast(4)) : String(suffix)
+      return URL(string: "https://github.com/\(path)")
+    }
+
+    if remote.hasPrefix("ssh://git@github.com/") {
+      let suffix = remote.dropFirst("ssh://git@github.com/".count)
+      let path = suffix.hasSuffix(".git") ? String(suffix.dropLast(4)) : String(suffix)
+      return URL(string: "https://github.com/\(path)")
+    }
+
+    guard let url = URL(string: remote), url.host == "github.com" else {
+      return nil
+    }
+
+    let path = url.path.hasSuffix(".git") ? String(url.path.dropLast(4)) : url.path
+    return URL(string: "https://github.com\(path)")
+  }
+
+  private func formatChanges(
+    previousTag: String?,
+    range: String,
+    startRef: String?,
+    endRef: String,
+    commits: [Commit],
+    githubURL: URL?
+  ) -> String {
+    var lines: [String] = []
+    if let previousTag {
+      lines.append("## Changes since \(previousTag)")
+    } else {
+      lines.append("## Changes")
+    }
+    lines.append("")
+
+    if commits.isEmpty {
+      lines.append("- No non-merge commits found in this range.")
+    } else {
+      for commit in commits {
+        if let firstLine = commit.messageLines.first {
+          lines.append("- \(firstLine)")
+          for additionalLine in commit.messageLines.dropFirst() {
+            lines.append("  - \(additionalLine)")
+          }
+        }
+      }
+    }
+
+    if includeCommits {
+      lines.append("")
+      lines.append("## Commits")
+      lines.append("")
+      if commits.isEmpty {
+        lines.append("- (none)")
+      } else {
+        for commit in commits {
+          if includeLinks, let githubURL {
+            lines.append("- [`\(commit.shortHash)`](\(githubURL.absoluteString)/commit/\(commit.shortHash)) \(commit.subject)")
+          } else {
+            lines.append("- \(commit.shortHash) \(commit.subject)")
+          }
+        }
+      }
+    }
+
+    if includeRangeLine {
+      lines.append("")
+      let formattedRange: String
+      if includeLinks, let githubURL, let startRef {
+        formattedRange = "[`\(range)`](\(githubURL.absoluteString)/compare/\(startRef)...\(endRef))"
+      } else {
+        formattedRange = "`\(range)`"
+      }
+
+      lines.append("_Range: \(formattedRange) • End: `\(endRef)`_")
+    }
+
+    return lines.joined(separator: "\n")
+  }
 
   func run() async throws {
-    let engine = try ReleaseEngine(
-      requires: [.workspace],
-      options: common,
-      command: Self.configuration,
-      setDefaultPlatform: false
-    )
+    let repoURL = URL(fileURLWithPath: repoPath)
+    guard FileManager.default.fileExists(atPath: repoURL.path) else {
+      throw ChangesError.repositoryNotFound(path: repoPath)
+    }
 
-    var arguments = ["log", "--pretty=- %s %b"]
-    if let other = other {
-      arguments.append("\(version)..\(other)")
+    let resolvedStartRef: String?
+    if let suppliedStartRef = startRef {
+      resolvedStartRef = suppliedStartRef
     } else {
-      arguments.append("\(version)..HEAD")
+      resolvedStartRef = try await detectPreviousTag(endRef: endRef, in: repoURL)
     }
+    let range = resolvedStartRef.map { "\($0)..\(endRef)" } ?? endRef
+    let commits = try await collectCommits(range: range, in: repoURL)
+    let githubURL = includeLinks ? try await githubRemoteURL(in: repoURL) : nil
 
-    do {
-      let result = engine.git.run(arguments)
-      let output = await result.stdout.string
-      try output.write(to: engine.changesURL, atomically: true, encoding: .utf8)
-      NSWorkspace.shared.open(engine.changesURL)
-    } catch {
-      throw ChangesError.couldntFetchLog(error: error)
-    }
-
+    print(
+      formatChanges(
+        previousTag: resolvedStartRef,
+        range: range,
+        startRef: resolvedStartRef,
+        endRef: endRef,
+        commits: commits,
+        githubURL: githubURL
+      )
+    )
   }
 }
