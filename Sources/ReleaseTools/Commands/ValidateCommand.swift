@@ -252,6 +252,16 @@ func excludedPath(_ path: String) -> Bool {
   return parts.contains(".git") || parts.contains(".build") || parts.contains("DerivedData")
 }
 
+func shouldIgnoreDiscoveredPackagePath(_ path: String) -> Bool {
+  let parts =
+    path
+    .split(separator: "/")
+    .map { $0.lowercased() }
+
+  guard let testsIndex = parts.firstIndex(of: "tests") else { return false }
+  return parts[(testsIndex + 1)...].contains("resources")
+}
+
 func discoverPackageDirs(repoPath: String, overrides: [String]?, recursive: Bool) -> [String] {
   var ordered: [String] = []
   var seen = Set<String>()
@@ -282,7 +292,11 @@ func discoverPackageDirs(repoPath: String, overrides: [String]?, recursive: Bool
       continue
     }
     if item.hasSuffix("/Package.swift") || item == "Package.swift" {
-      let packageDir = URL(fileURLWithPath: repoPath).appendingPathComponent((item as NSString).deletingLastPathComponent).path
+      let relativePackageDir = (item as NSString).deletingLastPathComponent
+      if shouldIgnoreDiscoveredPackagePath(relativePackageDir) {
+        continue
+      }
+      let packageDir = URL(fileURLWithPath: repoPath).appendingPathComponent(relativePackageDir).path
       addPackageDir(packageDir)
     }
   }
