@@ -44,11 +44,21 @@ struct PackageDescription: Decodable {
   let targets: [TargetInfo]
 }
 
+func packageHasTestTargets(_ package: PackageDescription) -> Bool {
+  package.targets.contains(where: { $0.type == "test" })
+}
+
 struct ToolingPaths {
   let cacheRoot: String?
   let verifyRoot: String
   let derivedDataPath: String?
   let env: [String: String]
+}
+
+enum ValidateOutputMode: String {
+  case filtered
+  case quiet
+  case raw
 }
 
 struct Config {
@@ -64,6 +74,75 @@ struct Config {
   let packageDirsOverride: [String]?
   let recursivePackageDiscovery: Bool
   let swiftPMDisableSandbox: Bool
+  let outputMode: ValidateOutputMode
+}
+
+enum ValidationStepStatus: String {
+  case pass = "PASS"
+  case fail = "FAIL"
+  case skip = "SKIP"
+}
+
+struct ValidationStepRecord {
+  let summary: String
+  let status: ValidationStepStatus
+  let warningsPresent: Bool
+  let logPath: String?
+}
+
+struct ValidationCommandResult {
+  let status: Int32
+  let output: String
+  let warningsPresent: Bool
+}
+
+final class ValidationStreamState: @unchecked Sendable {
+  private let lock = NSLock()
+  private var combinedData = Data()
+  private var bufferedTerminalText = ""
+  private var sawEOF = false
+
+  func append(_ data: Data, outputMode: ValidateOutputMode) {
+    lock.lock()
+    defer { lock.unlock() }
+
+    combinedData.append(data)
+
+    guard outputMode == .filtered, let chunk = String(data: data, encoding: .utf8), !chunk.isEmpty else { return }
+    bufferedTerminalText += chunk
+  }
+
+  func drainFilteredLines() -> [String] {
+    lock.lock()
+    defer { lock.unlock() }
+
+    let lines = bufferedTerminalText.components(separatedBy: .newlines)
+    bufferedTerminalText = lines.last ?? ""
+    return lines.dropLast().compactMap(filteredValidationLine)
+  }
+
+  func flushTrailingFilteredLine() -> String? {
+    lock.lock()
+    defer { lock.unlock() }
+
+    defer { bufferedTerminalText = "" }
+    return filteredValidationLine(bufferedTerminalText)
+  }
+
+  func outputString() -> String {
+    lock.lock()
+    defer { lock.unlock() }
+    return String(data: combinedData, encoding: .utf8) ?? ""
+  }
+
+  func markEOF() -> Bool {
+    lock.lock()
+    defer { lock.unlock() }
+
+    guard !sawEOF else { return false }
+    sawEOF = true
+    return true
+  }
 }
 
 func usage() {
@@ -90,6 +169,9 @@ func usage() {
       --package-dirs <csv>         Package directories for SwiftPM checks (absolute or repo-relative)
       --no-recursive-packages      Disable recursive Package.swift discovery
       --swiftpm-disable-sandbox    Disable SwiftPM's internal sandbox (opt-in fallback only)
+      --output <mode>              Validation output mode: filtered, quiet, raw (default: filtered)
+      --quiet                      Alias for --output quiet
+      --raw                        Alias for --output raw
       --help                       Show help
 
     """)
@@ -134,6 +216,10 @@ func ensureDirectory(_ path: String) throws {
   try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
 }
 
+func commandString(_ executable: String, _ arguments: [String]) -> String {
+  ([executable] + arguments).joined(separator: " ")
+}
+
 func run(_ executable: String, _ arguments: [String], cwd: String, environment: [String: String]) throws -> Int32 {
   let process = Process()
   process.executableURL = URL(fileURLWithPath: executable)
@@ -147,13 +233,13 @@ func run(_ executable: String, _ arguments: [String], cwd: String, environment: 
   process.standardOutput = FileHandle.standardOutput
   process.standardError = FileHandle.standardError
 
-  print("+ " + ([executable] + arguments).joined(separator: " "))
+  print("+ " + commandString(executable, arguments))
 
   try process.run()
   process.waitUntilExit()
 
   if process.terminationStatus != 0 {
-    throw CLIError(message: "Command failed with exit code \(process.terminationStatus): " + ([executable] + arguments).joined(separator: " "))
+    throw CLIError(message: "Command failed with exit code \(process.terminationStatus): " + commandString(executable, arguments))
   }
 
   return process.terminationStatus
@@ -181,6 +267,248 @@ func capture(_ executable: String, _ arguments: [String], cwd: String, environme
   let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
 
   return (process.terminationStatus, stdout, stderr)
+}
+
+func stepBanner(_ title: String) {
+  print("== \(title)")
+}
+
+func printCommandIdentity(_ executable: String, _ arguments: [String]) {
+  print("+ " + commandString(executable, arguments))
+}
+
+func defaultLogPath(_ tools: ToolingPaths, _ name: String) -> String {
+  "\(tools.verifyRoot)/\(sanitize(name)).log"
+}
+
+func filteredValidationLine(_ line: String) -> String? {
+  let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+  guard !trimmed.isEmpty else { return nil }
+
+  let suppressedPatterns = [
+    "remark: compiled module was created by a different version of the compiler"
+  ]
+
+  if suppressedPatterns.contains(where: { trimmed.localizedCaseInsensitiveContains($0) }) {
+    return nil
+  }
+
+  let visiblePatterns = [
+    "error:",
+    "warning:",
+    "note:",
+    "BUILD FAILED",
+    "BUILD SUCCEEDED",
+  ]
+
+  return visiblePatterns.contains(where: { trimmed.localizedCaseInsensitiveContains($0) }) ? trimmed : nil
+}
+
+func containsValidationWarnings(_ output: String) -> Bool {
+  output
+    .split(whereSeparator: \.isNewline)
+    .map(String.init)
+    .contains(where: { filteredValidationLine($0)?.localizedCaseInsensitiveContains("warning:") == true })
+}
+
+func extractedFailureDiagnostics(_ output: String) -> [String] {
+  let lines = output.split(whereSeparator: \.isNewline).map(String.init)
+
+  guard let firstErrorIndex = lines.firstIndex(where: { $0.localizedCaseInsensitiveContains("error:") }) else {
+    return lines.compactMap(filteredValidationLine).prefix(8).map { $0 }
+  }
+
+  var start = firstErrorIndex
+  while start > 0 {
+    let candidate = lines[start - 1].trimmingCharacters(in: .whitespacesAndNewlines)
+    if candidate.isEmpty {
+      break
+    }
+    if candidate.localizedCaseInsensitiveContains("note:") || candidate.localizedCaseInsensitiveContains("warning:") {
+      start -= 1
+      continue
+    }
+    break
+  }
+
+  var collected: [String] = []
+  var index = start
+  while index < lines.count {
+    let line = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+    if line.isEmpty {
+      if !collected.isEmpty { break }
+      index += 1
+      continue
+    }
+    if line.localizedCaseInsensitiveContains("error:")
+      || line.localizedCaseInsensitiveContains("note:")
+      || line.localizedCaseInsensitiveContains("warning:")
+    {
+      collected.append(line)
+      index += 1
+      continue
+    }
+    if !collected.isEmpty { break }
+    index += 1
+  }
+
+  return Array(collected.prefix(8))
+}
+
+func recordStep(
+  _ steps: inout [ValidationStepRecord],
+  summary: String,
+  status: ValidationStepStatus,
+  warningsPresent: Bool = false,
+  logPath: String? = nil
+) {
+  let record = ValidationStepRecord(
+    summary: summary,
+    status: status,
+    warningsPresent: warningsPresent,
+    logPath: logPath
+  )
+  steps.append(record)
+
+  var line = "\(status.rawValue) \(summary)"
+  if warningsPresent {
+    line += " [warnings]"
+  }
+  if status == .fail || status == .skip, let logPath {
+    line += " (\(logPath))"
+  }
+  print(line)
+}
+
+func printValidationSummary(_ steps: [ValidationStepRecord]) {
+  guard !steps.isEmpty else { return }
+  print("== Summary")
+  for step in steps {
+    var line = "\(step.status.rawValue) \(step.summary)"
+    if step.warningsPresent {
+      line += " [warnings]"
+    }
+    if step.status == .fail, let logPath = step.logPath {
+      line += " -> \(logPath)"
+    }
+    print(line)
+  }
+}
+
+func runLoggedValidationCommand(
+  _ executable: String,
+  _ arguments: [String],
+  cwd: String,
+  environment: [String: String],
+  logPath: String,
+  outputMode: ValidateOutputMode
+) throws -> ValidationCommandResult {
+  let process = Process()
+  process.executableURL = URL(fileURLWithPath: executable)
+  process.arguments = arguments
+  process.currentDirectoryURL = URL(fileURLWithPath: cwd)
+
+  var mergedEnv = ProcessInfo.processInfo.environment
+  for (k, v) in environment { mergedEnv[k] = v }
+  process.environment = mergedEnv
+
+  let outputPipe = Pipe()
+  process.standardOutput = outputPipe
+  process.standardError = outputPipe
+
+  try ensureDirectory(URL(fileURLWithPath: logPath).deletingLastPathComponent().path)
+  FileManager.default.createFile(atPath: logPath, contents: nil)
+  let logHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
+  try logHandle.truncate(atOffset: 0)
+  defer { try? logHandle.close() }
+
+  let readHandle = outputPipe.fileHandleForReading
+  let group = DispatchGroup()
+  group.enter()
+
+  let state = ValidationStreamState()
+
+  readHandle.readabilityHandler = { handle in
+    let data = handle.availableData
+    if data.isEmpty {
+      if state.markEOF() {
+        group.leave()
+      }
+      return
+    }
+
+    state.append(data, outputMode: outputMode)
+    try? logHandle.write(contentsOf: data)
+
+    guard outputMode != .quiet else { return }
+    guard let chunk = String(data: data, encoding: .utf8), !chunk.isEmpty else { return }
+
+    if outputMode == .raw {
+      print(chunk, terminator: "")
+      fflush(stdout)
+      return
+    }
+
+    for line in state.drainFilteredLines() {
+      print(line)
+    }
+  }
+
+  try process.run()
+  process.waitUntilExit()
+  group.wait()
+  readHandle.readabilityHandler = nil
+
+  let output = state.outputString()
+  if outputMode == .filtered, let filtered = state.flushTrailingFilteredLine() {
+    print(filtered)
+  }
+
+  return ValidationCommandResult(
+    status: process.terminationStatus,
+    output: output,
+    warningsPresent: containsValidationWarnings(output)
+  )
+}
+
+func runValidationStep(
+  title: String,
+  summary: String,
+  executable: String,
+  arguments: [String],
+  cwd: String,
+  environment: [String: String],
+  logPath: String,
+  outputMode: ValidateOutputMode,
+  steps: inout [ValidationStepRecord]
+) throws {
+  stepBanner(title)
+  printCommandIdentity(executable, arguments)
+
+  let result = try runLoggedValidationCommand(
+    executable,
+    arguments,
+    cwd: cwd,
+    environment: environment,
+    logPath: logPath,
+    outputMode: outputMode
+  )
+
+  guard result.status == 0 else {
+    if outputMode != .raw {
+      for line in extractedFailureDiagnostics(result.output) {
+        print(line)
+      }
+    }
+    print("log: \(logPath)")
+    recordStep(&steps, summary: summary, status: .fail, warningsPresent: result.warningsPresent, logPath: logPath)
+    throw CLIError(message: "Command failed with exit code \(result.status): \(commandString(executable, arguments))")
+  }
+
+  recordStep(&steps, summary: summary, status: .pass, warningsPresent: result.warningsPresent, logPath: logPath)
+  if result.warningsPresent || outputMode == .quiet {
+    print("log: \(logPath)")
+  }
 }
 
 func changedSwiftFiles(repoPath: String, envVars: [String: String]) throws -> [String] {
@@ -360,6 +688,7 @@ func parseArgs(_ args: [String]) throws -> Config {
   var packageDirsOverride: [String] = []
   var recursivePackageDiscovery = true
   var swiftPMDisableSandbox = false
+  var outputMode: ValidateOutputMode = .filtered
 
   var i = 0
   while i < args.count {
@@ -402,6 +731,17 @@ func parseArgs(_ args: [String]) throws -> Config {
         recursivePackageDiscovery = false
       case "--swiftpm-disable-sandbox":
         swiftPMDisableSandbox = true
+      case "--output":
+        i += 1
+        guard i < args.count else { throw CLIError(message: "Missing value for --output") }
+        guard let mode = ValidateOutputMode(rawValue: args[i]) else {
+          throw CLIError(message: "Invalid value for --output: \(args[i]). Expected filtered, quiet, or raw.")
+        }
+        outputMode = mode
+      case "--quiet":
+        outputMode = .quiet
+      case "--raw":
+        outputMode = .raw
       case "--help", "-h":
         throw ValidateSignal.helpRequested
       default:
@@ -427,7 +767,8 @@ func parseArgs(_ args: [String]) throws -> Config {
     testDestinations: testDestinations,
     packageDirsOverride: packageDirsOverride.isEmpty ? nil : packageDirsOverride,
     recursivePackageDiscovery: recursivePackageDiscovery,
-    swiftPMDisableSandbox: swiftPMDisableSandbox
+    swiftPMDisableSandbox: swiftPMDisableSandbox,
+    outputMode: outputMode
   )
 }
 
@@ -447,18 +788,46 @@ func resolvedProject(config: Config, repoPath: String) -> String? {
   return autoDetectProject(repoPath: repoPath)
 }
 
-func runFormatAndLint(repoPath: String, tools: ToolingPaths) throws {
+func runFormatAndLint(repoPath: String, tools: ToolingPaths, outputMode: ValidateOutputMode, steps: inout [ValidationStepRecord]) throws {
   let files = try changedSwiftFiles(repoPath: repoPath, envVars: tools.env)
   if files.isEmpty {
-    print("No changed Swift files detected; skipping format/lint.")
+    recordStep(&steps, summary: "format changed Swift files", status: .skip)
+    recordStep(&steps, summary: "lint changed Swift files", status: .skip)
     return
   }
 
-  _ = try run("/usr/bin/env", ["swift", "format", "--in-place"] + files, cwd: repoPath, environment: tools.env)
-  _ = try run("/usr/bin/env", ["swift", "format", "lint"] + files, cwd: repoPath, environment: tools.env)
+  try runValidationStep(
+    title: "Format changed Swift files",
+    summary: "format changed Swift files",
+    executable: "/usr/bin/env",
+    arguments: ["swift", "format", "--in-place"] + files,
+    cwd: repoPath,
+    environment: tools.env,
+    logPath: defaultLogPath(tools, "format_changed_swift_files"),
+    outputMode: outputMode,
+    steps: &steps
+  )
+
+  try runValidationStep(
+    title: "Lint changed Swift files",
+    summary: "lint changed Swift files",
+    executable: "/usr/bin/env",
+    arguments: ["swift", "format", "lint"] + files,
+    cwd: repoPath,
+    environment: tools.env,
+    logPath: defaultLogPath(tools, "lint_changed_swift_files"),
+    outputMode: outputMode,
+    steps: &steps
+  )
 }
 
-func runXcodeBroadValidation(config: Config, repoPath: String, tools: ToolingPaths, workspace: String) throws {
+func runXcodeBroadValidation(
+  config: Config,
+  repoPath: String,
+  tools: ToolingPaths,
+  workspace: String,
+  steps: inout [ValidationStepRecord]
+) throws {
   let actions = config.clean ? ["clean", "build"] : ["build"]
 
   for scheme in config.schemes {
@@ -473,11 +842,22 @@ func runXcodeBroadValidation(config: Config, repoPath: String, tools: ToolingPat
       if let derivedDataPath = tools.derivedDataPath {
         args += ["-derivedDataPath", derivedDataPath]
       }
+      if config.outputMode != .raw {
+        args.append("-quiet")
+      }
       args += ["CODE_SIGNING_ALLOWED=NO"] + actions
 
-      _ = try run("/usr/bin/env", args, cwd: repoPath, environment: tools.env)
-      try "command output streamed to terminal\n".write(toFile: log, atomically: true, encoding: .utf8)
-      print("build log: \(log)")
+      try runValidationStep(
+        title: "Build workspace scheme \(scheme) for \(destination)",
+        summary: "build \(scheme) (\(destination))",
+        executable: "/usr/bin/env",
+        arguments: args,
+        cwd: repoPath,
+        environment: tools.env,
+        logPath: log,
+        outputMode: config.outputMode,
+        steps: &steps
+      )
     }
   }
 
@@ -494,11 +874,22 @@ func runXcodeBroadValidation(config: Config, repoPath: String, tools: ToolingPat
         if let derivedDataPath = tools.derivedDataPath {
           args += ["-derivedDataPath", derivedDataPath]
         }
+        if config.outputMode != .raw {
+          args.append("-quiet")
+        }
         args += ["CODE_SIGNING_ALLOWED=NO", "test"]
 
-        _ = try run("/usr/bin/env", args, cwd: repoPath, environment: tools.env)
-        try "command output streamed to terminal\n".write(toFile: log, atomically: true, encoding: .utf8)
-        print("test log: \(log)")
+        try runValidationStep(
+          title: "Test workspace scheme \(scheme) for \(destination)",
+          summary: "test \(scheme) (\(destination))",
+          executable: "/usr/bin/env",
+          arguments: args,
+          cwd: repoPath,
+          environment: tools.env,
+          logPath: log,
+          outputMode: config.outputMode,
+          steps: &steps
+        )
       }
     }
   }
@@ -557,12 +948,29 @@ func isUsableProject(_ project: String, repoPath: String, envVars: [String: Stri
   return result.status == 0
 }
 
-func runSwiftPMBroadValidation(packages: [String], repoPath: String, tools: ToolingPaths, disableSandbox: Bool) throws {
+func runSwiftPMBroadValidation(
+  packages: [String],
+  repoPath: String,
+  tools: ToolingPaths,
+  disableSandbox: Bool,
+  outputMode: ValidateOutputMode,
+  steps: inout [ValidationStepRecord]
+) throws {
   guard !packages.isEmpty else {
     throw CLIError(message: "No Swift package found for broad validation.")
   }
 
   for packageDir in packages {
+    let package: PackageDescription
+    do {
+      guard let parsed = try parsePackageDescription(packageDir: packageDir, repoPath: repoPath, tools: tools) else {
+        throw CLIError(message: "Failed to decode Swift package description at \(packageDir).")
+      }
+      package = parsed
+    } catch {
+      throw CLIError(message: "Could not inspect Swift package at \(packageDir) before validation.\n\(error)")
+    }
+
     var buildArgs = ["swift", "build", "--package-path", packageDir]
     var testArgs = ["swift", "test", "--package-path", packageDir]
     if let cacheRoot = tools.cacheRoot {
@@ -575,17 +983,34 @@ func runSwiftPMBroadValidation(packages: [String], repoPath: String, tools: Tool
       buildArgs.append("--disable-sandbox")
       testArgs.append("--disable-sandbox")
     }
-    _ = try run(
-      "/usr/bin/env",
-      buildArgs,
+
+    try runValidationStep(
+      title: "Build Swift package \(packageDir)",
+      summary: "swift build \(packageDir)",
+      executable: "/usr/bin/env",
+      arguments: buildArgs,
       cwd: repoPath,
-      environment: tools.env
+      environment: tools.env,
+      logPath: defaultLogPath(tools, "swift_build_\(packageDir)"),
+      outputMode: outputMode,
+      steps: &steps
     )
-    _ = try run(
-      "/usr/bin/env",
-      testArgs,
+
+    guard packageHasTestTargets(package) else {
+      recordStep(&steps, summary: "swift test \(packageDir) (no test targets)", status: .skip)
+      continue
+    }
+
+    try runValidationStep(
+      title: "Test Swift package \(packageDir)",
+      summary: "swift test \(packageDir)",
+      executable: "/usr/bin/env",
+      arguments: testArgs,
       cwd: repoPath,
-      environment: tools.env
+      environment: tools.env,
+      logPath: defaultLogPath(tools, "swift_test_\(packageDir)"),
+      outputMode: outputMode,
+      steps: &steps
     )
   }
 }
@@ -597,7 +1022,8 @@ func runTargetedValidation(
   tools: ToolingPaths,
   packages: [String],
   workspace: String?,
-  project: String?
+  project: String?,
+  steps: inout [ValidationStepRecord]
 ) throws {
   var packageInspectionErrors: [String] = []
 
@@ -624,11 +1050,16 @@ func runTargetedValidation(
       buildArgs.append("--disable-sandbox")
     }
 
-    _ = try run(
-      "/usr/bin/env",
-      buildArgs,
+    try runValidationStep(
+      title: "Build Swift target \(target)",
+      summary: "swift build \(target)",
+      executable: "/usr/bin/env",
+      arguments: buildArgs,
       cwd: repoPath,
-      environment: tools.env
+      environment: tools.env,
+      logPath: defaultLogPath(tools, "swift_build_target_\(target)_\(packageDir)"),
+      outputMode: config.outputMode,
+      steps: &steps
     )
 
     var candidateTests = [target]
@@ -646,15 +1077,19 @@ func runTargetedValidation(
       if config.swiftPMDisableSandbox {
         swiftTestArgs.append("--disable-sandbox")
       }
-      _ = try run(
-        "/usr/bin/env",
-        swiftTestArgs,
+      try runValidationStep(
+        title: "Test Swift target \(testTarget)",
+        summary: "swift test \(testTarget)",
+        executable: "/usr/bin/env",
+        arguments: swiftTestArgs,
         cwd: repoPath,
-        environment: tools.env
+        environment: tools.env,
+        logPath: defaultLogPath(tools, "swift_test_target_\(testTarget)_\(packageDir)"),
+        outputMode: config.outputMode,
+        steps: &steps
       )
-      print("test target: \(testTarget)")
     } else {
-      print("No SwiftPM test target matched for \(target); build-only targeted validation completed.")
+      recordStep(&steps, summary: "swift test \(target) (no matching test target)", status: .skip)
     }
 
     return
@@ -683,12 +1118,20 @@ func runTargetedValidation(
     if let derivedDataPath = tools.derivedDataPath {
       args += ["-derivedDataPath", derivedDataPath]
     }
+    if config.outputMode != .raw {
+      args.append("-quiet")
+    }
     args += ["CODE_SIGNING_ALLOWED=NO", "build"]
-    _ = try run(
-      "/usr/bin/env",
-      args,
+    try runValidationStep(
+      title: "Build workspace scheme \(target) for generic/platform=macOS",
+      summary: "build \(target) (generic/platform=macOS)",
+      executable: "/usr/bin/env",
+      arguments: args,
       cwd: repoPath,
-      environment: tools.env
+      environment: tools.env,
+      logPath: defaultLogPath(tools, "workspace_target_build_\(target)"),
+      outputMode: config.outputMode,
+      steps: &steps
     )
     return
   }
@@ -706,12 +1149,20 @@ func runTargetedValidation(
     if let derivedDataPath = tools.derivedDataPath {
       args += ["-derivedDataPath", derivedDataPath]
     }
+    if config.outputMode != .raw {
+      args.append("-quiet")
+    }
     args += ["CODE_SIGNING_ALLOWED=NO", "build"]
-    _ = try run(
-      "/usr/bin/env",
-      args,
+    try runValidationStep(
+      title: "Build project scheme \(target) for generic/platform=macOS",
+      summary: "build \(target) (generic/platform=macOS)",
+      executable: "/usr/bin/env",
+      arguments: args,
       cwd: repoPath,
-      environment: tools.env
+      environment: tools.env,
+      logPath: defaultLogPath(tools, "project_target_build_\(target)"),
+      outputMode: config.outputMode,
+      steps: &steps
     )
     return
   }
@@ -722,76 +1173,101 @@ func runTargetedValidation(
 func runValidationFlow(_ arguments: [String]) throws {
   let config = try parseArgs(arguments)
   let repoPath = FileManager.default.currentDirectoryPath
+  var steps: [ValidationStepRecord] = []
 
   guard fileExists("\(repoPath)/.git") else {
     throw CLIError(message: "Current working directory is not a git repo root: \(repoPath)")
   }
 
-  let tools = try toolingPaths(config: config, repoPath: repoPath)
-  var workspace = resolvedWorkspace(config: config, repoPath: repoPath)
-  var project = resolvedProject(config: config, repoPath: repoPath)
-  let packages = discoverPackageDirs(repoPath: repoPath, overrides: config.packageDirsOverride, recursive: config.recursivePackageDiscovery)
+  do {
+    let tools = try toolingPaths(config: config, repoPath: repoPath)
+    var workspace = resolvedWorkspace(config: config, repoPath: repoPath)
+    var project = resolvedProject(config: config, repoPath: repoPath)
+    let packages = discoverPackageDirs(repoPath: repoPath, overrides: config.packageDirsOverride, recursive: config.recursivePackageDiscovery)
 
-  if let ws = workspace, !isUsableWorkspace(ws, repoPath: repoPath, envVars: tools.env) {
-    print("Workspace exists but is not usable by xcodebuild: \(ws). Falling back to project/SwiftPM.")
-    workspace = nil
-  }
-
-  if let proj = project, !isUsableProject(proj, repoPath: repoPath, envVars: tools.env) {
-    print("Project exists but is not usable by xcodebuild: \(proj). Falling back to SwiftPM when possible.")
-    project = nil
-  }
-
-  if let target = config.target {
-    try runTargetedValidation(
-      target: target,
-      config: config,
-      repoPath: repoPath,
-      tools: tools,
-      packages: packages,
-      workspace: workspace,
-      project: project
-    )
-    return
-  }
-
-  try runFormatAndLint(repoPath: repoPath, tools: tools)
-
-  if let workspace {
-    try runXcodeBroadValidation(config: config, repoPath: repoPath, tools: tools, workspace: workspace)
-    return
-  }
-
-  if !packages.isEmpty {
-    print("No workspace detected. Running SwiftPM broad validation across discovered packages.")
-    try runSwiftPMBroadValidation(packages: packages, repoPath: repoPath, tools: tools, disableSandbox: config.swiftPMDisableSandbox)
-    return
-  }
-
-  if let project {
-    // Xcode project-only fallback for broad validation.
-    for scheme in config.schemes {
-      for destination in config.destinations {
-        var args = [
-          "xcodebuild",
-          "-project", project,
-          "-scheme", scheme,
-          "-destination", destination,
-        ]
-        if let derivedDataPath = tools.derivedDataPath {
-          args += ["-derivedDataPath", derivedDataPath]
-        }
-        args += ["CODE_SIGNING_ALLOWED=NO", "build"]
-        _ = try run(
-          "/usr/bin/env",
-          args,
-          cwd: repoPath,
-          environment: tools.env
-        )
-      }
+    if let ws = workspace, !isUsableWorkspace(ws, repoPath: repoPath, envVars: tools.env) {
+      print("Workspace exists but is not usable by xcodebuild: \(ws). Falling back to project/SwiftPM.")
+      workspace = nil
     }
-    return
-  }
 
-  throw CLIError(message: "No workspace/project or Swift packages detected for broad validation in \(repoPath).")
+    if let proj = project, !isUsableProject(proj, repoPath: repoPath, envVars: tools.env) {
+      print("Project exists but is not usable by xcodebuild: \(proj). Falling back to SwiftPM when possible.")
+      project = nil
+    }
+
+    if let target = config.target {
+      try runTargetedValidation(
+        target: target,
+        config: config,
+        repoPath: repoPath,
+        tools: tools,
+        packages: packages,
+        workspace: workspace,
+        project: project,
+        steps: &steps
+      )
+      printValidationSummary(steps)
+      return
+    }
+
+    try runFormatAndLint(repoPath: repoPath, tools: tools, outputMode: config.outputMode, steps: &steps)
+
+    if let workspace {
+      try runXcodeBroadValidation(config: config, repoPath: repoPath, tools: tools, workspace: workspace, steps: &steps)
+      printValidationSummary(steps)
+      return
+    }
+
+    if !packages.isEmpty {
+      print("No workspace detected. Running SwiftPM broad validation across discovered packages.")
+      try runSwiftPMBroadValidation(
+        packages: packages,
+        repoPath: repoPath,
+        tools: tools,
+        disableSandbox: config.swiftPMDisableSandbox,
+        outputMode: config.outputMode,
+        steps: &steps
+      )
+      printValidationSummary(steps)
+      return
+    }
+
+    if let project {
+      for scheme in config.schemes {
+        for destination in config.destinations {
+          var args = [
+            "xcodebuild",
+            "-project", project,
+            "-scheme", scheme,
+            "-destination", destination,
+          ]
+          if let derivedDataPath = tools.derivedDataPath {
+            args += ["-derivedDataPath", derivedDataPath]
+          }
+          if config.outputMode != .raw {
+            args.append("-quiet")
+          }
+          args += ["CODE_SIGNING_ALLOWED=NO", "build"]
+          try runValidationStep(
+            title: "Build project scheme \(scheme) for \(destination)",
+            summary: "build \(scheme) (\(destination))",
+            executable: "/usr/bin/env",
+            arguments: args,
+            cwd: repoPath,
+            environment: tools.env,
+            logPath: "\(tools.verifyRoot)/project_\(sanitize(scheme))_\(sanitize(destination))_build.log",
+            outputMode: config.outputMode,
+            steps: &steps
+          )
+        }
+      }
+      printValidationSummary(steps)
+      return
+    }
+
+    throw CLIError(message: "No workspace/project or Swift packages detected for broad validation in \(repoPath).")
+  } catch {
+    printValidationSummary(steps)
+    throw error
+  }
 }

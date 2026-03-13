@@ -52,6 +52,63 @@ import Testing
     #expect(shouldIgnoreDiscoveredPackagePath(path) == expected)
   }
 
+  @Test(arguments: [
+    (PackageDescription(targets: [TargetInfo(name: "Library", type: "regular")]), false),
+    (PackageDescription(targets: [TargetInfo(name: "Library", type: "regular"), TargetInfo(name: "LibraryTests", type: "test")]), true),
+  ])
+  func packageTestTargetDetection(package: PackageDescription, expected: Bool) {
+    #expect(packageHasTestTargets(package) == expected)
+  }
+
+  @Test(arguments: [
+    (["--output", "filtered"], ValidateOutputMode.filtered),
+    (["--output", "quiet"], ValidateOutputMode.quiet),
+    (["--raw"], ValidateOutputMode.raw),
+    (["--quiet"], ValidateOutputMode.quiet),
+  ])
+  func outputModeParsing(arguments: [String], expected: ValidateOutputMode) throws {
+    let config = try parseArgs(arguments)
+    #expect(config.outputMode == expected)
+  }
+
+  @Test func invalidOutputModeThrows() {
+    #expect(throws: CLIError.self) {
+      _ = try parseArgs(["--output", "loud"])
+    }
+  }
+
+  @Test(arguments: [
+    ("error: cannot find type 'Foo' in scope", "error: cannot find type 'Foo' in scope"),
+    ("warning: deprecated API", "warning: deprecated API"),
+    ("note: expanded from macro", "note: expanded from macro"),
+    ("** BUILD FAILED **", "** BUILD FAILED **"),
+    ("remark: compiled module was created by a different version of the compiler", nil),
+    ("CompileSwift normal arm64 MyFile.swift", nil),
+  ])
+  func filteredValidationLineBehavior(line: String, expected: String?) {
+    #expect(filteredValidationLine(line) == expected)
+  }
+
+  @Test func extractedFailureDiagnosticsPreferErrorBlock() {
+    let output = """
+      CompileSwift normal arm64 One.swift
+      note: candidate found here
+      /tmp/One.swift:42:13: error: cannot convert value
+      note: expected argument type 'String'
+      warning: using deprecated conversion
+      ** BUILD FAILED **
+      """
+
+    #expect(
+      extractedFailureDiagnostics(output) == [
+        "note: candidate found here",
+        "/tmp/One.swift:42:13: error: cannot convert value",
+        "note: expected argument type 'String'",
+        "warning: using deprecated conversion",
+      ]
+    )
+  }
+
   private func makeTemporaryRepo() throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory())
       .appendingPathComponent("ReleaseTools-ValidateDiscovery-\(UUID().uuidString)")
