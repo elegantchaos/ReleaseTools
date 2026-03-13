@@ -16,3 +16,4 @@ Add an optional way for `submit` to open the relevant App Store Connect page aft
 ### Notes
 
 - This follow-up fits naturally beside the post-upload TestFlight workflow because both improve the post-upload verification path.
+- `rt validate` now writes per-step logs, but it still keeps full merged command output in memory while running. A future follow-up could cap the in-memory buffer or derive summaries from the log files to reduce peak memory usage for large `xcodebuild` runs.

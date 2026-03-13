@@ -419,6 +419,7 @@ func runLoggedValidationCommand(
   try ensureDirectory(URL(fileURLWithPath: logPath).deletingLastPathComponent().path)
   FileManager.default.createFile(atPath: logPath, contents: nil)
   let logHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: logPath))
+  try logHandle.truncate(atOffset: 0)
   defer { try? logHandle.close() }
 
   let readHandle = outputPipe.fileHandleForReading
@@ -455,8 +456,8 @@ func runLoggedValidationCommand(
 
   try process.run()
   process.waitUntilExit()
-  readHandle.readabilityHandler = nil
   group.wait()
+  readHandle.readabilityHandler = nil
 
   let output = state.outputString()
   if outputMode == .filtered, let filtered = state.flushTrailingFilteredLine() {
