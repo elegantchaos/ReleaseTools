@@ -48,6 +48,10 @@ func packageHasTestTargets(_ package: PackageDescription) -> Bool {
   package.targets.contains(where: { $0.type == "test" })
 }
 
+func swiftPMValidationDefines(_ arguments: [String]) -> [String] {
+  arguments + ["-Xswiftc", "-DVALIDATING"]
+}
+
 struct ToolingPaths {
   let cacheRoot: String?
   let verifyRoot: String
@@ -971,8 +975,8 @@ func runSwiftPMBroadValidation(
       throw CLIError(message: "Could not inspect Swift package at \(packageDir) before validation.\n\(error)")
     }
 
-    var buildArgs = ["swift", "build", "--package-path", packageDir]
-    var testArgs = ["swift", "test", "--package-path", packageDir]
+    var buildArgs = swiftPMValidationDefines(["swift", "build", "--package-path", packageDir])
+    var testArgs = swiftPMValidationDefines(["swift", "test", "--package-path", packageDir])
     if let cacheRoot = tools.cacheRoot {
       let scratchPath = "\(cacheRoot)/swiftpm/\(sanitize(packageDir))"
       try ensureDirectory(scratchPath)
@@ -1038,7 +1042,7 @@ func runTargetedValidation(
     }
     guard package.targets.contains(where: { $0.name == target }) else { continue }
 
-    var buildArgs = ["swift", "build", "--package-path", packageDir, "--target", target]
+    var buildArgs = swiftPMValidationDefines(["swift", "build", "--package-path", packageDir, "--target", target])
     var testArgs: [String]?
     if let cacheRoot = tools.cacheRoot {
       let scratchPath = "\(cacheRoot)/swiftpm/\(sanitize(packageDir))"
@@ -1070,7 +1074,7 @@ func runTargetedValidation(
     if let testTarget = candidateTests.first(where: { candidate in
       package.targets.contains(where: { $0.name == candidate && $0.type == "test" })
     }) {
-      var swiftTestArgs = ["swift", "test", "--package-path", packageDir, "--filter", testTarget]
+      var swiftTestArgs = swiftPMValidationDefines(["swift", "test", "--package-path", packageDir, "--filter", testTarget])
       if let extraArgs = testArgs {
         swiftTestArgs += extraArgs
       }
