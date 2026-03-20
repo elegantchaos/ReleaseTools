@@ -10,11 +10,15 @@ on: [push, pull_request]
 jobs:
 
     macOS-swift63:
-        name: macOS (Swift 6.3)
-        runs-on: macos-15
+        name: macOS 26 (Swift 6.3 via Xcode)
+        runs-on: macos-26
         steps:
         - name: Checkout
           uses: actions/checkout@v4
+        - name: Select Xcode
+          uses: maxim-lobanov/setup-xcode@v1
+          with:
+            xcode-version: latest
         - name: Install xcbeautify
           run: |
             if command -v xcbeautify >/dev/null 2>&1
@@ -30,10 +34,6 @@ jobs:
             fi
         - name: Make Logs Directory
           run: mkdir logs
-        - name: Select Swift
-          uses: swift-actions/setup-swift@v2
-          with:
-            swift-version: "6.3"
         - name: Swift Version
           run: swift --version
         - name: Build (release)
