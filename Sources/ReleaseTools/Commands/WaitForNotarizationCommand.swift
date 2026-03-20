@@ -63,7 +63,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
   static let retryDelay = 30
 
   func run() async throws {
-    let engine = try ReleaseEngine(
+    let engine = try await ReleaseEngine(
       requires: [.archive],
       options: options,
       command: Self.configuration,

@@ -28,13 +28,14 @@ enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
         return """
           You need to supply both --api-key and --api-issuer together.
           Either supply both values on the command line, or set default values in
-          the .rt.json file:
+          the .rt/config.json file:
 
-          "settings": {
-            "*": {
+          {
+            "settings": {
               "apiKey": "key-here",
               "apiIssuer": "issuer-here"
-            },
+            }
+          }
 
           A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
           See https://appstoreconnect.apple.com/access/api to generate a key.
@@ -68,8 +69,8 @@ class ReleaseEngine {
   var semaphore: DispatchSemaphore? = nil
   var error: Error? = nil
 
-  let workspaceSettingsURL: URL
-  var workspaceSettings: WorkspaceSettings
+  let configPaths: RTConfigPaths
+  var configReader: RTConfigReader
 
   var platform: String = ""
   var scheme: String = ""
@@ -104,7 +105,7 @@ class ReleaseEngine {
   var versionTag: String { return "v\(archive.version)-\(archive.build)-\(platform)" }
 
   var defaultWorkspace: String? {
-    let url = URL(fileURLWithPath: ".")
+    let url = rootURL
     if let contents = try? FileManager.default.contentsOfDirectory(
       at: url, includingPropertiesForKeys: [],
       options: [.skipsPackageDescendants, .skipsSubdirectoryDescendants, .skipsHiddenFiles])
@@ -128,12 +129,16 @@ class ReleaseEngine {
     apiIssuer: ApiIssuerOption? = nil,
     platform: PlatformOption? = nil,
     setDefaultPlatform: Bool = true
-  ) throws {
+  ) async throws {
     let git = GitRunner()
     git.cwd = rootURL
     self.git = git
 
     self.rootURL = rootURL
+    self.configPaths = RTConfigPaths(
+      rootURL: rootURL,
+      homeURL: FileManager.default.homeDirectoryForCurrentUser
+    )
     showOutput = options.showOutput
     showCommands = options.showCommands
     verbose = options.verbose
@@ -142,27 +147,13 @@ class ReleaseEngine {
       self.platform = platform.platform ?? (setDefaultPlatform ? "macOS" : "")
     }
 
-    // load settings from the .rt.json file if it exists
-    workspaceSettingsURL = URL(filePath: ".rt.json")!
-    workspaceSettings = (try? WorkspaceSettings.load(url: workspaceSettingsURL)) ?? WorkspaceSettings()
+    try RTLegacyConfigMigrator(paths: configPaths).migrateIfNeeded()
+    configReader = try await RTConfigReader(paths: configPaths, scheme: nil, platform: self.platform)
 
     // if we've specified the scheme, we also need the workspace
     if requirements.contains(.workspace) || scheme != nil {
       if let workspace = options.workspace ?? defaultWorkspace {
         self.workspace = workspace
-
-        // migrate any old UserDefault settings to .rt.json
-        if let knownScheme = scheme?.scheme {
-          if workspaceSettings.migrateSettings(
-            workspace: workspace,
-            scheme: knownScheme,
-            platform: self.platform
-          ) {
-
-            // write the settings to the .rt.json file
-            try workspaceSettings.write(to: workspaceSettingsURL)
-          }
-        }
       } else {
         throw GeneralError.missingWorkspace
       }
@@ -175,6 +166,12 @@ class ReleaseEngine {
         throw GeneralError.noDefaultScheme(self.platform)
       }
     }
+
+    configReader = try await RTConfigReader(
+      paths: configPaths,
+      scheme: self.scheme,
+      platform: self.platform
+    )
 
     if apiKey != nil {
       if let key = apiKey?.key ?? getSettings().apiKey {
@@ -204,21 +201,13 @@ class ReleaseEngine {
     }
   }
 
-  func defaultKey(for key: String, platform: String) -> String {
-    if platform.isEmpty {
-      return "\(key).default.\(workspace)"
-    } else {
-      return "\(key).default.\(platform).\(workspace)"
-    }
-  }
-
   func getSettings() -> BasicSettings {
-    return workspaceSettings.settings(scheme: scheme, platform: platform)
+    return configReader.settings
   }
 
   /// If no scheme is supplied, we'll try to guess one based on the workspace.
   var defaultScheme: String? {
-    if let value = workspaceSettings.defaultScheme {
+    if let value = configReader.defaultScheme {
       return value
     }
 
