@@ -65,6 +65,15 @@
       }
     },
     {
+      "identity" : "runner",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elegantchaos/Runner.git",
+      "state" : {
+        "revision" : "ba4b7d5b995d33c82fc1aa51054202caf0aa7297",
+        "version" : "2.1.5"
+      }
+    },
+    {
       "identity" : "semanticversion",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/SemanticVersion.git",
