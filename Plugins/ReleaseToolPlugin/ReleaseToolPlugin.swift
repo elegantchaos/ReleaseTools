@@ -34,7 +34,7 @@ import PackagePlugin
   }
 
   func performCommand(context: PackagePlugin.PluginContext, arguments: [String]) async throws {
-    let tool = try context.tool(named: "ReleaseTools")
+    let tool = try context.tool(named: "rt")
     let filteredArguments = arguments.filter { $0 != "--allow-writing-to-package-directory" }
     do {
       let output = try await run(
@@ -69,7 +69,7 @@ import PackagePlugin
 
   extension ReleaseToolsPlugin: XcodeCommandPlugin {
     func performCommand(context: XcodePluginContext, arguments: [String]) throws {
-      let tool = try context.tool(named: "ReleaseTools")
+      let tool = try context.tool(named: "rt")
 
       let output = try runSync(tool: tool, arguments: arguments, cwd: context.xcodeProject.directoryURL)
       Diagnostics.remark(output)

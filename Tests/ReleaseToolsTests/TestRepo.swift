@@ -38,14 +38,23 @@ class TestRepo {
     gitRunner.cwd = tempURL
     self.git = gitRunner
 
-    // Create runner for rt command
-    // The rt executable will be in .build/debug/rt relative to the package root
     let packageRoot = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()
       .deletingLastPathComponent()
       .deletingLastPathComponent()
-    let rtPath = packageRoot.appendingPathComponent(".build/debug/rt")
-    let rtRunner = Runner(for: rtPath)
+
+    // get the path to a release build of the rt executable, building it if necessary.
+    let scratchPath = packageRoot.appendingPathComponent(".build/test-scratch").path
+    let rtBuilder = Runner(command: "swift")
+    rtBuilder.cwd = packageRoot
+    let rtPath = await rtBuilder.run(["build", "--configuration", "release", "--scratch-path", scratchPath, "--show-bin-path"]).stdout.string.trimmingCharacters(in: .whitespacesAndNewlines)
+    let rtURL = URL(filePath: rtPath).appending(path: "rt")
+    if !FileManager.default.fileExists(atURL: rtURL) {
+      _ = await rtBuilder.run(["build", "--configuration", "release", "--scratch-path", scratchPath]).waitUntilExit()
+    }
+
+    // Create runner for rt command
+    let rtRunner = Runner(for: rtURL)
     rtRunner.cwd = tempURL
     self.rt = rtRunner
 
@@ -135,7 +144,6 @@ class TestRepo {
     let state = await session.waitUntilExit()
     let out = await session.stdout.string
     let err = await session.stderr.string
-
     transcript += "> rt \(args.joined(separator: " "))\n"
     transcript += out
     if !err.isEmpty {

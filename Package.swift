@@ -16,6 +16,7 @@ let package = Package(
   ],
 
   dependencies: [
+    .package(url: "https://github.com/apple/swift-configuration", from: "1.2.0"),
     .package(url: "https://github.com/elegantchaos/Coercion.git", from: "1.1.2"),
     .package(url: "https://github.com/elegantchaos/Files.git", from: "1.2.0"),
     .package(url: "https://github.com/elegantchaos/Logger.git", from: "2.0.0"),
@@ -30,6 +31,7 @@ let package = Package(
       name: "ReleaseTools",
       dependencies: [
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        .product(name: "Configuration", package: "swift-configuration"),
         "Coercion",
         "Files",
         "Logger",

@@ -49,7 +49,7 @@ struct NotarizeCommand: AsyncParsableCommand {
 
   func run() async throws {
 
-    let engine = try ReleaseEngine(
+    let engine = try await ReleaseEngine(
       requires: [.archive],
       options: options,
       command: Self.configuration,

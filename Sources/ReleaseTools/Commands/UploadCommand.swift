@@ -78,7 +78,7 @@ struct UploadCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let engine = try ReleaseEngine(
+    let engine = try await ReleaseEngine(
       requires: [.archive],
       options: options,
       command: Self.configuration,

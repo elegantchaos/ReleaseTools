@@ -161,7 +161,7 @@ More details of each command are given below:
 
 Run `xcodebuild archive` to archive the application for distribution.
 
-The scheme to build is either specified explicitly, or set previously by the `defaultScheme` setting in the `.rt.json` settings file for the project.
+The scheme to build is either specified explicitly, or set previously by the `defaults.scheme` setting in the project's `.rt/config.json` file.
 
 The archive is placed into: `.build/<platform>/archive.xcarchive`.
 
@@ -283,6 +283,34 @@ We also look for a scheme in that workspace with the same name, by default.
 
 So if your project is in a folder called `Foo`, we will use `Foo.xcworkspace` as the `-workspace` argument to xcodebuild, and `Foo` as the `-scheme` argument.
 
-You can override the default scheme with the `--scheme=<name>` option, or with a setting in the optional `.rt.json` configuration file.
+You can override the default scheme with the `--scheme=<name>` option, or with a setting in the optional `.rt/config.json` configuration file.
 
-We support building for multiple platforms, but only one at a time. To tell rt which platform to build for, use an optional argument `--platform=macOS|iOS|tvOS|watchOS`. If you have only one supported platform, you can set it in the `.rt.json` file. If you don't supply the platform, it defaults to `macOS`.
+Project configuration now lives in a `.rt/` directory. The base committed configuration goes in `.rt/config.json`, and git-ignored local overrides go in `.rt/local/config.json`.
+
+Optional per-platform and per-scheme overrides are loaded by filename, rather than by selector keys inside one JSON file:
+
+- `.rt/platforms/<platform>.json`
+- `.rt/schemes/<scheme>.json`
+- `.rt/schemes/<scheme>/platforms/<platform>.json`
+- matching git-ignored overrides under `.rt/local/...`
+
+The same layout is supported for global defaults under `$XDG_CONFIG_HOME/rt/` when `XDG_CONFIG_HOME` is set, or `~/.local/config/rt/` otherwise.
+
+Each config file uses the same schema:
+
+```json
+{
+  "defaults": {
+    "scheme": "Foo"
+  },
+  "settings": {
+    "keychain": "~/Library/Keychains/login.keychain",
+    "apiKey": "key-here",
+    "apiIssuer": "issuer-here"
+  }
+}
+```
+
+Existing project `.rt.json` and `.rt.local.json` files are migrated automatically into the new `.rt/` layout the first time `rt` reads them. During migration, `rt` also adds `.rt/local/` to the repository `.gitignore`.
+
+We support building for multiple platforms, but only one at a time. To tell rt which platform to build for, use an optional argument `--platform=macOS|iOS|tvOS|watchOS`. If you don't supply the platform, it defaults to `macOS`.

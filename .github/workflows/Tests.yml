@@ -9,12 +9,16 @@ on: [push, pull_request]
 
 jobs:
 
-    macOS-swift62:
-        name: macOS (Swift 6.2)
-        runs-on: macos-15
+    macOS-swift63:
+        name: macOS 26 (Swift 6.3 via Xcode)
+        runs-on: macos-26
         steps:
         - name: Checkout
           uses: actions/checkout@v4
+        - name: Select Xcode
+          uses: maxim-lobanov/setup-xcode@v1
+          with:
+            xcode-version: latest
         - name: Install xcbeautify
           run: |
             if command -v xcbeautify >/dev/null 2>&1
@@ -30,10 +34,6 @@ jobs:
             fi
         - name: Make Logs Directory
           run: mkdir logs
-        - name: Select Swift
-          uses: swift-actions/setup-swift@v2
-          with:
-            swift-version: "6.2"
         - name: Swift Version
           run: swift --version
         - name: Build (release)
@@ -63,7 +63,7 @@ jobs:
         - name: Test (release Swift Testing)
           run: |
             LOG="logs/swift-test-swift-testing-release.log"
-            if swift test --disable-xctest --configuration release >"$LOG" 2>&1
+            if swift test --disable-xctest >"$LOG" 2>&1
             then
               echo "Test (release Swift Testing) succeeded."
             else
@@ -76,6 +76,5 @@ jobs:
           uses: actions/upload-artifact@v4
           if: always()
           with:
-            name: macOS-swift62-logs
+            name: macOS-swift63-logs
             path: logs
-

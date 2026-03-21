@@ -48,7 +48,7 @@ struct ArchiveCommand: AsyncParsableCommand {
   @OptionGroup() var options: CommonOptions
 
   func run() async throws {
-    let engine = try ReleaseEngine(
+    let engine = try await ReleaseEngine(
       options: options,
       command: Self.configuration,
       scheme: scheme,

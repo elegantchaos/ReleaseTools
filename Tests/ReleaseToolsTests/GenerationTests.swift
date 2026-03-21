@@ -22,7 +22,7 @@ struct GenerationTests {
 
     // Create ReleaseEngine
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
     // Generate header file
     let headerPath = repo.url.appendingPathComponent("VersionInfo.h").path
@@ -43,7 +43,7 @@ struct GenerationTests {
 
     // Don't create any version tags, so it should calculate next build number
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Generate header file without requiring HEAD tag
     let headerPath = repo.url.appendingPathComponent("VersionInfo.h").path
@@ -67,7 +67,7 @@ struct GenerationTests {
     try await repo.commit(message: "another commit")
 
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Generate header file - should increment from highest existing tag
     let headerPath = repo.url.appendingPathComponent("VersionInfo.h").path
@@ -92,7 +92,7 @@ struct GenerationTests {
     try await repo.tag(name: "v2.1.0-15")
 
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Generate config file - expect git update-index to fail in test environment
     let configPath = repo.url.appendingPathComponent("BuildNumber.xcconfig").path
@@ -124,7 +124,7 @@ struct GenerationTests {
     try await repo.tag(name: "v1.0.0-10")
 
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Update config file - expect git update-index to fail in test environment
     do {
@@ -150,7 +150,7 @@ struct GenerationTests {
     try await repo.tag(name: "v1.0.0-5")
 
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Get expected values
     let buildInfo = try await engine.buildInfoFromTag(requireHeadTag: false)
@@ -195,7 +195,7 @@ struct GenerationTests {
     try sourcePlistData.write(to: URL(fileURLWithPath: sourcePlistPath))
 
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Generate plist
     let destPlistPath = repo.url.appendingPathComponent("Info.plist").path
@@ -234,7 +234,7 @@ struct GenerationTests {
     try await repo.tag(name: "v1.0.0-10")
 
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Get expected build number
     let buildInfo = try await engine.buildInfoFromTag(requireHeadTag: false)
@@ -270,7 +270,7 @@ struct GenerationTests {
     try await repo.commit(message: "update 2")
 
     let options = try CommonOptions.parse([])
-    let engine = try ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
+    let engine = try await ReleaseEngine(root: repo.url, options: options, command: UpdateBuildCommand.configuration)
 
     // Generate all three formats
     let headerPath = repo.url.appendingPathComponent("VersionInfo.h").path
