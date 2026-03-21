@@ -63,7 +63,7 @@ jobs:
         - name: Test (release Swift Testing)
           run: |
             LOG="logs/swift-test-swift-testing-release.log"
-            if swift test --disable-xctest --configuration release >"$LOG" 2>&1
+            if swift test --disable-xctest >"$LOG" 2>&1
             then
               echo "Test (release Swift Testing) succeeded."
             else
