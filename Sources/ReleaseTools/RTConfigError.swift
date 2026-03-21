@@ -22,9 +22,9 @@ enum RTConfigError: Error, CustomStringConvertible {
 
       case .mixedLegacyAndCanonicalSchema(let url):
         return """
-          The legacy configuration file at \(url.path) mixes the old selector-key schema with the new canonical schema.
+          The configuration file at \(url.path) uses the new canonical schema in a legacy file location or mixes the old selector-key schema with the new canonical schema.
 
-          Remove the new-style keys from the legacy file or finish migrating it into the `.rt/` layout.
+          Move it into the `.rt/` layout or convert it back to the legacy selector-key schema before retrying migration.
           """
 
       case .failedToMigrate(let url, let error):

@@ -6,6 +6,11 @@
 import Foundation
 
 struct RTLegacyConfigMigrator {
+  private enum SettingsSchema {
+    case canonical
+    case legacy
+  }
+
   private struct LegacyConfig: Decodable {
     let defaultScheme: String?
     let settings: [String: BasicSettings]
@@ -29,15 +34,6 @@ struct RTLegacyConfigMigrator {
   }
 
   func migrateIfNeeded() throws {
-    let newLayoutExists =
-      fileManager.fileExists(atPath: paths.projectDirectoryURL.path)
-      || fileManager.fileExists(atPath: paths.baseURL(root: paths.projectDirectoryURL).path)
-      || fileManager.fileExists(atPath: paths.baseURL(root: paths.projectLocalDirectoryURL).path)
-
-    guard !newLayoutExists else {
-      return
-    }
-
     let legacyBaseExists = fileManager.fileExists(atPath: paths.legacyProjectConfigURL.path)
     let legacyLocalExists = fileManager.fileExists(atPath: paths.legacyProjectLocalConfigURL.path)
 
@@ -46,23 +42,25 @@ struct RTLegacyConfigMigrator {
     }
 
     do {
-      if legacyBaseExists {
+      if legacyBaseExists && !hasCanonicalConfig(in: paths.projectDirectoryURL) {
         let legacyConfig = try loadLegacyConfig(from: paths.legacyProjectConfigURL)
         try writeMigratedDocuments(for: legacyConfig, local: false)
       }
 
-      if legacyLocalExists {
+      if legacyLocalExists && !hasCanonicalConfig(in: paths.projectLocalDirectoryURL) {
         let legacyConfig = try loadLegacyConfig(from: paths.legacyProjectLocalConfigURL)
         try writeMigratedDocuments(for: legacyConfig, local: true)
       }
 
-      try updateGitIgnore()
+      if legacyLocalExists {
+        try updateGitIgnore()
+      }
 
-      if legacyBaseExists {
+      if legacyBaseExists && hasCanonicalConfig(in: paths.projectDirectoryURL) {
         try fileManager.removeItem(at: paths.legacyProjectConfigURL)
       }
 
-      if legacyLocalExists {
+      if legacyLocalExists && hasCanonicalConfig(in: paths.projectLocalDirectoryURL) {
         try fileManager.removeItem(at: paths.legacyProjectLocalConfigURL)
       }
     } catch let error as RTConfigError {
@@ -76,12 +74,24 @@ struct RTLegacyConfigMigrator {
     do {
       let data = try Data(contentsOf: url)
 
-      if let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-        let keys = Set(object.keys)
-        let oldKeys: Set<String> = ["defaultScheme", "settings"]
-        let newKeys: Set<String> = ["defaults", "platforms", "schemes"]
-        if !keys.intersection(oldKeys).isEmpty && !keys.intersection(newKeys).isEmpty {
+      if let object = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+        let settingsSchema = schemaForSettings(in: object)
+        let usesLegacySchema = object["defaultScheme"] != nil || settingsSchema == .legacy
+        let usesCanonicalSchema =
+          object["defaults"] != nil
+          || object["platforms"] != nil
+          || object["schemes"] != nil
+          || settingsSchema == .canonical
+
+        if usesCanonicalSchema {
           throw RTConfigError.mixedLegacyAndCanonicalSchema(url)
+        }
+
+        if !usesLegacySchema {
+          throw RTConfigError.invalidLegacyConfigurationFile(
+            url,
+            CocoaError(.propertyListReadCorrupt)
+          )
         }
       }
 
@@ -126,6 +136,46 @@ struct RTLegacyConfigMigrator {
         throw RTConfigError.failedToMigrate(url, error)
       }
     }
+  }
+
+  private func hasCanonicalConfig(in root: URL) -> Bool {
+    let baseURL = paths.baseURL(root: root)
+    if fileManager.fileExists(atPath: baseURL.path) {
+      return true
+    }
+
+    let excludedPrefix: String? =
+      root == paths.projectDirectoryURL ? paths.projectLocalDirectoryURL.path + "/" : nil
+
+    guard let enumerator = fileManager.enumerator(
+      at: root,
+      includingPropertiesForKeys: [.isRegularFileKey],
+      options: [.skipsHiddenFiles]
+    ) else {
+      return false
+    }
+
+    for case let url as URL in enumerator where url.pathExtension == "json" {
+      if let excludedPrefix, url.path.hasPrefix(excludedPrefix) {
+        continue
+      }
+
+      return true
+    }
+
+    return false
+  }
+
+  private func schemaForSettings(in object: [String: Any]) -> SettingsSchema? {
+    guard let settings = object["settings"] as? [String: Any] else {
+      return nil
+    }
+
+    if settings.values.contains(where: { $0 is [String: Any] }) {
+      return .legacy
+    }
+
+    return .canonical
   }
 
   private func targetURL(for selector: String, root: URL) -> URL {

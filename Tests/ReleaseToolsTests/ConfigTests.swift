@@ -158,6 +158,69 @@ struct ConfigTests {
     #expect(gitIgnore.contains(".rt/local/"))
   }
 
+  @Test func migratesLegacyBaseConfigWhenDotRTDirectoryAlreadyExists() throws {
+    let repo = try makeTempDirectory()
+    let paths = RTConfigPaths(rootURL: repo)
+
+    try FileManager.default.createDirectory(at: paths.projectDirectoryURL, withIntermediateDirectories: true)
+
+    try """
+      {
+        "defaultScheme": "Stack",
+        "settings": {
+          "*": {
+            "apiKey": "base-key"
+          }
+        }
+      }
+      """.write(
+        to: paths.legacyProjectConfigURL,
+        atomically: true,
+        encoding: .utf8
+      )
+
+    try RTLegacyConfigMigrator(paths: paths).migrateIfNeeded()
+
+    let base = try loadConfig(at: paths.baseURL(root: paths.projectDirectoryURL))
+    #expect(base.defaults?.scheme == "Stack")
+    #expect(base.settings?.apiKey == "base-key")
+    #expect(!FileManager.default.fileExists(atPath: paths.legacyProjectConfigURL.path))
+  }
+
+  @Test func rejectsCanonicalConfigStoredInLegacyFileLocation() throws {
+    let repo = try makeTempDirectory()
+    let paths = RTConfigPaths(rootURL: repo)
+
+    try """
+      {
+        "defaults": {
+          "scheme": "Stack"
+        },
+        "settings": {
+          "apiKey": "base-key"
+        }
+      }
+      """.write(
+        to: paths.legacyProjectConfigURL,
+        atomically: true,
+        encoding: .utf8
+      )
+
+    do {
+      try RTLegacyConfigMigrator(paths: paths).migrateIfNeeded()
+      Issue.record("Expected canonical config in a legacy file location to be rejected.")
+    } catch let error as RTConfigError {
+      guard case .mixedLegacyAndCanonicalSchema(let url) = error else {
+        Issue.record("Unexpected error: \(error)")
+        return
+      }
+
+      #expect(url == paths.legacyProjectConfigURL)
+      #expect(FileManager.default.fileExists(atPath: paths.legacyProjectConfigURL.path))
+      #expect(!FileManager.default.fileExists(atPath: paths.baseURL(root: paths.projectDirectoryURL).path))
+    }
+  }
+
   @Test func releaseEngineMigratesLegacyConfigAndResolvesSchemeSettings() async throws {
     let repo = try await TestRepo()
     let workspaceURL = repo.url.appendingPathComponent("Stack.xcworkspace")
