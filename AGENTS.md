@@ -7,7 +7,6 @@
 - Inspect the relevant code, tests, manifests, and docs before editing, then apply the smallest coherent change set that keeps a single source of truth and avoids duplication.
 - Keep implementations simple, avoid speculative work, and avoid unrelated refactors during focused tasks.
 - Add or update tests for behavior changes and use red/green TDD for non-UI code.
-- Create previews for UI code when UI surfaces are added or changed.
 - Run the narrowest validation that proves the change first, then broaden out to the relevant project checks, and report any skipped validation with the reason and residual risk.
 - Use trusted primary sources for technical decisions when behavior, APIs, or policy are uncertain.
 - Use portable path references in docs and guidance. Prefer repository-relative paths for files in this repository and `~/...` home-relative paths for shared resources outside it. Avoid machine-specific absolute paths.
@@ -17,9 +16,9 @@
 
 ## Skills
 
-- Use ~/.local/share/skills/coding-standards-skill/SKILL.md for cross-language engineering policy, maintainability, and source-selection guidance.
-- Use ~/.local/share/skills/swift-skill/SKILL.md for baseline Swift language, package, and API design guidance.
-- Use ~/.local/share/skills/Swift-Testing-Agent-Skill/swift-testing-pro/SKILL.md for Swift Testing work in `Tests/`.
-- Use ~/.local/share/skills/validation-flow-skill/SKILL.md for post-change validation in this Swift repository.
+- Use the coding-standards skill for cross-language engineering policy, maintainability, and source-selection guidance.
+- Use the swift skill for baseline Swift language, package, and API design guidance.
+- Use the swift-testing-pro skill for Swift Testing work in `Tests/`.
+- Use the validation-flow skill for post-change validation in this Swift repository.
 
-To refresh this file, use the ~/.local/share/skills/refresh-agents-skill/SKILL.md skill.
+To refresh this file, use the refresh-agents skill.
