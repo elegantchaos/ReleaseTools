@@ -80,4 +80,25 @@ struct UploadCommandTests {
       #expect(description.contains("/tmp/Missing.pkg"))
     }
   }
+
+  @Test func prefersTheLastUsefulStderrErrorLine() throws {
+    let stderr = """
+      Running altool at path '/Applications/Xcode.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources/altool'...
+      2026-04-07 11:22:31.572 ERROR: [ContentDelivery.Uploader.BF8C44D80]
+      =======================================
+      UPLOAD FAILED with 1 error
+      =======================================
+      2026-04-07 11:22:31.580 ERROR: [altool.10556ECA0] ExitFailure (31)
+      """
+
+    do {
+      _ = try UploadCommand.analyzeUploadOutput(stdout: "", stderr: stderr)
+      Issue.record("Expected upload analysis to surface the final stderr error line.")
+    } catch {
+      let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+      #expect(description.contains("Upload failed with an unknown error."))
+      #expect(description.contains("ExitFailure (31)"))
+      #expect(!description.contains("[ContentDelivery.Uploader.BF8C44D80]"))
+    }
+  }
 }

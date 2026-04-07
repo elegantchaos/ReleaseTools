@@ -75,16 +75,6 @@ extension UploadReceiptError {
     }
 
     let slice = String(message[start..<end])
-    let pattern = try? NSRegularExpression(pattern: #""([^"]+)""#)
-    let range = NSRange(slice.startIndex..<slice.endIndex, in: slice)
-    let matches = pattern?.matches(in: slice, range: range) ?? []
-
-    return matches.compactMap { match in
-      guard let capture = Range(match.range(at: 1), in: slice) else {
-        return nil
-      }
-
-      return String(slice[capture])
-    }
+    return slice.matches(of: /"([^"]+)"/).map { String($0.output.1) }
   }
 }

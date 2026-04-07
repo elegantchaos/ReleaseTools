@@ -159,15 +159,23 @@ struct UploadCommand: AsyncParsableCommand {
   }
 
   static func stderrError(_ stderr: String) -> UploadError? {
+    var lastErrorLine: String?
+
     for line in stderr.split(separator: "\n") {
       let string = String(line)
-      if string.contains("ERROR:") {
-        if string.contains("File does not exist at path") {
-          return .uploadFileMissing(string)
-        } else {
-          return .uploadOtherError(string)
-        }
+      guard string.contains("ERROR:") else {
+        continue
       }
+
+      if string.contains("File does not exist at path") {
+        return .uploadFileMissing(string)
+      }
+
+      lastErrorLine = string
+    }
+
+    if let lastErrorLine {
+      return .uploadOtherError(lastErrorLine)
     }
 
     return nil
