@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 08/10/25.
-//  All code (c) 2025 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 08/10/2025.
+//  Copyright © 2025 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
@@ -10,9 +10,10 @@ import Testing
 @testable import ReleaseTools
 
 /// A test git repository with helper methods for common operations
-class TestRepo {
+final class TestRepo {
   /// The URL of the repository
   let url: URL
+  /// Captured command transcript used to improve failing test diagnostics.
   var transcript: String = ""
 
   /// The git runner configured for this repository
@@ -23,13 +24,13 @@ class TestRepo {
 
   /// Create a new test repository in a temporary directory
   init() async throws {
-    // Create temp directory
+    // Each test repository is isolated to keep command tests deterministic.
     let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
       .appendingPathComponent("ReleaseToolsTests-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tempURL, withIntermediateDirectories: true)
     self.url = tempURL
 
-    // Create git runner
+    // Clear inherited git environment overrides so the child repo behaves normally.
     var env = ProcessInfo.processInfo.environment
     env.removeValue(forKey: "GIT_DIR")
     env.removeValue(forKey: "GIT_WORK_TREE")
@@ -43,7 +44,7 @@ class TestRepo {
       .deletingLastPathComponent()
       .deletingLastPathComponent()
 
-    // get the path to a release build of the rt executable, building it if necessary.
+    // Reuse one release build artifact when it already exists for the test scratch path.
     let scratchPath = packageRoot.appendingPathComponent(".build/test-scratch").path
     let rtBuilder = Runner(command: "swift")
     rtBuilder.cwd = packageRoot
@@ -53,18 +54,14 @@ class TestRepo {
       _ = await rtBuilder.run(["build", "--configuration", "release", "--scratch-path", scratchPath]).waitUntilExit()
     }
 
-    // Create runner for rt command
+    // Execute the built `rt` binary inside the temporary repository.
     let rtRunner = Runner(for: rtURL)
     rtRunner.cwd = tempURL
     self.rt = rtRunner
 
-    // Initialize git repo
+    // Seed the repository with one initial commit so tag and diff commands behave normally.
     try await initGitRepo()
   }
-
-  // deinit {
-  //   print(transcript)
-  // }
 
   /// Initialize the git repository with initial commit
   private func initGitRepo() async throws {
@@ -93,6 +90,7 @@ class TestRepo {
     await checkedGit(["tag", name])
   }
 
+  /// Returns all tags that point at the current HEAD commit.
   func headTags() async throws -> [String] {
     let result = await checkedGit(["tag", "--points-at", "HEAD"])
     let tags = result.stdout
@@ -101,6 +99,7 @@ class TestRepo {
     return tags
   }
 
+  /// Asserts that all supplied tags point at the current HEAD commit.
   func expectHeadTagsContains(_ tags: [String]) async throws {
     let existingTags = try await headTags()
     var contained = true
@@ -124,7 +123,7 @@ class TestRepo {
     return (out, err, state)
   }
 
-  /// Run a git command and assert it succeeded. Returns the same tuple as runGit
+  /// Runs a git command and asserts that it succeeded.
   @discardableResult
   func checkedGit(_ args: [String], sourceLocation: SourceLocation = #_sourceLocation) async -> (stdout: String, stderr: String, state: RunState) {
     let r = await runGit(args)
@@ -136,7 +135,7 @@ class TestRepo {
     return r
   }
 
-  /// Run the rt command with the given arguments and return the result
+  /// Runs the `rt` command with the given arguments and returns the result.
   @discardableResult
   func runRT(_ args: [String]) async -> (stdout: String, stderr: String, state: RunState) {
     let session = rt.run(args)
@@ -153,7 +152,7 @@ class TestRepo {
     return (out, err, state)
   }
 
-  /// Run the rt command and assert it succeeded
+  /// Runs the `rt` command and asserts that it succeeded.
   @discardableResult
   func checkedRT(_ args: [String], sourceLocation: SourceLocation = #_sourceLocation) async -> (stdout: String, stderr: String, state: RunState) {
     let r = await runRT(args)

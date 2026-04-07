@@ -1,11 +1,12 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 26/02/2026.
-//  All code (c) 2026 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 
+/// Runs the standard validation workflow for the current Swift repository.
 struct ValidateCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -26,24 +27,6 @@ struct ValidateCommand: AsyncParsableCommand {
   }
 }
 
-struct CLIError: Error, CustomStringConvertible {
-  let message: String
-  var description: String { message }
-}
-
-enum ValidateSignal: Error {
-  case helpRequested
-}
-
-struct TargetInfo: Decodable {
-  let name: String
-  let type: String
-}
-
-struct PackageDescription: Decodable {
-  let targets: [TargetInfo]
-}
-
 func packageHasTestTargets(_ package: PackageDescription) -> Bool {
   package.targets.contains(where: { $0.type == "test" })
 }
@@ -52,103 +35,7 @@ func swiftPMValidationDefines(_ arguments: [String]) -> [String] {
   arguments + ["-Xswiftc", "-DVALIDATING"]
 }
 
-struct ToolingPaths {
-  let cacheRoot: String?
-  let verifyRoot: String
-  let derivedDataPath: String?
-  let env: [String: String]
-}
-
-enum ValidateOutputMode: String {
-  case filtered
-  case quiet
-  case raw
-}
-
-struct Config {
-  let clean: Bool
-  let useCodexCaches: Bool
-  let target: String?
-  let workspaceOverride: String?
-  let projectOverride: String?
-  let schemes: [String]
-  let destinations: [String]
-  let runXcodeTests: Bool
-  let testDestinations: [String]
-  let packageDirsOverride: [String]?
-  let recursivePackageDiscovery: Bool
-  let swiftPMDisableSandbox: Bool
-  let outputMode: ValidateOutputMode
-}
-
-enum ValidationStepStatus: String {
-  case pass = "PASS"
-  case fail = "FAIL"
-  case skip = "SKIP"
-}
-
-struct ValidationStepRecord {
-  let summary: String
-  let status: ValidationStepStatus
-  let warningsPresent: Bool
-  let logPath: String?
-}
-
-struct ValidationCommandResult {
-  let status: Int32
-  let output: String
-  let warningsPresent: Bool
-}
-
-final class ValidationStreamState: @unchecked Sendable {
-  private let lock = NSLock()
-  private var combinedData = Data()
-  private var bufferedTerminalText = ""
-  private var sawEOF = false
-
-  func append(_ data: Data, outputMode: ValidateOutputMode) {
-    lock.lock()
-    defer { lock.unlock() }
-
-    combinedData.append(data)
-
-    guard outputMode == .filtered, let chunk = String(data: data, encoding: .utf8), !chunk.isEmpty else { return }
-    bufferedTerminalText += chunk
-  }
-
-  func drainFilteredLines() -> [String] {
-    lock.lock()
-    defer { lock.unlock() }
-
-    let lines = bufferedTerminalText.components(separatedBy: .newlines)
-    bufferedTerminalText = lines.last ?? ""
-    return lines.dropLast().compactMap(filteredValidationLine)
-  }
-
-  func flushTrailingFilteredLine() -> String? {
-    lock.lock()
-    defer { lock.unlock() }
-
-    defer { bufferedTerminalText = "" }
-    return filteredValidationLine(bufferedTerminalText)
-  }
-
-  func outputString() -> String {
-    lock.lock()
-    defer { lock.unlock() }
-    return String(data: combinedData, encoding: .utf8) ?? ""
-  }
-
-  func markEOF() -> Bool {
-    lock.lock()
-    defer { lock.unlock() }
-
-    guard !sawEOF else { return false }
-    sawEOF = true
-    return true
-  }
-}
-
+/// Prints standalone usage text for the validation command.
 func usage() {
   print(
     """
@@ -181,6 +68,7 @@ func usage() {
     """)
 }
 
+/// Parses a comma-separated option into a list of trimmed non-empty items.
 func parseCSV(_ value: String?) -> [String] {
   guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
   return
@@ -190,24 +78,29 @@ func parseCSV(_ value: String?) -> [String] {
     .filter { !$0.isEmpty }
 }
 
+/// Expands a leading tilde in a filesystem path.
 func expandTilde(_ path: String) -> String {
   NSString(string: path).expandingTildeInPath
 }
 
+/// Produces a filesystem-safe identifier from freeform text.
 func sanitize(_ value: String) -> String {
   value.replacingOccurrences(of: "[^A-Za-z0-9]+", with: "_", options: .regularExpression)
 }
 
+/// Returns `true` when a path exists on disk.
 func fileExists(_ path: String) -> Bool {
   FileManager.default.fileExists(atPath: path)
 }
 
+/// Returns `true` when a path exists and is a directory.
 func isDirectory(_ path: String) -> Bool {
   var isDir: ObjCBool = false
   let exists = FileManager.default.fileExists(atPath: path, isDirectory: &isDir)
   return exists && isDir.boolValue
 }
 
+/// Resolves a CLI path that may be absolute, home-relative, or repo-relative.
 func resolvePath(_ value: String, repoPath: String) -> String {
   let expanded = expandTilde(value)
   if expanded.hasPrefix("/") {
@@ -216,6 +109,7 @@ func resolvePath(_ value: String, repoPath: String) -> String {
   return URL(fileURLWithPath: repoPath).appendingPathComponent(expanded).standardizedFileURL.path
 }
 
+/// Ensures a directory exists before validation output is written into it.
 func ensureDirectory(_ path: String) throws {
   try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
 }

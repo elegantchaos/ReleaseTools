@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 24/02/20.
-//  All code (c) 2020 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 24/02/2020.
+//  Copyright © 2020 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
@@ -8,6 +8,7 @@ import Files
 import Foundation
 import Runner
 
+/// Common release workflow failures surfaced by `ReleaseEngine`.
 enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
   case infoUnreadable(_ path: String)
   case missingWorkspace
@@ -57,7 +58,9 @@ enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
   }
 }
 
-class ReleaseEngine {
+/// Coordinates configuration, derived paths, and subprocess helpers for release commands.
+final class ReleaseEngine {
+  /// Requirements that can be enforced before a command begins work.
   enum Requirement {
     case archive
     case workspace
@@ -104,6 +107,7 @@ class ReleaseEngine {
   var stapledURL: URL { return buildURL.appendingPathComponent("stapled") }
   var versionTag: String { return "v\(archive.version)-\(archive.build)-\(platform)" }
 
+  /// The first workspace found at the repository root when one was not passed explicitly.
   var defaultWorkspace: String? {
     let url = rootURL
     if let contents = try? FileManager.default.contentsOfDirectory(
@@ -150,7 +154,7 @@ class ReleaseEngine {
     try RTLegacyConfigMigrator(paths: configPaths).migrateIfNeeded()
     configReader = try await RTConfigReader(paths: configPaths, scheme: nil, platform: self.platform)
 
-    // if we've specified the scheme, we also need the workspace
+    // Commands that resolve schemes need a workspace before layered config can be finalized.
     if requirements.contains(.workspace) || scheme != nil {
       if let workspace = options.workspace ?? defaultWorkspace {
         self.workspace = workspace
@@ -186,7 +190,7 @@ class ReleaseEngine {
     }
 
     if apiKey != nil || apiIssuer != nil {
-      // one of api-key or api-issuer is missing
+      // Reject partially configured App Store Connect credentials.
       if self.apiKey.isEmpty != self.apiIssuer.isEmpty {
         throw GeneralError.apiKeyAndIssuer
       }
@@ -201,8 +205,9 @@ class ReleaseEngine {
     }
   }
 
+  /// Effective release settings after layered config resolution.
   func getSettings() -> BasicSettings {
-    return configReader.settings
+    configReader.settings
   }
 
   /// If no scheme is supplied, we'll try to guess one based on the workspace.
@@ -221,19 +226,20 @@ class ReleaseEngine {
     return nil
   }
 
+  /// Emits user-visible progress output.
   func log(_ message: String) {
     print(message)
   }
 
+  /// Emits verbose output when requested by the caller.
   func verbose(_ message: String) {
     if verbose {
       print(message)
     }
   }
 
+  /// Stores an error for later inspection by older command flows.
   func fail(_ error: Error) {
     self.error = error
-    // semaphore?.signal()
   }
-
 }

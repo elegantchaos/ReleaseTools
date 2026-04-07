@@ -1,12 +1,13 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 25/02/20.
-//  All code (c) 2020 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 25/02/2020.
+//  Copyright © 2020 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
+/// Errors produced while preparing, saving, or interpreting upload results.
 enum UploadError: Error {
   case uploadFileMissing(String)
   case uploadOtherError(String)
@@ -47,6 +48,7 @@ extension UploadError: LocalizedError {
   }
 }
 
+/// Runner-level failure used when the upload subprocess exits unsuccessfully.
 enum UploadRunnerError: Runner.Error {
   case uploadingFailed
 
@@ -58,6 +60,7 @@ enum UploadRunnerError: Runner.Error {
   }
 }
 
+/// Uploads an exported build to App Store Connect.
 struct UploadCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -168,84 +171,5 @@ struct UploadCommand: AsyncParsableCommand {
     }
 
     return nil
-  }
-}
-
-struct UploadReceiptError: Codable, Sendable {
-  let code: Int
-  let message: String
-  let underlyingErrors: [UploadReceiptError]
-  let userInfo: [String: String]?
-}
-
-struct UploadReceiptDetails: Codable, Sendable {
-  let deliveryUuid: String
-  let transferred: String
-}
-struct UploadReceipt: Codable {
-  let osVersion: String
-  let toolPath: String
-  let toolVersion: String
-  let productErrors: [UploadReceiptError]?
-  let successMessage: String?
-  let details: UploadReceiptDetails?
-}
-
-extension UploadReceiptError {
-  var compactSummary: String {
-    let summary = compactMessage
-    var lines = ["[\(code)] \(summary)"]
-
-    if summary == "App sandbox not enabled." {
-      lines.append("- Enable the \"com.apple.security.app-sandbox\" entitlement.")
-      for executable in sandboxExecutables {
-        lines.append("- Executable: \(executable)")
-      }
-    } else if
-      let reason = userInfo?["NSLocalizedFailureReason"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-      !reason.isEmpty
-    {
-      lines.append("- \(reason)")
-    }
-
-    return lines.joined(separator: "\n")
-  }
-
-  var compactMessage: String {
-    if message.hasPrefix("App sandbox not enabled.") {
-      return "App sandbox not enabled."
-    }
-
-    let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
-    if let sentenceEnd = trimmed.firstIndex(of: ".") {
-      return String(trimmed[...sentenceEnd])
-    }
-
-    return trimmed
-  }
-
-  var sandboxExecutables: [String] {
-    guard let start = message.range(of: "entitlements property list: [")?.upperBound else {
-      return []
-    }
-
-    guard let end = message[start...].range(of: "] Refer")?.lowerBound else {
-      return []
-    }
-
-    let slice = String(message[start..<end])
-    let pattern = try? NSRegularExpression(pattern: #""([^"]+)""#)
-    let range = NSRange(slice.startIndex..<slice.endIndex, in: slice)
-    let matches = pattern?.matches(in: slice, range: range) ?? []
-
-    return matches.compactMap { match in
-      guard
-        let capture = Range(match.range(at: 1), in: slice)
-      else {
-        return nil
-      }
-
-      return String(slice[capture])
-    }
   }
 }

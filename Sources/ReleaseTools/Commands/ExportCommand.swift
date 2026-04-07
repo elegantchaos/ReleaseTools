@@ -1,12 +1,13 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 17/04/2019.
-//  All code (c) 2019 - present day, Elegant Chaos Limited.
+//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
+/// Errors produced while generating export options before invoking `xcodebuild`.
 enum ExportError: Error {
   case writingOptionsFailed(Error)
 }
@@ -20,6 +21,7 @@ extension ExportError: LocalizedError {
   }
 }
 
+/// Runner-level failure used when export subprocess execution fails.
 enum ExportRunnerError: Runner.Error {
   case exportFailed
 
@@ -31,6 +33,7 @@ enum ExportRunnerError: Runner.Error {
   }
 }
 
+/// Exports an archive for App Store Connect or direct distribution.
 struct ExportCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
