@@ -39,12 +39,7 @@ extension UploadError: LocalizedError {
       case .uploadingFailedWithErrors(let errors):
         var log = "Upload was rejected.\n"
         for error in errors {
-          log += "\n\(error.message) (\(error.code)):\n"
-          if let userInfo = error.userInfo {
-            if let reason = userInfo["NSLocalizedFailureReason"] {
-              log += "- \(reason)\n"
-            }
-          }
+          log += "\n\(error.compactSummary)\n"
         }
 
         return log
@@ -111,39 +106,14 @@ struct UploadCommand: AsyncParsableCommand {
       throw UploadError.savingUploadReceiptFailed(error)
     }
 
+    _ = try analyzeUploadOutput(stdout: stdout, stderr: stderr)
+
     // check for a non-zero result
-    // unfortunately altool doesn't always return a non-zero error
-    // (or maybe xcrun doesn't pass it on?)
+    // unfortunately altool doesn't always return a non-zero error, so we parse
+    // its structured output before falling back to the process exit status.
     try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
 
     engine.log("Finished uploading.")
-
-    // try to parse the output
-    let receipt: UploadReceipt
-    do {
-      let decoder = JSONDecoder()
-      decoder.keyDecodingStrategy = .dashCase
-      receipt = try decoder.decode(UploadReceipt.self, from: stdout.data(using: .utf8)!)
-    } catch {
-      // we couldn't parse the output - see if we can find an error message in stderr instead
-      for await line in await uploadResult.stderr.lines {
-        if line.contains("ERROR:") {
-          if line.contains("File does not exist at path") {
-            throw UploadError.uploadFileMissing(line)
-          } else {
-            throw UploadError.uploadOtherError(line)
-          }
-        }
-      }
-
-      // no errors found in stderr, so just report the decoding error
-      throw UploadError.decodingUploadReceiptFailed(error, stdout)
-    }
-
-    // check the parsed receipt for errors
-    if let errors = receipt.productErrors, !errors.isEmpty {
-      throw UploadError.uploadingFailedWithErrors(errors)
-    }
 
     // no errors, so tag the commit
     engine.log("Upload was accepted.")
@@ -153,6 +123,51 @@ struct UploadCommand: AsyncParsableCommand {
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)
 
+  }
+
+  static func analyzeUploadOutput(stdout: String, stderr: String) throws -> UploadReceipt? {
+    let trimmedStdout = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !trimmedStdout.isEmpty {
+      do {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .dashCase
+        let receipt = try decoder.decode(UploadReceipt.self, from: Data(trimmedStdout.utf8))
+        if let errors = receipt.productErrors, !errors.isEmpty {
+          throw UploadError.uploadingFailedWithErrors(errors)
+        }
+
+        return receipt
+      } catch let error as UploadError {
+        throw error
+      } catch {
+        if let stderrError = stderrError(stderr) {
+          throw stderrError
+        }
+
+        throw UploadError.decodingUploadReceiptFailed(error, stdout)
+      }
+    }
+
+    if let stderrError = stderrError(stderr) {
+      throw stderrError
+    }
+
+    return nil
+  }
+
+  static func stderrError(_ stderr: String) -> UploadError? {
+    for line in stderr.split(separator: "\n") {
+      let string = String(line)
+      if string.contains("ERROR:") {
+        if string.contains("File does not exist at path") {
+          return .uploadFileMissing(string)
+        } else {
+          return .uploadOtherError(string)
+        }
+      }
+    }
+
+    return nil
   }
 }
 
@@ -174,4 +189,63 @@ struct UploadReceipt: Codable {
   let productErrors: [UploadReceiptError]?
   let successMessage: String?
   let details: UploadReceiptDetails?
+}
+
+extension UploadReceiptError {
+  var compactSummary: String {
+    let summary = compactMessage
+    var lines = ["[\(code)] \(summary)"]
+
+    if summary == "App sandbox not enabled." {
+      lines.append("- Enable the \"com.apple.security.app-sandbox\" entitlement.")
+      for executable in sandboxExecutables {
+        lines.append("- Executable: \(executable)")
+      }
+    } else if
+      let reason = userInfo?["NSLocalizedFailureReason"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+      !reason.isEmpty
+    {
+      lines.append("- \(reason)")
+    }
+
+    return lines.joined(separator: "\n")
+  }
+
+  var compactMessage: String {
+    if message.hasPrefix("App sandbox not enabled.") {
+      return "App sandbox not enabled."
+    }
+
+    let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+    if let sentenceEnd = trimmed.firstIndex(of: ".") {
+      return String(trimmed[...sentenceEnd])
+    }
+
+    return trimmed
+  }
+
+  var sandboxExecutables: [String] {
+    guard let start = message.range(of: "entitlements property list: [")?.upperBound else {
+      return []
+    }
+
+    guard let end = message[start...].range(of: "] Refer")?.lowerBound else {
+      return []
+    }
+
+    let slice = String(message[start..<end])
+    let pattern = try? NSRegularExpression(pattern: #""([^"]+)""#)
+    let range = NSRange(slice.startIndex..<slice.endIndex, in: slice)
+    let matches = pattern?.matches(in: slice, range: range) ?? []
+
+    return matches.compactMap { match in
+      guard
+        let capture = Range(match.range(at: 1), in: slice)
+      else {
+        return nil
+      }
+
+      return String(slice[capture])
+    }
+  }
 }
