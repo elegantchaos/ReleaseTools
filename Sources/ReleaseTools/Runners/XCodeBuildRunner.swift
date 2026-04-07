@@ -1,19 +1,22 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 17/04/2019.
-//  All code (c) 2019 - present day, Elegant Chaos Limited.
+//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
 import Runner
 
-class XCodeBuildRunner: Runner {
+/// `xcodebuild` runner that mirrors the engine's logging preferences.
+final class XCodeBuildRunner: Runner {
   let engine: ReleaseEngine
 
+  /// Creates a runner bound to one release engine instance.
   init(engine: ReleaseEngine) {
     self.engine = engine
     super.init(command: "xcodebuild")
   }
 
+  /// Returns the schemes exposed by an Xcode workspace.
   func schemes(workspace: String) async throws -> [String] {
     let result = run(["-workspace", workspace, "-list", "-json"])
     let output = await result.stdout.data
@@ -30,6 +33,7 @@ class XCodeBuildRunner: Runner {
     return []
   }
 
+  /// Runs an `xcodebuild` command using the engine's output policy.
   func run(_ arguments: [String]) -> Session {
     if engine.showCommands {
       engine.log("\n> xcodebuild \(arguments.joined(separator: " "))\n")

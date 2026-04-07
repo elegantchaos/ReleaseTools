@@ -1,12 +1,14 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 19/04/2019.
-//  All code (c) 2019 - present day, Elegant Chaos Limited.
+//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
 import Runner
 
-class GitRunner: Runner {
+/// Thin `git` runner with helpers for common repository queries.
+final class GitRunner: Runner {
+  /// Creates a git runner using the supplied environment.
   init(environment: [String: String] = ProcessInfo.processInfo.environment) {
     super.init(command: "git", environment: environment)
   }

@@ -1,9 +1,15 @@
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//  Created by Sam Deane on 07/04/2026.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 import Foundation
 import Testing
 
 @testable import ReleaseTools
 
-@Suite struct ValidateCommandDiscoveryTests {
+/// Tests package discovery and output parsing helpers used by `rt validate`.
+struct ValidateCommandDiscoveryTests {
   @Test func recursiveDiscoverySkipsPackagesUnderTestResources() throws {
     let repoURL = try makeTemporaryRepo()
     defer { try? FileManager.default.removeItem(at: repoURL) }
@@ -109,6 +115,7 @@ import Testing
     )
   }
 
+  /// Creates a temporary repository root for package discovery tests.
   private func makeTemporaryRepo() throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory())
       .appendingPathComponent("ReleaseTools-ValidateDiscovery-\(UUID().uuidString)")
@@ -116,6 +123,7 @@ import Testing
     return url
   }
 
+  /// Writes the smallest possible package manifest used by discovery tests.
   private func writePackage(at url: URL) throws {
     try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     let manifest = url.appendingPathComponent("Package.swift")

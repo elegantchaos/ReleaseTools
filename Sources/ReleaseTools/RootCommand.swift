@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 11/10/2018.
-//  All code (c) 2018 - present day, Elegant Chaos Limited.
+//  Copyright © 2018 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
@@ -64,5 +64,4 @@ struct RootCommand: AsyncParsableCommand {
 
   /// Error label - adds some extra newlines to separate the error message from the rest of the output.
   public static var _errorLabel: String { "\n\nError" }
-
 }

@@ -1,21 +1,24 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 17/04/2019.
-//  All code (c) 2019 - present day, Elegant Chaos Limited.
+//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
+/// Minimal workspace metadata decoded from `xcodebuild -list -json`.
 struct WorkspaceSpec: Decodable {
   let name: String
   let schemes: [String]
 }
 
+/// Wrapper for the workspace listing returned by `xcodebuild -list -json`.
 struct SchemesSpec: Decodable {
   let workspace: WorkspaceSpec
 }
 
+/// Runner-level failures emitted by the archive workflow.
 enum ArchiveError: Runner.Error {
   case archiveFailed
   case noVersionTagAtHEAD
@@ -34,6 +37,7 @@ enum ArchiveError: Runner.Error {
   }
 }
 
+/// Archives the configured scheme for a release build.
 struct ArchiveCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(

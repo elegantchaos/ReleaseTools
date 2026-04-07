@@ -1,12 +1,13 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 25/02/20.
-//  All code (c) 2020 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 25/02/2020.
+//  Copyright © 2020 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
+/// Errors produced while preparing, saving, or interpreting upload results.
 enum UploadError: Error {
   case uploadFileMissing(String)
   case uploadOtherError(String)
@@ -39,12 +40,7 @@ extension UploadError: LocalizedError {
       case .uploadingFailedWithErrors(let errors):
         var log = "Upload was rejected.\n"
         for error in errors {
-          log += "\n\(error.message) (\(error.code)):\n"
-          if let userInfo = error.userInfo {
-            if let reason = userInfo["NSLocalizedFailureReason"] {
-              log += "- \(reason)\n"
-            }
-          }
+          log += "\n\(error.compactSummary)\n"
         }
 
         return log
@@ -52,6 +48,7 @@ extension UploadError: LocalizedError {
   }
 }
 
+/// Runner-level failure used when the upload subprocess exits unsuccessfully.
 enum UploadRunnerError: Runner.Error {
   case uploadingFailed
 
@@ -63,6 +60,7 @@ enum UploadRunnerError: Runner.Error {
   }
 }
 
+/// Uploads an exported build to App Store Connect.
 struct UploadCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -111,39 +109,14 @@ struct UploadCommand: AsyncParsableCommand {
       throw UploadError.savingUploadReceiptFailed(error)
     }
 
+    _ = try analyzeUploadOutput(stdout: stdout, stderr: stderr)
+
     // check for a non-zero result
-    // unfortunately altool doesn't always return a non-zero error
-    // (or maybe xcrun doesn't pass it on?)
+    // unfortunately altool doesn't always return a non-zero error, so we parse
+    // its structured output before falling back to the process exit status.
     try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
 
     engine.log("Finished uploading.")
-
-    // try to parse the output
-    let receipt: UploadReceipt
-    do {
-      let decoder = JSONDecoder()
-      decoder.keyDecodingStrategy = .dashCase
-      receipt = try decoder.decode(UploadReceipt.self, from: stdout.data(using: .utf8)!)
-    } catch {
-      // we couldn't parse the output - see if we can find an error message in stderr instead
-      for await line in await uploadResult.stderr.lines {
-        if line.contains("ERROR:") {
-          if line.contains("File does not exist at path") {
-            throw UploadError.uploadFileMissing(line)
-          } else {
-            throw UploadError.uploadOtherError(line)
-          }
-        }
-      }
-
-      // no errors found in stderr, so just report the decoding error
-      throw UploadError.decodingUploadReceiptFailed(error, stdout)
-    }
-
-    // check the parsed receipt for errors
-    if let errors = receipt.productErrors, !errors.isEmpty {
-      throw UploadError.uploadingFailedWithErrors(errors)
-    }
 
     // no errors, so tag the commit
     engine.log("Upload was accepted.")
@@ -154,24 +127,57 @@ struct UploadCommand: AsyncParsableCommand {
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)
 
   }
-}
 
-struct UploadReceiptError: Codable, Sendable {
-  let code: Int
-  let message: String
-  let underlyingErrors: [UploadReceiptError]
-  let userInfo: [String: String]?
-}
+  static func analyzeUploadOutput(stdout: String, stderr: String) throws -> UploadReceipt? {
+    let trimmedStdout = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !trimmedStdout.isEmpty {
+      do {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .dashCase
+        let receipt = try decoder.decode(UploadReceipt.self, from: Data(trimmedStdout.utf8))
+        if let errors = receipt.productErrors, !errors.isEmpty {
+          throw UploadError.uploadingFailedWithErrors(errors)
+        }
 
-struct UploadReceiptDetails: Codable, Sendable {
-  let deliveryUuid: String
-  let transferred: String
-}
-struct UploadReceipt: Codable {
-  let osVersion: String
-  let toolPath: String
-  let toolVersion: String
-  let productErrors: [UploadReceiptError]?
-  let successMessage: String?
-  let details: UploadReceiptDetails?
+        return receipt
+      } catch let error as UploadError {
+        throw error
+      } catch {
+        if let stderrError = stderrError(stderr) {
+          throw stderrError
+        }
+
+        throw UploadError.decodingUploadReceiptFailed(error, stdout)
+      }
+    }
+
+    if let stderrError = stderrError(stderr) {
+      throw stderrError
+    }
+
+    return nil
+  }
+
+  static func stderrError(_ stderr: String) -> UploadError? {
+    var lastErrorLine: String?
+
+    for line in stderr.split(separator: "\n") {
+      let string = String(line)
+      guard string.contains("ERROR:") else {
+        continue
+      }
+
+      if string.contains("File does not exist at path") {
+        return .uploadFileMissing(string)
+      }
+
+      lastErrorLine = string
+    }
+
+    if let lastErrorLine {
+      return .uploadOtherError(lastErrorLine)
+    }
+
+    return nil
+  }
 }

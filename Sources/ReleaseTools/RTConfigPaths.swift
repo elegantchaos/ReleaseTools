@@ -1,10 +1,11 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 20/03/26.
-//  All code (c) 2020 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 20/03/2026.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
 
+/// Resolves canonical and legacy configuration file locations for project and user scopes.
 struct RTConfigPaths {
   let rootURL: URL
   let homeURL: URL
@@ -20,14 +21,17 @@ struct RTConfigPaths {
     self.environment = environment
   }
 
+  /// The repository-local configuration directory.
   var projectDirectoryURL: URL {
     rootURL.appendingPathComponent(".rt")
   }
 
+  /// The repository-local private configuration directory.
   var projectLocalDirectoryURL: URL {
     projectDirectoryURL.appendingPathComponent("local")
   }
 
+  /// The global configuration directory, honoring `XDG_CONFIG_HOME` when set.
   var globalDirectoryURL: URL {
     if let xdgRoot = environment["XDG_CONFIG_HOME"], !xdgRoot.isEmpty {
       return URL(fileURLWithPath: xdgRoot, isDirectory: true)
@@ -40,22 +44,27 @@ struct RTConfigPaths {
       .appendingPathComponent("rt")
   }
 
+  /// The global private configuration directory.
   var globalLocalDirectoryURL: URL {
     globalDirectoryURL.appendingPathComponent("local")
   }
 
+  /// The legacy repository-local configuration file.
   var legacyProjectConfigURL: URL {
     rootURL.appendingPathComponent(".rt.json")
   }
 
+  /// The legacy repository-local private configuration file.
   var legacyProjectLocalConfigURL: URL {
     rootURL.appendingPathComponent(".rt.local.json")
   }
 
+  /// The repository `.gitignore` file.
   var gitIgnoreURL: URL {
     rootURL.appendingPathComponent(".gitignore")
   }
 
+  /// Candidate configuration files ordered from most specific to least specific.
   func candidateURLs(scheme: String?, platform: String?) -> [URL] {
     let normalizedScheme = normalizedComponent(scheme)
     let normalizedPlatform = normalizedComponent(platform)
@@ -89,10 +98,12 @@ struct RTConfigPaths {
     return trimmed.isEmpty ? nil : trimmed
   }
 
+  /// The canonical base configuration file under the supplied root.
   func baseURL(root: URL) -> URL {
     root.appendingPathComponent("config.json")
   }
 
+  /// The canonical platform-scoped configuration file under the supplied root.
   func platformURL(root: URL, platform: String?) -> URL? {
     guard let platform else {
       return nil
@@ -104,6 +115,7 @@ struct RTConfigPaths {
       .appendingPathExtension("json")
   }
 
+  /// The canonical scheme-scoped configuration file under the supplied root.
   func schemeURL(root: URL, scheme: String?) -> URL? {
     guard let scheme else {
       return nil
@@ -115,6 +127,7 @@ struct RTConfigPaths {
       .appendingPathExtension("json")
   }
 
+  /// The canonical configuration file scoped to both scheme and platform.
   func scopedURL(root: URL, scheme: String?, platform: String?) -> URL? {
     guard let scheme, let platform else {
       return nil
