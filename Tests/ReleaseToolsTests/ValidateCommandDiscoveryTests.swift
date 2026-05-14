@@ -83,12 +83,6 @@ struct ValidateCommandDiscoveryTests {
     }
   }
 
-  @Test func codexCacheOptionIsRemoved() {
-    #expect(throws: CLIError.self) {
-      _ = try parseArgs(["--use-codex-caches"])
-    }
-  }
-
   @Test func toolingPathsUseRepoLocalDerivedData() throws {
     let repoURL = try makeTemporaryRepo()
     defer { try? FileManager.default.removeItem(at: repoURL) }

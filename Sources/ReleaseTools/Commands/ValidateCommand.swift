@@ -49,7 +49,7 @@ func usage() {
 
     Options:
       --target <name>              Target name for targeted validation mode
-      --clean                      Remove cached validation logs and derived data before running checks
+      --clean                      Remove validation logs and private DerivedData before running checks
       --workspace <path>           Explicit workspace path (absolute or repo-relative)
       --project <path>             Explicit project path (absolute or repo-relative)
       --schemes <csv>              Xcode schemes for broad validation (default: repo name)
