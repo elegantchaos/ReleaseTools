@@ -30,9 +30,8 @@ struct PackageDescription: Decodable {
 
 /// Derived filesystem and environment paths for a validation run.
 struct ToolingPaths {
-  let cacheRoot: String?
   let verifyRoot: String
-  let derivedDataPath: String?
+  let derivedDataPath: String
   let env: [String: String]
 }
 
@@ -46,7 +45,6 @@ enum ValidateOutputMode: String {
 /// Parsed validation configuration derived from command-line arguments.
 struct Config {
   let clean: Bool
-  let useCodexCaches: Bool
   let target: String?
   let workspaceOverride: String?
   let projectOverride: String?

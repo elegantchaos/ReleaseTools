@@ -83,6 +83,34 @@ struct ValidateCommandDiscoveryTests {
     }
   }
 
+  @Test func toolingPathsUseRepoLocalDerivedData() throws {
+    let repoURL = try makeTemporaryRepo()
+    defer { try? FileManager.default.removeItem(at: repoURL) }
+
+    let staleLogURL = repoURL.appendingPathComponent(".build/validation-logs/stale.log")
+    let staleDerivedDataURL = repoURL.appendingPathComponent(".build/rt-validate/DerivedData/stale")
+    try FileManager.default.createDirectory(
+      at: staleLogURL.deletingLastPathComponent(),
+      withIntermediateDirectories: true
+    )
+    try FileManager.default.createDirectory(
+      at: staleDerivedDataURL.deletingLastPathComponent(),
+      withIntermediateDirectories: true
+    )
+    try "old log".write(to: staleLogURL, atomically: true, encoding: .utf8)
+    try "old derived data".write(to: staleDerivedDataURL, atomically: true, encoding: .utf8)
+
+    let tools = try toolingPaths(config: try parseArgs(["--clean"]), repoPath: repoURL.path)
+
+    #expect(tools.verifyRoot == repoURL.appendingPathComponent(".build/validation-logs").path)
+    #expect(tools.derivedDataPath == repoURL.appendingPathComponent(".build/rt-validate/DerivedData").path)
+    #expect(tools.env.isEmpty)
+    #expect(FileManager.default.fileExists(atPath: tools.verifyRoot))
+    #expect(FileManager.default.fileExists(atPath: tools.derivedDataPath))
+    #expect(!FileManager.default.fileExists(atPath: staleLogURL.path))
+    #expect(!FileManager.default.fileExists(atPath: staleDerivedDataURL.path))
+  }
+
   @Test(arguments: [
     ("error: cannot find type 'Foo' in scope", "error: cannot find type 'Foo' in scope"),
     ("warning: deprecated API", "warning: deprecated API"),
