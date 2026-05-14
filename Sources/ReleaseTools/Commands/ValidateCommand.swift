@@ -50,7 +50,6 @@ func usage() {
     Options:
       --target <name>              Target name for targeted validation mode
       --clean                      Remove cached validation logs and derived data before running checks
-      --use-codex-caches           Force shared /tmp/codex-cache paths and cache environment overrides
       --workspace <path>           Explicit workspace path (absolute or repo-relative)
       --project <path>             Explicit project path (absolute or repo-relative)
       --schemes <csv>              Xcode schemes for broad validation (default: repo name)
@@ -532,50 +531,25 @@ func discoverPackageDirs(repoPath: String, overrides: [String]?, recursive: Bool
 
 func toolingPaths(config: Config, repoPath: String) throws -> ToolingPaths {
   let verifyRoot = "\(repoPath)/.build/validation-logs"
-  let selectedRoot: String? = config.useCodexCaches ? "/tmp/codex-cache" : nil
-  let sharedCacheRoot = selectedRoot.map { "\($0)/cache" }
-  let derivedDataPath = selectedRoot.map { "\($0)/xcode/DerivedData" }
+  let derivedDataPath = "\(repoPath)/.build/rt-validate/DerivedData"
 
   if config.clean {
     try? FileManager.default.removeItem(atPath: verifyRoot)
-    if let derivedDataPath {
-      try? FileManager.default.removeItem(atPath: derivedDataPath)
-    }
+    try? FileManager.default.removeItem(atPath: derivedDataPath)
   }
 
   try ensureDirectory(verifyRoot)
-  if let sharedCacheRoot {
-    try ensureDirectory("\(sharedCacheRoot)/clang-module-cache")
-    try ensureDirectory("\(sharedCacheRoot)/swiftpm-module-cache")
-    try ensureDirectory("\(sharedCacheRoot)/xdg-cache")
-  }
-  if let derivedDataPath {
-    try ensureDirectory(derivedDataPath)
-  }
-
-  let envVars: [String: String]
-  if let selectedRoot, let sharedCacheRoot {
-    envVars = [
-      "CODEX_CACHE_ROOT": selectedRoot,
-      "CLANG_MODULE_CACHE_PATH": "\(sharedCacheRoot)/clang-module-cache",
-      "SWIFTPM_MODULECACHE_OVERRIDE": "\(sharedCacheRoot)/swiftpm-module-cache",
-      "XDG_CACHE_HOME": "\(sharedCacheRoot)/xdg-cache",
-    ]
-  } else {
-    envVars = [:]
-  }
+  try ensureDirectory(derivedDataPath)
 
   return ToolingPaths(
-    cacheRoot: selectedRoot,
     verifyRoot: verifyRoot,
     derivedDataPath: derivedDataPath,
-    env: envVars
+    env: [:]
   )
 }
 
 func parseArgs(_ args: [String]) throws -> Config {
   var clean = false
-  var useCodexCaches = false
   var target: String?
   var workspaceOverride: String?
   var projectOverride: String?
@@ -597,8 +571,6 @@ func parseArgs(_ args: [String]) throws -> Config {
         target = args[i]
       case "--clean", "-c":
         clean = true
-      case "--use-codex-caches":
-        useCodexCaches = true
       case "--workspace":
         i += 1
         guard i < args.count else { throw CLIError(message: "Missing value for --workspace") }
@@ -655,7 +627,6 @@ func parseArgs(_ args: [String]) throws -> Config {
 
   return Config(
     clean: clean,
-    useCodexCaches: useCodexCaches,
     target: target,
     workspaceOverride: workspaceOverride,
     projectOverride: projectOverride,
@@ -737,9 +708,7 @@ func runXcodeBroadValidation(
         "-scheme", scheme,
         "-destination", destination,
       ]
-      if let derivedDataPath = tools.derivedDataPath {
-        args += ["-derivedDataPath", derivedDataPath]
-      }
+      args += ["-derivedDataPath", tools.derivedDataPath]
       if config.outputMode != .raw {
         args.append("-quiet")
       }
@@ -769,9 +738,7 @@ func runXcodeBroadValidation(
           "-scheme", scheme,
           "-destination", destination,
         ]
-        if let derivedDataPath = tools.derivedDataPath {
-          args += ["-derivedDataPath", derivedDataPath]
-        }
+        args += ["-derivedDataPath", tools.derivedDataPath]
         if config.outputMode != .raw {
           args.append("-quiet")
         }
@@ -795,11 +762,6 @@ func runXcodeBroadValidation(
 
 func parsePackageDescription(packageDir: String, repoPath: String, tools: ToolingPaths) throws -> PackageDescription? {
   var args = ["swift", "package", "--package-path", packageDir]
-  if let cacheRoot = tools.cacheRoot {
-    let scratchPath = "\(cacheRoot)/swiftpm/\(sanitize(packageDir))"
-    try ensureDirectory(scratchPath)
-    args += ["--scratch-path", scratchPath]
-  }
   args += ["describe", "--type", "json"]
 
   let result = try capture(
@@ -871,12 +833,6 @@ func runSwiftPMBroadValidation(
 
     var buildArgs = swiftPMValidationDefines(["swift", "build", "--package-path", packageDir])
     var testArgs = swiftPMValidationDefines(["swift", "test", "--package-path", packageDir])
-    if let cacheRoot = tools.cacheRoot {
-      let scratchPath = "\(cacheRoot)/swiftpm/\(sanitize(packageDir))"
-      try ensureDirectory(scratchPath)
-      buildArgs += ["--scratch-path", scratchPath]
-      testArgs += ["--scratch-path", scratchPath]
-    }
     if disableSandbox {
       buildArgs.append("--disable-sandbox")
       testArgs.append("--disable-sandbox")
@@ -937,13 +893,6 @@ func runTargetedValidation(
     guard package.targets.contains(where: { $0.name == target }) else { continue }
 
     var buildArgs = swiftPMValidationDefines(["swift", "build", "--package-path", packageDir, "--target", target])
-    var testArgs: [String]?
-    if let cacheRoot = tools.cacheRoot {
-      let scratchPath = "\(cacheRoot)/swiftpm/\(sanitize(packageDir))"
-      try ensureDirectory(scratchPath)
-      buildArgs += ["--scratch-path", scratchPath]
-      testArgs = ["--scratch-path", scratchPath]
-    }
     if config.swiftPMDisableSandbox {
       buildArgs.append("--disable-sandbox")
     }
@@ -969,9 +918,6 @@ func runTargetedValidation(
       package.targets.contains(where: { $0.name == candidate && $0.type == "test" })
     }) {
       var swiftTestArgs = swiftPMValidationDefines(["swift", "test", "--package-path", packageDir, "--filter", testTarget])
-      if let extraArgs = testArgs {
-        swiftTestArgs += extraArgs
-      }
       if config.swiftPMDisableSandbox {
         swiftTestArgs.append("--disable-sandbox")
       }
@@ -1013,9 +959,7 @@ func runTargetedValidation(
       "-scheme", target,
       "-destination", "generic/platform=macOS",
     ]
-    if let derivedDataPath = tools.derivedDataPath {
-      args += ["-derivedDataPath", derivedDataPath]
-    }
+    args += ["-derivedDataPath", tools.derivedDataPath]
     if config.outputMode != .raw {
       args.append("-quiet")
     }
@@ -1044,9 +988,7 @@ func runTargetedValidation(
       "-scheme", target,
       "-destination", "generic/platform=macOS",
     ]
-    if let derivedDataPath = tools.derivedDataPath {
-      args += ["-derivedDataPath", derivedDataPath]
-    }
+    args += ["-derivedDataPath", tools.derivedDataPath]
     if config.outputMode != .raw {
       args.append("-quiet")
     }
@@ -1139,9 +1081,7 @@ func runValidationFlow(_ arguments: [String]) throws {
             "-scheme", scheme,
             "-destination", destination,
           ]
-          if let derivedDataPath = tools.derivedDataPath {
-            args += ["-derivedDataPath", derivedDataPath]
-          }
+          args += ["-derivedDataPath", tools.derivedDataPath]
           if config.outputMode != .raw {
             args.append("-quiet")
           }

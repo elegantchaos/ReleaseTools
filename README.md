@@ -257,6 +257,7 @@ Runs a standard post-change validation flow for Swift repositories:
 - supports targeted validation with `--target <name>`
 - supports shaped output via `--output filtered|quiet|raw` (`filtered` is the default)
 - writes per-step logs to `.build/validation-logs`
+- uses `.build/rt-validate/DerivedData` for Xcode builds so validation products do not affect Xcode's normal DerivedData
 
 ### submit
 
