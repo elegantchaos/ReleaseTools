@@ -53,7 +53,7 @@ func usage() {
       --workspace <path>           Explicit workspace path (absolute or repo-relative)
       --project <path>             Explicit project path (absolute or repo-relative)
       --schemes <csv>              Xcode schemes for broad validation (default: repo name)
-      --destinations <csv>         Xcode build destinations (default: generic/platform=iOS,generic/platform=macOS)
+      --destinations <csv>         Xcode build destinations (default: platforms supported by the scheme)
       --run-xcode-tests            Also run xcodebuild test for test destinations
       --test-destinations <csv>    Xcode test destinations (default: platform=macOS)
       --package-dirs <csv>         Package directories for SwiftPM checks (absolute or repo-relative)
@@ -622,7 +622,6 @@ func parseArgs(_ args: [String]) throws -> Config {
 
   let repoPath = FileManager.default.currentDirectoryPath
   if schemes.isEmpty { schemes = [repoName(repoPath)] }
-  if destinations.isEmpty { destinations = ["generic/platform=iOS", "generic/platform=macOS"] }
   if testDestinations.isEmpty { testDestinations = ["platform=macOS"] }
 
   return Config(
@@ -700,7 +699,16 @@ func runXcodeBroadValidation(
   let actions = config.clean ? ["clean", "build"] : ["build"]
 
   for scheme in config.schemes {
-    for destination in config.destinations {
+    let destinations = try buildDestinations(
+      config: config,
+      repoPath: repoPath,
+      tools: tools,
+      workspace: workspace,
+      project: nil,
+      scheme: scheme
+    )
+
+    for destination in destinations {
       let log = "\(tools.verifyRoot)/comprehensive_\(sanitize(scheme))_\(sanitize(destination))_build.log"
       var args = [
         "xcodebuild",
@@ -757,6 +765,78 @@ func runXcodeBroadValidation(
         )
       }
     }
+  }
+}
+
+func xcodeShowBuildSettingsArguments(workspace: String?, project: String?, scheme: String) -> [String] {
+  var args = ["xcodebuild"]
+  if let workspace {
+    args += ["-workspace", workspace]
+  } else if let project {
+    args += ["-project", project]
+  }
+  args += ["-scheme", scheme, "-showBuildSettings", "-json"]
+  return args
+}
+
+func buildDestinations(
+  config: Config,
+  repoPath: String,
+  tools: ToolingPaths,
+  workspace: String?,
+  project: String?,
+  scheme: String
+) throws -> [String] {
+  if !config.destinations.isEmpty {
+    return config.destinations
+  }
+
+  let args = xcodeShowBuildSettingsArguments(workspace: workspace, project: project, scheme: scheme)
+  let result = try capture("/usr/bin/env", args, cwd: repoPath, environment: tools.env)
+  guard result.status == 0 else {
+    throw CLIError(message: "Failed to read supported platforms for scheme '\(scheme)':\n\(result.stderr)")
+  }
+
+  let destinations = try buildDestinations(fromBuildSettingsJSON: result.stdout)
+  guard !destinations.isEmpty else {
+    throw CLIError(message: "No supported build destinations found for scheme '\(scheme)'. Provide --destinations to override platform detection.")
+  }
+  return destinations
+}
+
+func buildDestinations(fromBuildSettingsJSON output: String) throws -> [String] {
+  guard let data = output.data(using: .utf8) else { return [] }
+  let entries = try JSONDecoder().decode([XcodeBuildSettingsEntry].self, from: data)
+  let sdkPlatforms = entries.flatMap { entry in
+    entry.buildSettings["SUPPORTED_PLATFORMS"]?
+      .split { $0 == " " || $0 == "," || $0 == "\n" || $0 == "\t" }
+      .map(String.init) ?? []
+  }
+
+  var destinations: [String] = []
+  for sdkPlatform in sdkPlatforms {
+    guard let destination = buildDestination(forSupportedPlatform: sdkPlatform), !destinations.contains(destination) else {
+      continue
+    }
+    destinations.append(destination)
+  }
+  return destinations
+}
+
+func buildDestination(forSupportedPlatform sdkPlatform: String) -> String? {
+  switch sdkPlatform {
+    case "macosx":
+      return "generic/platform=macOS"
+    case "iphoneos", "iphonesimulator":
+      return "generic/platform=iOS"
+    case "appletvos", "appletvsimulator":
+      return "generic/platform=tvOS"
+    case "watchos", "watchsimulator":
+      return "generic/platform=watchOS"
+    case "xros", "xrsimulator":
+      return "generic/platform=visionOS"
+    default:
+      return nil
   }
 }
 
@@ -1074,7 +1154,16 @@ func runValidationFlow(_ arguments: [String]) throws {
 
     if let project {
       for scheme in config.schemes {
-        for destination in config.destinations {
+        let destinations = try buildDestinations(
+          config: config,
+          repoPath: repoPath,
+          tools: tools,
+          workspace: nil,
+          project: project,
+          scheme: scheme
+        )
+
+        for destination in destinations {
           var args = [
             "xcodebuild",
             "-project", project,

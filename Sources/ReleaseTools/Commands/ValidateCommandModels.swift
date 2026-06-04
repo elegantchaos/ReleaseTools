@@ -28,6 +28,11 @@ struct PackageDescription: Decodable {
   let targets: [TargetInfo]
 }
 
+/// Minimal build settings metadata decoded from `xcodebuild -showBuildSettings -json`.
+struct XcodeBuildSettingsEntry: Decodable {
+  let buildSettings: [String: String]
+}
+
 /// Derived filesystem and environment paths for a validation run.
 struct ToolingPaths {
   let verifyRoot: String

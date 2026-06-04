@@ -77,6 +77,16 @@ struct ValidateCommandDiscoveryTests {
     #expect(config.outputMode == expected)
   }
 
+  @Test func destinationsDefaultToPlatformDiscovery() throws {
+    let config = try parseArgs([])
+    #expect(config.destinations.isEmpty)
+  }
+
+  @Test func explicitDestinationsArePreserved() throws {
+    let config = try parseArgs(["--destinations", "generic/platform=macOS,generic/platform=watchOS"])
+    #expect(config.destinations == ["generic/platform=macOS", "generic/platform=watchOS"])
+  }
+
   @Test func invalidOutputModeThrows() {
     #expect(throws: CLIError.self) {
       _ = try parseArgs(["--output", "loud"])
@@ -121,6 +131,44 @@ struct ValidateCommandDiscoveryTests {
   ])
   func filteredValidationLineBehavior(line: String, expected: String?) {
     #expect(filteredValidationLine(line) == expected)
+  }
+
+  @Test func buildDestinationMapsSupportedSDKPlatforms() {
+    #expect(buildDestination(forSupportedPlatform: "macosx") == "generic/platform=macOS")
+    #expect(buildDestination(forSupportedPlatform: "iphoneos") == "generic/platform=iOS")
+    #expect(buildDestination(forSupportedPlatform: "iphonesimulator") == "generic/platform=iOS")
+    #expect(buildDestination(forSupportedPlatform: "appletvos") == "generic/platform=tvOS")
+    #expect(buildDestination(forSupportedPlatform: "appletvsimulator") == "generic/platform=tvOS")
+    #expect(buildDestination(forSupportedPlatform: "watchos") == "generic/platform=watchOS")
+    #expect(buildDestination(forSupportedPlatform: "watchsimulator") == "generic/platform=watchOS")
+    #expect(buildDestination(forSupportedPlatform: "xros") == "generic/platform=visionOS")
+    #expect(buildDestination(forSupportedPlatform: "xrsimulator") == "generic/platform=visionOS")
+    #expect(buildDestination(forSupportedPlatform: "driverkit") == nil)
+  }
+
+  @Test func buildDestinationsDecodeSupportedPlatformsFromBuildSettings() throws {
+    let output = """
+      [
+        {
+          "buildSettings": {
+            "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"
+          }
+        },
+        {
+          "buildSettings": {
+            "SUPPORTED_PLATFORMS": "macosx watchos watchsimulator"
+          }
+        }
+      ]
+      """
+
+    #expect(
+      try buildDestinations(fromBuildSettingsJSON: output) == [
+        "generic/platform=iOS",
+        "generic/platform=macOS",
+        "generic/platform=watchOS",
+      ]
+    )
   }
 
   @Test func extractedFailureDiagnosticsPreferErrorBlock() {
