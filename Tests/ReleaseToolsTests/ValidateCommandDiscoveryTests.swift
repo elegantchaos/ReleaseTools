@@ -87,6 +87,24 @@ struct ValidateCommandDiscoveryTests {
     #expect(config.destinations == ["generic/platform=macOS", "generic/platform=watchOS"])
   }
 
+  @Test func buildSettingsDiscoveryUsesRepoLocalDerivedData() {
+    #expect(
+      xcodeShowBuildSettingsArguments(
+        workspace: "App.xcworkspace",
+        project: nil,
+        scheme: "App",
+        derivedDataPath: ".build/rt-validate/DerivedData"
+      ) == [
+        "xcodebuild",
+        "-workspace", "App.xcworkspace",
+        "-scheme", "App",
+        "-derivedDataPath", ".build/rt-validate/DerivedData",
+        "-showBuildSettings",
+        "-json",
+      ]
+    )
+  }
+
   @Test func invalidOutputModeThrows() {
     #expect(throws: CLIError.self) {
       _ = try parseArgs(["--output", "loud"])

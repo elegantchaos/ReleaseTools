@@ -768,14 +768,19 @@ func runXcodeBroadValidation(
   }
 }
 
-func xcodeShowBuildSettingsArguments(workspace: String?, project: String?, scheme: String) -> [String] {
+func xcodeShowBuildSettingsArguments(
+  workspace: String?,
+  project: String?,
+  scheme: String,
+  derivedDataPath: String
+) -> [String] {
   var args = ["xcodebuild"]
   if let workspace {
     args += ["-workspace", workspace]
   } else if let project {
     args += ["-project", project]
   }
-  args += ["-scheme", scheme, "-showBuildSettings", "-json"]
+  args += ["-scheme", scheme, "-derivedDataPath", derivedDataPath, "-showBuildSettings", "-json"]
   return args
 }
 
@@ -791,7 +796,12 @@ func buildDestinations(
     return config.destinations
   }
 
-  let args = xcodeShowBuildSettingsArguments(workspace: workspace, project: project, scheme: scheme)
+  let args = xcodeShowBuildSettingsArguments(
+    workspace: workspace,
+    project: project,
+    scheme: scheme,
+    derivedDataPath: tools.derivedDataPath
+  )
   let result = try capture("/usr/bin/env", args, cwd: repoPath, environment: tools.env)
   guard result.status == 0 else {
     throw CLIError(message: "Failed to read supported platforms for scheme '\(scheme)':\n\(result.stderr)")
