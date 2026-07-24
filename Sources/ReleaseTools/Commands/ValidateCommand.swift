@@ -31,8 +31,11 @@ func packageHasTestTargets(_ package: PackageDescription) -> Bool {
   package.targets.contains(where: { $0.type == "test" })
 }
 
-func swiftPMValidationDefines(_ arguments: [String]) -> [String] {
-  arguments + ["-Xswiftc", "-DVALIDATING"]
+func swiftPMValidationArguments(_ arguments: [String]) -> [String] {
+  Array(arguments.prefix(2))
+    + ["--build-system", "swiftbuild"]
+    + arguments.dropFirst(2)
+    + ["-Xswiftc", "-DVALIDATING"]
 }
 
 /// Prints standalone usage text for the validation command.
@@ -921,8 +924,8 @@ func runSwiftPMBroadValidation(
       throw CLIError(message: "Could not inspect Swift package at \(packageDir) before validation.\n\(error)")
     }
 
-    var buildArgs = swiftPMValidationDefines(["swift", "build", "--package-path", packageDir])
-    var testArgs = swiftPMValidationDefines(["swift", "test", "--package-path", packageDir])
+    var buildArgs = swiftPMValidationArguments(["swift", "build", "--package-path", packageDir])
+    var testArgs = swiftPMValidationArguments(["swift", "test", "--package-path", packageDir])
     if disableSandbox {
       buildArgs.append("--disable-sandbox")
       testArgs.append("--disable-sandbox")
@@ -982,7 +985,7 @@ func runTargetedValidation(
     }
     guard package.targets.contains(where: { $0.name == target }) else { continue }
 
-    var buildArgs = swiftPMValidationDefines(["swift", "build", "--package-path", packageDir, "--target", target])
+    var buildArgs = swiftPMValidationArguments(["swift", "build", "--package-path", packageDir, "--target", target])
     if config.swiftPMDisableSandbox {
       buildArgs.append("--disable-sandbox")
     }
@@ -1007,7 +1010,7 @@ func runTargetedValidation(
     if let testTarget = candidateTests.first(where: { candidate in
       package.targets.contains(where: { $0.name == candidate && $0.type == "test" })
     }) {
-      var swiftTestArgs = swiftPMValidationDefines(["swift", "test", "--package-path", packageDir, "--filter", testTarget])
+      var swiftTestArgs = swiftPMValidationArguments(["swift", "test", "--package-path", packageDir, "--filter", testTarget])
       if config.swiftPMDisableSandbox {
         swiftTestArgs.append("--disable-sandbox")
       }
