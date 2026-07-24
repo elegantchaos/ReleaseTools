@@ -32,10 +32,7 @@ func packageHasTestTargets(_ package: PackageDescription) -> Bool {
 }
 
 func swiftPMValidationArguments(_ arguments: [String]) -> [String] {
-  Array(arguments.prefix(2))
-    + ["--build-system", "swiftbuild"]
-    + arguments.dropFirst(2)
-    + ["-Xswiftc", "-DVALIDATING"]
+  arguments + ["--build-system", "swiftbuild", "-Xswiftc", "-DVALIDATING"]
 }
 
 /// Prints standalone usage text for the validation command.

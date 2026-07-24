@@ -71,10 +71,10 @@ struct ValidateCommandDiscoveryTests {
       swiftPMValidationArguments(["swift", "test", "--filter", "ExampleTests"]) == [
         "swift",
         "test",
-        "--build-system",
-        "swiftbuild",
         "--filter",
         "ExampleTests",
+        "--build-system",
+        "swiftbuild",
         "-Xswiftc",
         "-DVALIDATING",
       ]
