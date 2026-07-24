@@ -7,6 +7,11 @@ import ArgumentParser
 import Foundation
 
 /// Runs the standard validation workflow for the current Swift repository.
+///
+/// Targeted validation is a fast preflight for a modified non-test SwiftPM
+/// target. It builds that target first, then runs a conventionally named
+/// `<Target>Tests` target when one exists. Use comprehensive validation to
+/// verify the complete app or package and its dependencies.
 struct ValidateCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -45,10 +50,10 @@ func usage() {
 
     Modes:
       default                      Comprehensive mode (format/lint changed Swift files + broad validation)
-      --target <name>              Targeted validation mode
+      --target <name>              Fast preflight for one modified non-test SwiftPM target
 
     Options:
-      --target <name>              Target name for targeted validation mode
+      --target <name>              Build this target, then run <name>Tests when present
       --clean                      Remove validation logs and private DerivedData before running checks
       --workspace <path>           Explicit workspace path (absolute or repo-relative)
       --project <path>             Explicit project path (absolute or repo-relative)
@@ -959,6 +964,8 @@ func runSwiftPMBroadValidation(
   }
 }
 
+/// Builds a modified non-test SwiftPM target before running its conventionally
+/// named test target, if present.
 func runTargetedValidation(
   target: String,
   config: Config,
