@@ -11,7 +11,6 @@ let package = Package(
 
   products: [
     .executable(name: "rt", targets: ["ReleaseTools"]),
-    .executable(name: "ReleaseTools", targets: ["ReleaseTools"]),
     .plugin(name: "rt-plugin", targets: ["ReleaseToolsPlugin"]),
   ],
 
