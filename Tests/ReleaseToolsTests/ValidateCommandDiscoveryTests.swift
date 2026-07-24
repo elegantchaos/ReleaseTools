@@ -66,7 +66,7 @@ struct ValidateCommandDiscoveryTests {
     #expect(packageHasTestTargets(package) == expected)
   }
 
-  @Test func swiftPMValidationUsesSwiftBuild() {
+  @Test func swiftPMValidationUsesSwiftBuildSystem() {
     #expect(
       swiftPMValidationArguments(["swift", "test", "--filter", "ExampleTests"]) == [
         "swift",
