@@ -16,3 +16,5 @@ High-level tasks for the next ReleaseTools improvements:
    Support a committed base configuration plus an uncommitted local overlay so sensitive keys such as `apiIssuer` and `apiKey` can stay out of source control.
 7. [Local Swift package validation](Extras/Roadmap/LocalSwiftPackageValidation.md)
    Support hybrid Xcode/SwiftPM development by generating local package validation manifests that resolve sibling packages from `Dependencies/` without relying on manual `swift package edit` state.
+8. [Validate command process cleanup](Extras/Roadmap/ValidateCommandProcessCleanup.md)
+   Move validation subprocess execution onto `Runner` and expose validation state to Swift package manifests through the process environment.
