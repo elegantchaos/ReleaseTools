@@ -40,7 +40,7 @@ extension UploadError: LocalizedError {
       case .uploadingFailedWithErrors(let errors):
         var log = "Upload was rejected.\n"
 
-        // Look for a specific error code that indicates the version has already been released.
+        // Look for an error that indicates the version has already been released.
         // If we find it, we can provide a more helpful message to the user.
         let isAlreadyReleased = errors.contains(where: \.isAlreadyReleased)
         if isAlreadyReleased {

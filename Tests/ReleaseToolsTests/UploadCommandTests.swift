@@ -10,7 +10,7 @@ import Testing
 
 struct UploadCommandTests {
 
-  @Test func doesNotClassifyOtherInvalidBundlesAsReleasedVersions() {
+  @Test func preservesOtherInvalidBundleErrors() {
     let error = UploadReceiptError(
       code: 90062,
       message: "This bundle is invalid. A different validation failed.",
@@ -18,7 +18,28 @@ struct UploadCommandTests {
       userInfo: nil
     )
 
-    #expect(error.indicatesReleasedVersion == false)
+    #expect(error.isInvalidBundleError)
+    #expect(error.isAlreadyReleased == false)
+
+    let description = UploadError.uploadingFailedWithErrors([error]).errorDescription ?? ""
+    #expect(description.contains("[90062] This bundle is invalid."))
+    #expect(description.contains("This version has already been released.") == false)
+  }
+
+  @Test func preservesStandaloneInvalidPreReleaseTrainErrors() {
+    let error = UploadReceiptError(
+      code: 90186,
+      message: "Invalid Pre-Release Train. The train version '3.0.1' is closed for new build submissions.",
+      underlyingErrors: [],
+      userInfo: nil
+    )
+
+    #expect(error.isInvalidPreReleaseTrainError)
+    #expect(error.isAlreadyReleased == false)
+
+    let description = UploadError.uploadingFailedWithErrors([error]).errorDescription ?? ""
+    #expect(description.contains("[90186] Invalid Pre-Release Train."))
+    #expect(description.contains("This version has already been released.") == false)
   }
 
   @Test func explainsWhenTheReleaseVersionHasAlreadyBeenReleased() throws {
