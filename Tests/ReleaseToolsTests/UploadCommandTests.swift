@@ -10,6 +10,17 @@ import Testing
 
 struct UploadCommandTests {
 
+  @Test func doesNotClassifyOtherInvalidBundlesAsReleasedVersions() {
+    let error = UploadReceiptError(
+      code: 90062,
+      message: "This bundle is invalid. A different validation failed.",
+      underlyingErrors: [],
+      userInfo: nil
+    )
+
+    #expect(error.indicatesReleasedVersion == false)
+  }
+
   @Test func explainsWhenTheReleaseVersionHasAlreadyBeenReleased() throws {
     let stdout = #"""
       {
