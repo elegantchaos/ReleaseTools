@@ -10,6 +10,46 @@ import Testing
 
 struct UploadCommandTests {
 
+  @Test func explainsWhenTheReleaseVersionHasAlreadyBeenReleased() throws {
+    let stdout = #"""
+      {
+        "os-version" : "Version 26.4 (Build 25E246)",
+        "product-errors" : [
+          {
+            "code" : 90062,
+            "message" : "This bundle is invalid. The value for key CFBundleShortVersionString [3.0.1] in the Info.plist file must contain a higher version than that of the previously approved version [3.0.1].",
+            "underlying-errors" : [],
+            "user-info" : {
+              "NSLocalizedFailureReason" : "The server’s response was: ‘{ code = 90062; description = \"This bundle is invalid.\"; }’."
+            }
+          },
+          {
+            "code" : 90186,
+            "message" : "Invalid Pre-Release Train. The train version '3.0.1' is closed for new build submissions.",
+            "underlying-errors" : [],
+            "user-info" : {
+              "NSLocalizedFailureReason" : "The server’s response was: ‘{ code = 90186; description = \"Invalid Pre-Release Train.\"; }’."
+            }
+          }
+        ],
+        "tool-path" : "/Applications/Xcode.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources",
+        "tool-version" : "26.30.4 (173004)"
+      }
+      """#
+
+    do {
+      _ = try UploadCommand.analyzeUploadOutput(stdout: stdout, stderr: "")
+      Issue.record("Expected upload analysis to throw for a closed release train.")
+    } catch {
+      let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+      #expect(description.contains("This version has already been released."))
+      #expect(description.contains("Increase CFBundleShortVersionString before submitting a new build."))
+      #expect(description.contains("The server’s response was:") == false)
+      #expect(description.contains("[90062]") == false)
+      #expect(description.contains("[90186]") == false)
+    }
+  }
+
   @Test func summarizesSandboxReceiptRejection() throws {
     let stdout = #"""
       {

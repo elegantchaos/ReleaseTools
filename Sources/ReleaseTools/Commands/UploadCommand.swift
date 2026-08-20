@@ -39,7 +39,12 @@ extension UploadError: LocalizedError {
 
       case .uploadingFailedWithErrors(let errors):
         var log = "Upload was rejected.\n"
-        for error in errors {
+        if errors.contains(where: \.indicatesReleasedVersion) {
+          log += "\nThis version has already been released.\n"
+          log += "- Increase CFBundleShortVersionString before submitting a new build.\n"
+        }
+
+        for error in errors where error.indicatesReleasedVersion == false {
           log += "\n\(error.compactSummary)\n"
         }
 

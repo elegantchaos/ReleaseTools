@@ -30,6 +30,11 @@ struct UploadReceipt: Codable {
 }
 
 extension UploadReceiptError {
+  /// Whether this error indicates that the app's release version has already been approved.
+  var indicatesReleasedVersion: Bool {
+    code == 90062 || code == 90186
+  }
+
   /// A compact multi-line summary suitable for CLI error output.
   var compactSummary: String {
     let summary = compactMessage
