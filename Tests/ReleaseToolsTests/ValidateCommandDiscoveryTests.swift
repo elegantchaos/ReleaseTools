@@ -22,11 +22,15 @@ struct ValidateCommandDiscoveryTests {
     let fixtureURL = repoURL.appendingPathComponent("Tests/ReleaseToolsTests/Resources/Example-old.package")
     try writePackage(at: fixtureURL)
 
+    let indexBuildPackageURL = repoURL.appendingPathComponent(".index-build/checkouts/Dependency")
+    try writePackage(at: indexBuildPackageURL)
+
     let packages = Set(discoverPackageDirs(repoPath: repoURL.path, overrides: nil, recursive: true))
 
     #expect(packages.contains(repoURL.path))
     #expect(packages.contains(nestedURL.path))
     #expect(!packages.contains(fixtureURL.path))
+    #expect(!packages.contains(indexBuildPackageURL.path))
   }
 
   @Test func packageDirOverridesCanIncludeFixturePackages() throws {
