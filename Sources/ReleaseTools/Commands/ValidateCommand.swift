@@ -479,7 +479,9 @@ func isValidProject(_ path: String) -> Bool {
 
 func excludedPath(_ path: String) -> Bool {
   let parts = path.split(separator: "/")
-  return parts.contains(".git") || parts.contains(".build") || parts.contains("DerivedData")
+  return
+    parts.contains(where: { $0.hasPrefix(".") })
+    || parts.contains("DerivedData")
 }
 
 func shouldIgnoreDiscoveredPackagePath(_ path: String) -> Bool {
