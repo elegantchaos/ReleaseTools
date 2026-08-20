@@ -39,7 +39,19 @@ extension UploadError: LocalizedError {
 
       case .uploadingFailedWithErrors(let errors):
         var log = "Upload was rejected.\n"
-        for error in errors {
+
+        // Look for an error that indicates the version has already been released.
+        // If we find it, we can provide a more helpful message to the user.
+        let isAlreadyReleased = errors.contains(where: \.isAlreadyReleased)
+        if isAlreadyReleased {
+          log += "\nThis version has already been released.\n"
+          log += "- Increase CFBundleShortVersionString before submitting a new build.\n"
+        }
+
+        // Log other errors.
+        // Skip the invalid bundle and prerelease train errors as we've already logged them.
+        for error in errors
+        where !(isAlreadyReleased && (error.isAlreadyReleased || error.isInvalidPreReleaseTrainError)) {
           log += "\n\(error.compactSummary)\n"
         }
 

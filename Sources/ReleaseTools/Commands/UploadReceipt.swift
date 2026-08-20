@@ -30,6 +30,22 @@ struct UploadReceipt: Codable {
 }
 
 extension UploadReceiptError {
+  // The error code indicates an invalid bundle.
+  var isInvalidBundleError: Bool {
+    code == 90062
+  }
+
+  // The error code indicates an invalid pre-release train.
+  var isInvalidPreReleaseTrainError: Bool {
+    code == 90186
+  }
+
+  /// The server message indicates that the app's release version has already been approved.
+  var isAlreadyReleased: Bool {
+    message.contains("The value for key CFBundleShortVersionString")
+      && message.contains("must contain a higher version than that of the previously approved version")
+  }
+
   /// A compact multi-line summary suitable for CLI error output.
   var compactSummary: String {
     let summary = compactMessage
@@ -40,8 +56,7 @@ extension UploadReceiptError {
       for executable in sandboxExecutables {
         lines.append("- Executable: \(executable)")
       }
-    } else if
-      let reason = userInfo?["NSLocalizedFailureReason"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+    } else if let reason = userInfo?["NSLocalizedFailureReason"]?.trimmingCharacters(in: .whitespacesAndNewlines),
       !reason.isEmpty
     {
       lines.append("- \(reason)")
