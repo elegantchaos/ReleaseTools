@@ -10,6 +10,26 @@ import Testing
 
 /// Tests package discovery and output parsing helpers used by `rt validate`.
 struct ValidateCommandDiscoveryTests {
+  @Test func recursiveDiscoveryFindsSiblingPackagesAfterBuildArtifacts() throws {
+    let repoURL = try makeTemporaryRepo()
+    defer { try? FileManager.default.removeItem(at: repoURL) }
+
+    try writePackage(at: repoURL)
+    _ = try toolingPaths(config: try parseArgs([]), repoPath: repoURL.path)
+
+    let buildPackageURL = repoURL.appendingPathComponent(".build/rt-validate/DerivedData/BuildArtifact")
+    try writePackage(at: buildPackageURL)
+
+    let nestedPackageURL = repoURL.appendingPathComponent("Dependencies/ExamplePackage")
+    try writePackage(at: nestedPackageURL)
+
+    let packages = Set(discoverPackageDirs(repoPath: repoURL.path, overrides: nil, recursive: true))
+
+    #expect(packages.contains(repoURL.path))
+    #expect(packages.contains(nestedPackageURL.path))
+    #expect(packages.contains(buildPackageURL.path) == false)
+  }
+
   @Test func recursiveDiscoverySkipsPackagesUnderTestResources() throws {
     let repoURL = try makeTemporaryRepo()
     defer { try? FileManager.default.removeItem(at: repoURL) }

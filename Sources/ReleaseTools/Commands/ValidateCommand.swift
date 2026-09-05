@@ -517,21 +517,34 @@ func discoverPackageDirs(repoPath: String, overrides: [String]?, recursive: Bool
 
   guard recursive else { return ordered }
 
-  guard let enumerator = FileManager.default.enumerator(atPath: repoPath) else { return ordered }
-  while let item = enumerator.nextObject() as? String {
-    if excludedPath(item) {
-      enumerator.skipDescendants()
-      continue
-    }
-    if item.hasSuffix("/Package.swift") || item == "Package.swift" {
-      let relativePackageDir = (item as NSString).deletingLastPathComponent
-      if shouldIgnoreDiscoveredPackagePath(relativePackageDir) {
+  func discoverPackages(in directory: URL, relativeToRepository relativeDirectory: String) {
+    guard
+      let contents = try? FileManager.default.contentsOfDirectory(
+        at: directory,
+        includingPropertiesForKeys: nil
+      )
+    else { return }
+
+    for child in contents {
+      let relativePath =
+        relativeDirectory.isEmpty
+        ? child.lastPathComponent
+        : "\(relativeDirectory)/\(child.lastPathComponent)"
+
+      if excludedPath(relativePath) {
         continue
       }
-      let packageDir = URL(fileURLWithPath: repoPath).appendingPathComponent(relativePackageDir).path
-      addPackageDir(packageDir)
+
+      if child.lastPathComponent == "Package.swift" {
+        guard shouldIgnoreDiscoveredPackagePath(relativeDirectory) == false else { continue }
+        addPackageDir(directory.path)
+      } else if isDirectory(child.path) {
+        discoverPackages(in: child, relativeToRepository: relativePath)
+      }
     }
   }
+
+  discoverPackages(in: URL(fileURLWithPath: repoPath), relativeToRepository: "")
 
   return ordered
 }
