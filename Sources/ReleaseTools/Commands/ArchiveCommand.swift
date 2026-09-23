@@ -71,20 +71,22 @@ struct ArchiveCommand: AsyncParsableCommand {
     }
 
     let result = xcode.run(args)
-    try await result.throwIfFailed(RunnerError.archiveFailed)
+    try await result.throwIfFailed(Error.archiveFailed)
     engine.log("Archived scheme \(engine.scheme).")
   }
 }
 
 extension ArchiveCommand {
-  /// Failures returned by the archive subprocess.
-  enum RunnerError: Runner.Error {
+  /// Errors emitted while archiving.
+  enum Error: Swift.Error, LocalizedError {
     /// Creating the Xcode archive failed.
     case archiveFailed
 
-    /// Describes the failed archive subprocess session.
-    func description(for session: Runner.Session) async -> String {
-      "Archiving failed.\n\n\(await session.stderr.string)"
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
+      switch self {
+        case .archiveFailed: return "Archiving failed."
+      }
     }
   }
 }

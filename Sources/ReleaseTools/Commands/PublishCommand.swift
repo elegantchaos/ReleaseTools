@@ -35,31 +35,31 @@ struct PublishCommand: AsyncParsableCommand {
 
     engine.log("Committing updates.")
     var result = git.run(["add", updates.path])
-    try await result.throwIfFailed(RunnerError.commitFailed)
+    try await result.throwIfFailed(Error.commitFailed)
 
     let message = "v\(archive.version), build \(archive.build)"
     result = git.run(["commit", "-a", "-m", message])
-    try await result.throwIfFailed(RunnerError.commitFailed)
+    try await result.throwIfFailed(Error.commitFailed)
 
     engine.log("Pushing updates.")
     let pushResult = git.run(["push"])
-    try await pushResult.throwIfFailed(RunnerError.pushFailed)
+    try await pushResult.throwIfFailed(Error.pushFailed)
   }
 }
 
 extension PublishCommand {
-  /// Failures returned while publishing release updates.
-  enum RunnerError: Runner.Error {
+  /// Errors emitted while publishing release updates.
+  enum Error: Swift.Error, LocalizedError {
     /// Committing the release changes failed.
     case commitFailed
     /// Pushing the release changes failed.
     case pushFailed
 
-    /// Describes the failed git subprocess session.
-    func description(for session: Runner.Session) async -> String {
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
       switch self {
-        case .commitFailed: "Failed to commit the appcast feed and updates.\n\n\(await session.stderr.string)"
-        case .pushFailed: "Failed to push the appcast feed and updates.\n\n\(await session.stderr.string)"
+        case .commitFailed: return "Failed to commit the appcast feed and updates."
+        case .pushFailed: return "Failed to push the appcast feed and updates."
       }
     }
   }

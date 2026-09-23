@@ -56,7 +56,7 @@ struct TagCommand: AsyncParsableCommand {
     engine.log("Creating tag: \(tagName) at commit \(commit)")
 
     let tagResult = engine.git.run(["tag", tagName, commit])
-    try await tagResult.throwIfFailed(RunnerError.creatingTagFailed)
+    try await tagResult.throwIfFailed(Error.creatingTagFailed)
 
     engine.log("Successfully created tag: \(tagName)")
   }
@@ -80,14 +80,16 @@ struct TagCommand: AsyncParsableCommand {
 }
 
 extension TagCommand {
-  /// Failures returned by the subprocess that creates a git tag.
-  enum RunnerError: Runner.Error {
+  /// Errors emitted while creating a version tag.
+  enum Error: Swift.Error, LocalizedError {
     /// Creating the git tag failed.
     case creatingTagFailed
 
-    /// Describes the failed git subprocess session.
-    func description(for session: Runner.Session) async -> String {
-      "Failed to create the git tag.\n\n\(await session.stderr.string)"
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
+      switch self {
+        case .creatingTagFailed: return "Failed to create the git tag."
+      }
     }
   }
 }

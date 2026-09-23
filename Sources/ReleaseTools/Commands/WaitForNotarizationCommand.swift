@@ -85,7 +85,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       try? fm.copyItem(at: engine.exportedAppURL(for: archive), to: stapledAppURL)
       let xcrun = XCRunRunner(engine: engine)
       let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
-      try await result.throwIfFailed(RunnerError.exportingAppFailed)
+      try await result.throwIfFailed(Error.staplingFailed)
     } catch {
       throw Error.exportingNotarizedAppFailed(error)
     }
@@ -101,7 +101,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       "--apiKey", engine.apiKey,
       "--output-format", "xml",
     ])
-    try await result.throwIfFailed(RunnerError.fetchingStatusFailed)
+    try await result.throwIfFailed(Error.statusRequestFailed)
 
     engine.log("Received response.")
     let data = await result.stdout.data
@@ -157,29 +157,20 @@ extension WaitForNotarizationCommand {
     /// The notarization receipt could not be loaded.
     case loadingReceiptFailed
 
+    /// The notarization status request failed.
+    case statusRequestFailed
+    /// Stapling the notarized app failed.
+    case staplingFailed
+
     /// A user-facing description of the notarization failure.
     var errorDescription: String? {
       switch self {
+        case .statusRequestFailed: return "Requesting notarization status failed."
+        case .staplingFailed: return "Stapling the notarized app failed."
         case .fetchingStatusFailed(let error): return "Fetching notarization status failed.\n\(error.localizedDescription)"
         case .notarizationFailed: return "Notarization failed."
         case .exportingNotarizedAppFailed(let error): return "Exporting notarized app failed.\n\(error.localizedDescription)"
         case .loadingReceiptFailed: return "Loading notarization receipt failed."
-      }
-    }
-  }
-
-  /// Failures returned by the notarization subprocesses.
-  enum RunnerError: Runner.Error {
-    /// Fetching the notarization status failed.
-    case fetchingStatusFailed
-    /// Stapling the notarized app failed.
-    case exportingAppFailed
-
-    /// Describes the failed subprocess session.
-    func description(for session: Runner.Session) async -> String {
-      switch self {
-        case .fetchingStatusFailed: "Fetching notarization status failed.\n\(await session.stderr.string)"
-        case .exportingAppFailed: "Exporting notarized app failed.\n\(await session.stderr.string)"
       }
     }
   }
