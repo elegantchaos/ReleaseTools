@@ -12,7 +12,6 @@ enum WaitForNotarizationError: Error {
   case fetchingNotarizationStatusThrew(Error)
   case notarizationFailed(String)
   case exportingNotarizedAppThrew(Error)
-  case missingArchive
   case loadingNotarizationReceiptFailed
 }
 extension WaitForNotarizationError: LocalizedError {
@@ -23,7 +22,6 @@ extension WaitForNotarizationError: LocalizedError {
       case .notarizationFailed:
         return "Notarization failed."
       case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
-      case .missingArchive: return "Exporting notarized app couldn't find archive."
       case .loadingNotarizationReceiptFailed:
         return "Loading notarization receipt failed."
     }
@@ -64,7 +62,6 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
 
   func run() async throws {
     let engine = try await ReleaseEngine(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       platform: platform
@@ -85,9 +82,10 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       throw WaitForNotarizationError.fetchingNotarizationStatusThrew(error)
     }
 
+    let archive = try engine.requireArchive()
     engine.log("Tagging.")
     let tagResult = engine.git.run([
-      "tag", engine.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
+      "tag", engine.versionTag(for: archive), "-f", "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)
   }
@@ -111,16 +109,13 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       try? fm.createDirectory(
         at: engine.stapledURL, withIntermediateDirectories: true, attributes: nil)
 
-      if let archive = engine.archive {
-        let stapledAppURL = engine.stapledURL.appendingPathComponent(archive.name)
-        try? fm.removeItem(at: stapledAppURL)
-        try? fm.copyItem(at: engine.exportedAppURL, to: stapledAppURL)
-        let xcrun = XCRunRunner(engine: engine)
-        let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
-        try await result.throwIfFailed(WaitForNotarizationRunnerError.exportingNotarizedAppFailed)
-      } else {
-        throw WaitForNotarizationError.missingArchive
-      }
+      let archive = try engine.requireArchive()
+      let stapledAppURL = engine.stapledURL.appending(path: archive.name)
+      try? fm.removeItem(at: stapledAppURL)
+      try? fm.copyItem(at: engine.exportedAppURL(for: archive), to: stapledAppURL)
+      let xcrun = XCRunRunner(engine: engine)
+      let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
+      try await result.throwIfFailed(WaitForNotarizationRunnerError.exportingNotarizedAppFailed)
     } catch {
       throw WaitForNotarizationError.exportingNotarizedAppThrew(error)
     }

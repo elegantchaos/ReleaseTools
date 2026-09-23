@@ -36,12 +36,12 @@ struct PublishCommand: AsyncParsableCommand {
 
   func run() async throws {
     let engine = try await ReleaseEngine(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       platform: platform
     )
 
+    let archive = try engine.requireArchive()
     let git = GitRunner()
     git.cwd = website.websiteURL
 
@@ -49,7 +49,7 @@ struct PublishCommand: AsyncParsableCommand {
     var result = git.run(["add", updates.path])
     try await result.throwIfFailed(PublishError.commitFailed)
 
-    let message = "v\(engine.archive.version), build \(engine.archive.build)"
+    let message = "v\(archive.version), build \(archive.build)"
     result = git.run(["commit", "-a", "-m", message])
     try await result.throwIfFailed(PublishError.commitFailed)
 

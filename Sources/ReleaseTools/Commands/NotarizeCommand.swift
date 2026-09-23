@@ -50,28 +50,28 @@ struct NotarizeCommand: AsyncParsableCommand {
   func run() async throws {
 
     let engine = try await ReleaseEngine(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       scheme: scheme,
       platform: platform
     )
 
+    let archive = try engine.requireArchive()
     engine.log("Creating zip archive for notarization.")
     let ditto = DittoRunner(engine: engine)
 
-    let zipResult = ditto.zip(engine.exportedAppURL, as: engine.exportedZipURL)
+    let zipResult = ditto.zip(engine.exportedAppURL(for: archive), as: engine.exportedZipURL)
     try await zipResult.throwIfFailed(NotarizeRunnerError.compressingFailed)
 
-    engine.log("Uploading \(engine.versionTag) to notarization service.")
+    engine.log("Uploading \(engine.versionTag(for: archive)) to notarization service.")
     let xcrun = XCRunRunner(engine: engine)
     let result = xcrun.run([
       "altool",
       "--notarize-app",
-      "--primary-bundle-id", engine.archive.identifier,
+      "--primary-bundle-id", archive.identifier,
       "--apiIssuer", engine.apiIssuer,
       "--apiKey", engine.apiKey,
-      "--team-id", engine.archive.team,
+      "--team-id", archive.team,
       "--file", engine.exportedZipURL.path,
       "--output-format", "xml",
     ])

@@ -10,7 +10,6 @@ import Runner
 
 /// Common release workflow failures surfaced by `ReleaseEngine`.
 enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
-  case infoUnreadable(_ path: String)
   case missingWorkspace
   case apiKeyAndIssuer
   case noDefaultScheme(_ platform: String)
@@ -19,8 +18,6 @@ enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
 
   public var description: String {
     switch self {
-      case .infoUnreadable(let path): return "Couldn't read archive info.plist.\n\(path)"
-
       case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
 
       case .taggingFailed: return "Tagging failed."
@@ -60,12 +57,6 @@ enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
 
 /// Coordinates configuration, derived paths, and subprocess helpers for release commands.
 final class ReleaseEngine {
-  /// Requirements that can be enforced before a command begins work.
-  enum Requirement {
-    case archive
-    case workspace
-  }
-
   var showOutput: Bool
   var showCommands: Bool
   var verbose: Bool
@@ -81,17 +72,10 @@ final class ReleaseEngine {
   var apiIssuer: String = ""
   var package: String = ""
   var workspace: String = ""
-  var archive: XcodeArchive!
-
   let git: GitRunner
   let rootURL: URL
   let homeURL = FileManager.default.homeDirectoryForCurrentUser
-  var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
-  var exportedAppURL: URL { return exportURL.appendingPathComponent(archive.name) }
-  var exportedIPAURL: URL {
-    return exportURL.appendingPathComponent(archive.shortName).appendingPathExtension(
-      platform == "macOS" ? "pkg" : "ipa")
-  }
+  var exportedZipURL: URL { exportURL.appending(path: "exported.zip") }
   var apiKeyURL: URL {
     return homeURL.appendingPathComponent(".ssh").appendingPathComponent("AuthKey_\(apiKey)")
   }
@@ -105,7 +89,6 @@ final class ReleaseEngine {
   var exportURL: URL { return buildURL.appendingPathComponent("export") }
   var uploadURL: URL { return buildURL.appendingPathComponent("upload") }
   var stapledURL: URL { return buildURL.appendingPathComponent("stapled") }
-  var versionTag: String { return "v\(archive.version)-\(archive.build)-\(platform)" }
 
   /// The first workspace found at the repository root when one was not passed explicitly.
   var defaultWorkspace: String? {
@@ -125,7 +108,6 @@ final class ReleaseEngine {
 
   init(
     root rootURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
-    requires requirements: Set<Requirement> = [],
     options: CommonOptions,
     command: CommandConfiguration,
     scheme: SchemeOption? = nil,
@@ -155,7 +137,7 @@ final class ReleaseEngine {
     configReader = try await RTConfigReader(paths: configPaths, scheme: nil, platform: self.platform)
 
     // Commands that resolve schemes need a workspace before layered config can be finalized.
-    if requirements.contains(.workspace) || scheme != nil {
+    if scheme != nil {
       if let workspace = options.workspace ?? defaultWorkspace {
         self.workspace = workspace
       } else {
@@ -196,13 +178,26 @@ final class ReleaseEngine {
       }
     }
 
-    if requirements.contains(.archive) {
-      if let archive = XcodeArchive(url: archiveURL) {
-        self.archive = archive
-      } else {
-        throw GeneralError.infoUnreadable(archiveURL.path)
-      }
-    }
+  }
+
+  /// Loads and validates the archive at the configured archive path.
+  func requireArchive() throws -> XcodeArchive {
+    try XcodeArchive(url: archiveURL)
+  }
+
+  /// Returns the exported application path for an archive.
+  func exportedAppURL(for archive: XcodeArchive) -> URL {
+    exportURL.appending(path: archive.name)
+  }
+
+  /// Returns the exported package path for an archive.
+  func exportedPackageURL(for archive: XcodeArchive) -> URL {
+    exportURL.appending(path: archive.shortName).appendingPathExtension(platform == "macOS" ? "pkg" : "ipa")
+  }
+
+  /// Returns the git tag assigned to an uploaded archive.
+  func versionTag(for archive: XcodeArchive) -> String {
+    "v\(archive.version)-\(archive.build)-\(platform)"
   }
 
   /// Effective release settings after layered config resolution.

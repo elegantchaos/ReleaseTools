@@ -40,7 +40,6 @@ struct SubmitCommand: AsyncParsableCommand {
 
     try await ArchiveCommand.archive(engine: engine, xcconfig: xcconfig)
     try await ExportCommand.export(engine: engine)
-    engine.archive = XcodeArchive(url: engine.archiveURL)
     try await UploadCommand.upload(engine: engine)
     // TODO: open page in app portal?
   }

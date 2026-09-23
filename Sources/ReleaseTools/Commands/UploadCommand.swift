@@ -89,7 +89,6 @@ struct UploadCommand: AsyncParsableCommand {
 
   func run() async throws {
     let engine = try await ReleaseEngine(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       scheme: scheme,
@@ -102,12 +101,13 @@ struct UploadCommand: AsyncParsableCommand {
   }
 
   static func upload(engine: ReleaseEngine) async throws {
-    engine.log("Uploading \(engine.versionTag) to Apple Connect.")
+    let archive = try engine.requireArchive()
+    engine.log("Uploading \(engine.versionTag(for: archive)) to Apple Connect.")
     let xcrun = XCRunRunner(engine: engine)
     let uploadResult: Runner.Session
     uploadResult = xcrun.run([
       "altool", "--upload-app", "--apiIssuer", engine.apiIssuer, "--apiKey", engine.apiKey,
-      "--file", engine.exportedIPAURL.path, "--output-format", "json", "--type", engine.platform,
+      "--file", engine.exportedPackageURL(for: archive).path, "--output-format", "json", "--type", engine.platform,
     ])
 
     // stash a copy of the stdout and stderr in the build folder
@@ -134,7 +134,7 @@ struct UploadCommand: AsyncParsableCommand {
     engine.log("Upload was accepted.")
     engine.log("Tagging.")
     let tagResult = engine.git.run([
-      "tag", engine.versionTag, "-m", "Uploaded with \(CommandLine.name)",
+      "tag", engine.versionTag(for: archive), "-m", "Uploaded with \(CommandLine.name)",
     ])
     try await tagResult.throwIfFailed(GeneralError.taggingFailed)
 

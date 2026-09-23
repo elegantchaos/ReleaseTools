@@ -34,24 +34,24 @@ struct CompressCommand: AsyncParsableCommand {
 
   func run() async throws {
     let engine = try await ReleaseEngine(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       scheme: scheme,
       platform: platform
     )
 
-    let stapledAppURL = engine.stapledURL.appendingPathComponent(engine.archive.name)
+    let archive = try engine.requireArchive()
+    let stapledAppURL = engine.stapledURL.appending(path: archive.name)
     let ditto = DittoRunner(engine: engine)
-    let destination = updates.url.appendingPathComponent(engine.archive.versionedZipName)
+    let destination = updates.url.appendingPathComponent(archive.versionedZipName)
 
     let result = ditto.zip(stapledAppURL, as: destination)
     try await result.throwIfFailed(CompressError.compressFailed)
 
     engine.log(
-      "Saving copy of archive to \(website.websiteURL.path) as \(engine.archive.unversionedZipName)."
+      "Saving copy of archive to \(website.websiteURL.path) as \(archive.unversionedZipName)."
     )
-    let latestZip = website.websiteURL.appendingPathComponent(engine.archive.unversionedZipName)
+    let latestZip = website.websiteURL.appendingPathComponent(archive.unversionedZipName)
     try? FileManager.default.removeItem(at: latestZip)
     try FileManager.default.copyItem(at: destination, to: latestZip)
   }
