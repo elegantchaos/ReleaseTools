@@ -16,7 +16,7 @@ extension ReleaseEngine {
     #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
 
   /// Information about a build including build number, commit hash, and version string
-  struct BuildInfo {
+  struct BuildInfo: Equatable, Sendable {
     /// The build number (e.g., 42)
     let build: UInt
     /// The full commit hash (e.g., "f13a5c4e2bde037cafdc8706abbd7e93013b2102")
@@ -55,7 +55,7 @@ extension ReleaseEngine {
     process: @escaping (_ platform: String, _ build: UInt, _ tag: String) async -> Void
   ) async throws {
     let tagsResult = git.run(["tag"])
-    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
+    try await tagsResult.throwIfFailed(ReleaseEngine.RunnerError.gettingBuildFailed)
     for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: Self.platformSpecificTagPattern) {
         let platform = String(parsed.output.platform)
@@ -71,7 +71,7 @@ extension ReleaseEngine {
     process: @escaping (_ build: UInt, _ tag: String) async -> Void
   ) async throws {
     let tagsResult = git.run(["tag"])
-    try await tagsResult.throwIfFailed(UpdateBuildError.gettingBuildFailed)
+    try await tagsResult.throwIfFailed(ReleaseEngine.RunnerError.gettingBuildFailed)
     for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
         if let build = UInt(parsed.output.build) {
@@ -131,7 +131,7 @@ extension ReleaseEngine {
     let result = git.run(["tag", "--points-at", "HEAD"])
     let state = await result.waitUntilExit()
     guard case .succeeded = state else {
-      throw GeneralError.noVersionTagAtHEAD
+      throw ReleaseEngine.Error.noVersionTagAtHEAD
     }
 
     let commit = try await git.headCommit()
@@ -146,7 +146,7 @@ extension ReleaseEngine {
       }
     }
 
-    throw GeneralError.noVersionTagAtHEAD
+    throw ReleaseEngine.Error.noVersionTagAtHEAD
   }
 
   /// Get the version string from the highest existing tag.
@@ -184,8 +184,8 @@ extension ReleaseEngine {
   func ensureNoExistingTag() async throws {
     do {
       let info = try await versionTagAtHEAD()
-      throw TagError.tagAlreadyExists(info)
-    } catch GeneralError.noVersionTagAtHEAD {
+      throw ReleaseEngine.Error.versionTagAlreadyExists(info)
+    } catch ReleaseEngine.Error.noVersionTagAtHEAD {
       // This is what we want - no existing tag
       return
     }

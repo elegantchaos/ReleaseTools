@@ -15,16 +15,16 @@ final class GitRunner: Runner {
 
   /// Get the HEAD commit SHA
   /// - Returns: The full commit SHA as a string
-  /// - Throws: UpdateBuildError if the command fails or the output cannot be parsed
+  /// - Throws: `ReleaseEngine.Error` if the command fails or the output cannot be parsed.
   func headCommit() async throws -> String {
     let commitResult = run(["rev-parse", "HEAD"])
     let commitOutput = await commitResult.stdout.string
     let commitState = await commitResult.waitUntilExit()
     guard case .succeeded = commitState else {
-      throw UpdateBuildError.gettingCommitFailed
+      throw ReleaseEngine.Error.gettingCommitFailed
     }
     guard let commit = commitOutput.split(separator: "\n").first else {
-      throw UpdateBuildError.parsingCommitFailed
+      throw ReleaseEngine.Error.parsingCommitFailed
     }
     return commit.trimmingCharacters(in: .whitespacesAndNewlines)
   }

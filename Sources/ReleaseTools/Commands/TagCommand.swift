@@ -1,33 +1,15 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 08/10/25.
-//  All code (c) 2025 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
-enum TagError: Runner.Error {
-  case tagAlreadyExists(ReleaseEngine.BuildInfo)
-  case gettingVersionFailed
-  case gettingBuildFailed
-  case creatingTagFailed
-
-  func description(for session: Runner.Session) async -> String {
-    switch self {
-      case .tagAlreadyExists(let info):
-        return "A version tag already exists at HEAD: \(info)"
-      case .gettingVersionFailed:
-        return "Failed to get the version information.\n\n\(await session.stderr.string)"
-      case .gettingBuildFailed:
-        return "Failed to calculate the build number.\n\n\(await session.stderr.string)"
-      case .creatingTagFailed:
-        return "Failed to create the git tag.\n\n\(await session.stderr.string)"
-    }
-  }
-}
-
+/// Creates a version tag for the current git revision.
 struct TagCommand: AsyncParsableCommand {
+  /// Describes the `tag` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "tag",
@@ -56,7 +38,7 @@ struct TagCommand: AsyncParsableCommand {
     let build: UInt
     if let explicitBuild {
       guard let explicitBuildNumber = UInt(explicitBuild) else {
-        throw UpdateBuildError.invalidExplicitBuild(explicitBuild)
+        throw ReleaseEngine.Error.invalidExplicitBuild(explicitBuild)
       }
       engine.verbose("Using explicit build number: \(explicitBuildNumber)")
       build = explicitBuildNumber
@@ -74,7 +56,7 @@ struct TagCommand: AsyncParsableCommand {
     engine.log("Creating tag: \(tagName) at commit \(commit)")
 
     let tagResult = engine.git.run(["tag", tagName, commit])
-    try await tagResult.throwIfFailed(TagError.creatingTagFailed)
+    try await tagResult.throwIfFailed(RunnerError.creatingTagFailed)
 
     engine.log("Successfully created tag: \(tagName)")
   }
@@ -94,5 +76,18 @@ struct TagCommand: AsyncParsableCommand {
     // Fall back to 1.0.0 if no tags exist
     engine.verbose("No existing tags found, using default version: 1.0.0")
     return "1.0.0"
+  }
+}
+
+extension TagCommand {
+  /// Failures returned by the subprocess that creates a git tag.
+  enum RunnerError: Runner.Error {
+    /// Creating the git tag failed.
+    case creatingTagFailed
+
+    /// Describes the failed git subprocess session.
+    func description(for session: Runner.Session) async -> String {
+      "Failed to create the git tag.\n\n\(await session.stderr.string)"
+    }
   }
 }

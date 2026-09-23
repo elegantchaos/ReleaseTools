@@ -6,31 +6,6 @@
 import Coercion
 import Foundation
 
-/// Errors encountered while loading the metadata that identifies an Xcode archive.
-enum XcodeArchiveError: Error, Equatable, LocalizedError {
-  /// The archive metadata plist could not be read from the supplied path.
-  case unreadableMetadata(URL)
-  /// The archive metadata plist was not a valid property list dictionary.
-  case invalidMetadata(URL)
-  /// The archive metadata was missing values required by release commands.
-  case missingRequiredMetadata(URL, [String])
-
-  /// A user-facing description of the archive metadata failure.
-  var errorDescription: String? {
-    switch self {
-      case .unreadableMetadata(let url):
-        return "Couldn't read archive metadata.\n\(url.path)"
-
-      case .invalidMetadata(let url):
-        return "Archive metadata is not a valid property list dictionary.\n\(url.path)"
-
-      case .missingRequiredMetadata(let url, let keys):
-        let missingKeys = keys.map { "- \($0)" }.joined(separator: "\n")
-        return "Archive metadata is missing required values:\n\(missingKeys)\n\n\(url.path)"
-    }
-  }
-}
-
 /// Metadata used to identify and publish an Xcode archive.
 struct XcodeArchive {
   /// Archive metadata values required by release commands.
@@ -64,29 +39,29 @@ struct XcodeArchive {
     do {
       data = try Data(contentsOf: infoURL)
     } catch {
-      throw XcodeArchiveError.unreadableMetadata(infoURL)
+      throw Error.unreadableMetadata(infoURL)
     }
 
     let plist: Any
     do {
       plist = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
     } catch {
-      throw XcodeArchiveError.invalidMetadata(infoURL)
+      throw Error.invalidMetadata(infoURL)
     }
 
     guard let info = plist as? [String: Any] else {
-      throw XcodeArchiveError.invalidMetadata(infoURL)
+      throw Error.invalidMetadata(infoURL)
     }
 
     guard let applicationProperties = info["ApplicationProperties"] as? [String: Any] else {
-      throw XcodeArchiveError.missingRequiredMetadata(infoURL, ["ApplicationProperties"])
+      throw Error.missingRequiredMetadata(infoURL, ["ApplicationProperties"])
     }
 
     let missingKeys = Self.requiredMetadataKeys.compactMap { key in
       applicationProperties[asString: key] == nil ? "ApplicationProperties.\(key)" : nil
     }
     guard missingKeys.isEmpty else {
-      throw XcodeArchiveError.missingRequiredMetadata(infoURL, missingKeys)
+      throw Error.missingRequiredMetadata(infoURL, missingKeys)
     }
 
     guard
@@ -117,4 +92,29 @@ struct XcodeArchive {
 
   /// The filename used for the latest compressed archive.
   var unversionedZipName: String { "\(lowername).zip" }
+}
+
+extension XcodeArchive {
+  /// Errors encountered while loading archive metadata required by release commands.
+  enum Error: Swift.Error, Equatable, LocalizedError {
+    /// The archive metadata plist could not be read from the supplied path.
+    case unreadableMetadata(URL)
+    /// The archive metadata plist was not a valid property list dictionary.
+    case invalidMetadata(URL)
+    /// The archive metadata was missing values required by release commands.
+    case missingRequiredMetadata(URL, [String])
+
+    /// A user-facing description of the archive metadata failure.
+    var errorDescription: String? {
+      switch self {
+        case .unreadableMetadata(let url):
+          return "Couldn't read archive metadata.\n\(url.path)"
+        case .invalidMetadata(let url):
+          return "Archive metadata is not a valid property list dictionary.\n\(url.path)"
+        case .missingRequiredMetadata(let url, let keys):
+          let missingKeys = keys.map { "- \($0)" }.joined(separator: "\n")
+          return "Archive metadata is missing required values:\n\(missingKeys)\n\n\(url.path)"
+      }
+    }
+  }
 }

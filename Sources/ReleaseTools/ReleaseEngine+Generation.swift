@@ -43,11 +43,11 @@ extension ReleaseEngine {
         try new.write(to: configURL, atomically: true, encoding: .utf8)
         log("Updated \(configURL.lastPathComponent).")
       } catch {
-        throw UpdateBuildError.writingConfigFailed(error.localizedDescription)
+        throw ReleaseEngine.Error.writingConfigFailed(error.localizedDescription)
       }
 
       let result = git.run(["update-index", "--assume-unchanged", configURL.path])
-      try await result.throwIfFailed(UpdateBuildError.updatingIndexFailed)
+      try await result.throwIfFailed(ReleaseEngine.RunnerError.updatingIndexFailed)
     }
   }
 

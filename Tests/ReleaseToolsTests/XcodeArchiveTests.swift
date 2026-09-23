@@ -32,7 +32,7 @@ struct XcodeArchiveTests {
     do {
       _ = try XcodeArchive(url: archiveURL)
       Issue.record("Expected missing archive metadata to throw.")
-    } catch let error as XcodeArchiveError {
+    } catch let error as XcodeArchive.Error {
       guard case .missingRequiredMetadata(let url, let keys) = error else {
         Issue.record("Expected missing metadata error, got \(error).")
         return
@@ -55,7 +55,7 @@ struct XcodeArchiveTests {
     do {
       _ = try XcodeArchive(url: archiveURL)
       Issue.record("Expected unreadable archive metadata to throw.")
-    } catch let error as XcodeArchiveError {
+    } catch let error as XcodeArchive.Error {
       #expect(error == .unreadableMetadata(archiveURL.appending(path: "Info.plist")))
     }
   }
@@ -71,7 +71,7 @@ struct XcodeArchiveTests {
     do {
       _ = try XcodeArchive(url: archiveURL)
       Issue.record("Expected missing application properties to throw.")
-    } catch let error as XcodeArchiveError {
+    } catch let error as XcodeArchive.Error {
       #expect(
         error
           == .missingRequiredMetadata(
@@ -91,7 +91,7 @@ struct XcodeArchiveTests {
     do {
       _ = try XcodeArchive(url: archiveURL)
       Issue.record("Expected invalid archive metadata to throw.")
-    } catch let error as XcodeArchiveError {
+    } catch let error as XcodeArchive.Error {
       #expect(error == .invalidMetadata(archiveURL.appending(path: "Info.plist")))
     }
   }

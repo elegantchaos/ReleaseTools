@@ -1,44 +1,15 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 17/04/2019.
-//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
-/// Minimal workspace metadata decoded from `xcodebuild -list -json`.
-struct WorkspaceSpec: Decodable {
-  let name: String
-  let schemes: [String]
-}
-
-/// Wrapper for the workspace listing returned by `xcodebuild -list -json`.
-struct SchemesSpec: Decodable {
-  let workspace: WorkspaceSpec
-}
-
-/// Runner-level failures emitted by the archive workflow.
-enum ArchiveError: Runner.Error {
-  case archiveFailed
-  case noVersionTagAtHEAD
-
-  func description(for session: Runner.Session) async -> String {
-    switch self {
-      case .archiveFailed:
-        return "Archiving failed.\n\n\(await session.stderr.string)"
-      case .noVersionTagAtHEAD:
-        return """
-          No version tag found at HEAD.
-          Please create a version tag before archiving using:
-            rt tag --explicit-version <version> [--increment-tag]
-          """
-    }
-  }
-}
-
 /// Archives the configured scheme for a release build.
 struct ArchiveCommand: AsyncParsableCommand {
+  /// Describes the `archive` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "archive",
@@ -100,7 +71,20 @@ struct ArchiveCommand: AsyncParsableCommand {
     }
 
     let result = xcode.run(args)
-    try await result.throwIfFailed(ArchiveError.archiveFailed)
+    try await result.throwIfFailed(RunnerError.archiveFailed)
     engine.log("Archived scheme \(engine.scheme).")
+  }
+}
+
+extension ArchiveCommand {
+  /// Failures returned by the archive subprocess.
+  enum RunnerError: Runner.Error {
+    /// Creating the Xcode archive failed.
+    case archiveFailed
+
+    /// Describes the failed archive subprocess session.
+    func description(for session: Runner.Session) async -> String {
+      "Archiving failed.\n\n\(await session.stderr.string)"
+    }
   }
 }

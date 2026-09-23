@@ -8,60 +8,14 @@ import Files
 import Foundation
 import Runner
 
-/// Common release workflow failures surfaced by `ReleaseEngine`.
-enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
-  case missingWorkspace
-  case apiKeyAndIssuer
-  case noDefaultScheme(_ platform: String)
-  case taggingFailed
-  case noVersionTagAtHEAD
-
-  public var description: String {
-    switch self {
-      case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
-
-      case .taggingFailed: return "Tagging failed."
-
-      case .apiKeyAndIssuer:
-        return """
-          You need to supply both --api-key and --api-issuer together.
-          Either supply both values on the command line, or set default values in
-          the .rt/config.json file:
-
-          {
-            "settings": {
-              "apiKey": "key-here",
-              "apiIssuer": "issuer-here"
-            }
-          }
-
-          A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
-          See https://appstoreconnect.apple.com/access/api to generate a key.
-          """
-
-      case .noDefaultScheme(let platform):
-        return """
-          No scheme specified for \(platform).
-          Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
-          """
-
-      case .noVersionTagAtHEAD:
-        return """
-          No version tag found at HEAD.
-          Please create a version tag before archiving using:
-            \(CommandLine.name) tag --explicit-version <version> [--increment-tag]
-          """
-    }
-  }
-}
-
 /// Coordinates configuration, derived paths, and subprocess helpers for release commands.
 final class ReleaseEngine {
+
   var showOutput: Bool
   var showCommands: Bool
   var verbose: Bool
   var semaphore: DispatchSemaphore? = nil
-  var error: Error? = nil
+  var error: (any Swift.Error)? = nil
 
   let configPaths: RTConfigPaths
   var configReader: RTConfigReader
@@ -141,7 +95,7 @@ final class ReleaseEngine {
       if let workspace = options.workspace ?? defaultWorkspace {
         self.workspace = workspace
       } else {
-        throw GeneralError.missingWorkspace
+        throw Error.missingWorkspace
       }
     }
 
@@ -149,7 +103,7 @@ final class ReleaseEngine {
       if let scheme = scheme?.scheme ?? defaultScheme {
         self.scheme = scheme
       } else {
-        throw GeneralError.noDefaultScheme(self.platform)
+        throw Error.noDefaultScheme(self.platform)
       }
     }
 
@@ -174,7 +128,7 @@ final class ReleaseEngine {
     if apiKey != nil || apiIssuer != nil {
       // Reject partially configured App Store Connect credentials.
       if self.apiKey.isEmpty != self.apiIssuer.isEmpty {
-        throw GeneralError.apiKeyAndIssuer
+        throw Error.apiKeyAndIssuer
       }
     }
 
@@ -234,7 +188,98 @@ final class ReleaseEngine {
   }
 
   /// Stores an error for later inspection by older command flows.
-  func fail(_ error: Error) {
+  func fail(_ error: any Swift.Error) {
     self.error = error
+  }
+}
+
+extension ReleaseEngine {
+  /// Common release workflow failures surfaced by the engine.
+  enum Error: Swift.Error, LocalizedError, Sendable, Equatable {
+    /// A command needed a workspace and no workspace could be inferred.
+    case missingWorkspace
+    /// App Store Connect credentials were supplied incompletely.
+    case apiKeyAndIssuer
+    /// A command needed a scheme and no default was configured.
+    case noDefaultScheme(String)
+    /// A release tag could not be created.
+    case taggingFailed
+    /// HEAD does not have a version tag.
+    case noVersionTagAtHEAD
+    /// A version tag already exists at HEAD.
+    case versionTagAlreadyExists(BuildInfo)
+    /// A supplied build number cannot be parsed as a positive integer.
+    case invalidExplicitBuild(String)
+    /// Reading the HEAD commit failed.
+    case gettingCommitFailed
+    /// Parsing the HEAD commit failed.
+    case parsingCommitFailed
+    /// Writing generated build configuration failed.
+    case writingConfigFailed(String)
+
+    /// A user-facing description of the release workflow failure.
+    var errorDescription: String? {
+      switch self {
+        case .missingWorkspace:
+          return "The workspace was not specified, and could not be inferred."
+        case .taggingFailed:
+          return "Tagging failed."
+        case .apiKeyAndIssuer:
+          return """
+            You need to supply both --api-key and --api-issuer together.
+            Either supply both values on the command line, or set default values in
+            the .rt/config.json file:
+
+            {
+              "settings": {
+                "apiKey": "key-here",
+                "apiIssuer": "issuer-here"
+              }
+            }
+
+            A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
+            See https://appstoreconnect.apple.com/access/api to generate a key.
+            """
+        case .noDefaultScheme(let platform):
+          return """
+            No scheme specified for \(platform).
+            Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
+            """
+        case .noVersionTagAtHEAD:
+          return """
+            No version tag found at HEAD.
+            Please create a version tag before archiving using:
+              \(CommandLine.name) tag --explicit-version <version> [--increment-tag]
+            """
+        case .versionTagAlreadyExists(let info):
+          return "A version tag already exists at HEAD: \(info)"
+        case .invalidExplicitBuild(let value):
+          return "Invalid explicit build number: \(value). Must be a positive integer."
+        case .gettingCommitFailed:
+          return "Failed to get the commit from git."
+        case .parsingCommitFailed:
+          return "Failed to parse the commit information from git."
+        case .writingConfigFailed(let message):
+          return "Failed to write the config file.\n\n\(message)"
+      }
+    }
+  }
+
+  /// Failures returned by subprocesses used for build-number operations.
+  enum RunnerError: Runner.Error {
+    /// Listing release tags failed.
+    case gettingBuildFailed
+    /// Updating git's index for generated configuration failed.
+    case updatingIndexFailed
+
+    /// Describes the failed subprocess session.
+    func description(for session: Runner.Session) async -> String {
+      switch self {
+        case .gettingBuildFailed:
+          "Failed to get the build number from git.\n\n\(await session.stderr.string)"
+        case .updatingIndexFailed:
+          "Failed to tell git to ignore the config file.\n\n\(await session.stderr.string)"
+      }
+    }
   }
 }
