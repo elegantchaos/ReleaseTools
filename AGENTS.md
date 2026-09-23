@@ -17,7 +17,7 @@
 - Use portable path references: repository-relative paths inside this repository and `~/...` for shared resources. Avoid machine-specific absolute paths.
 - When a required Mint-installed command is unavailable on `PATH`, try `~/.mint/bin/<command>` before treating it as missing.
 - Keep `Extras/Journal/` as dated Markdown entries and update `Extras/Journal/index.md` when a work session produces useful context, research, prototype notes, findings, open questions, or implementation plans.
-- Keep `Extras/Decisions/` as an explicit log of important decisions, with one Markdown file per decision. Check it when relevant before implementing new code.
+- Keep `Extras/Decisions/` as an explicit log of important decisions, with one Markdown file per decision. Ask for explicit user confirmation before recording a decision. Check relevant decisions before implementing new code.
 - Never expose or commit credentials or secrets. Do not perform irreversible destructive actions without explicit approval.
 - If unexpected workspace changes appear, pause and confirm direction.
 
