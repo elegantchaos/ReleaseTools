@@ -187,9 +187,9 @@ Requests the notarization status for the app from the Apple servers.
 
 If the status is `success`, we copy the exported app from `.build/<platform>/exported` into `.build/<platform>/stapled`, and staple it with the notarization ticket.
 
-If the status is `failed`, we abort with an error.
+If the status is `invalid`, we abort with an error that includes Apple's status message and the issues listed in the notarization log.
 
-If the status is not yet known (notarization hasn't completed), we wait 10 seconds and check again.
+If the status is not yet known (notarization hasn't completed), we wait 30 seconds and check again.
 
 This command will therefore not return until notarization has completed (or failed).
 

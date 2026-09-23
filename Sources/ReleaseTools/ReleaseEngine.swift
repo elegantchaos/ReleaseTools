@@ -15,7 +15,6 @@ final class ReleaseEngine {
   var showCommands: Bool
   var verbose: Bool
   var semaphore: DispatchSemaphore? = nil
-  var error: (any Swift.Error)? = nil
 
   let configPaths: RTConfigPaths
   var configReader: RTConfigReader
@@ -185,11 +184,6 @@ final class ReleaseEngine {
     if verbose {
       print(message)
     }
-  }
-
-  /// Stores an error for later inspection by older command flows.
-  func fail(_ error: any Swift.Error) {
-    self.error = error
   }
 }
 

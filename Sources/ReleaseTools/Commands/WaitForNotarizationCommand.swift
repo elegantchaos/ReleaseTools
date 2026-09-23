@@ -50,6 +50,8 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
         try await Task.sleep(for: .seconds(Self.retryDelay))
         engine.log("Retrying fetch of notarization status...")
       }
+    } catch let error as Error {
+      throw error
     } catch {
       throw Error.fetchingStatusFailed(error)
     }
@@ -104,48 +106,80 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     try await result.throwIfFailed(Error.statusRequestFailed)
 
     engine.log("Received response.")
-    let data = await result.stdout.data
-    if let receipt = try? PropertyListSerialization.propertyList(
-      from: data, options: [], format: nil) as? [String: Any],
-      let info = receipt["notarization-info"] as? [String: Any],
-      let status = info[asString: "Status"]
-    {
-      engine.log("Status was \(status).")
-      if status == "success" {
+    switch Self.status(fromResponse: await result.stdout.data) {
+      case .success:
+        engine.log("Status was success.")
         try await exportNotarized(archive: archive, engine: engine)
         return true
-      } else if status == "invalid" {
-        let message = (info[asString: "Status Message"]) ?? ""
-        var output = "\(message).\n"
-        if let logFile = info[asString: "LogFileURL"],
-          let url = URL(string: logFile),
-          let data = try? Data(contentsOf: url),
-          let log = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-        {
-          let summary = (log[asString: "statusSummary"]) ?? ""
-          output.append("\(summary).\n")
-          if let issues = log["issues"] as? [[String: Any]] {
-            var count = 1
-            for issue in issues {
-              let message = issue[asString: "message"] ?? ""
-              let path = issue[asString: "path"] ?? ""
-              let name = URL(fileURLWithPath: path).lastPathComponent
-              let severity = issue[asString: "severity"] ?? ""
-              output.append("\n#\(count) \(name) (\(severity)):\n\(message)\n\(path)\n")
-              count += 1
-            }
-          }
-        }
+      case .invalid(let report):
+        engine.log("Status was invalid.")
+        throw Error.notarizationFailed(report)
+      case .pending(let status):
+        engine.log("Status was \(status).")
+        return false
+      case nil:
+        return false
+    }
+  }
 
-        engine.fail(Error.notarizationFailed(output))
+  /// Interprets an `altool --notarization-info` XML response.
+  ///
+  /// Returns `nil` when the response can't be read, so the caller retries.
+  /// An invalid status carries a report built from the notarization log, fetched with `loadLog`.
+  static func status(
+    fromResponse data: Data,
+    loadLog: (URL) -> Data? = { try? Data(contentsOf: $0) }
+  ) -> Status? {
+    guard
+      let receipt = try? PropertyListSerialization.propertyList(
+        from: data, options: [], format: nil) as? [String: Any],
+      let info = receipt["notarization-info"] as? [String: Any],
+      let status = info[asString: "Status"]
+    else { return nil }
+
+    switch status {
+      case "success": return .success
+      case "invalid": return .invalid(report(for: info, loadLog: loadLog))
+      default: return .pending(status)
+    }
+  }
+
+  /// Builds a readable report from an invalid response and its notarization log.
+  static func report(for info: [String: Any], loadLog: (URL) -> Data?) -> String {
+    let message = (info[asString: "Status Message"]) ?? ""
+    var output = "\(message).\n"
+    if let logFile = info[asString: "LogFileURL"],
+      let url = URL(string: logFile),
+      let data = loadLog(url),
+      let log = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+    {
+      let summary = (log[asString: "statusSummary"]) ?? ""
+      output.append("\(summary).\n")
+      if let issues = log["issues"] as? [[String: Any]] {
+        for (index, issue) in issues.enumerated() {
+          let message = issue[asString: "message"] ?? ""
+          let path = issue[asString: "path"] ?? ""
+          let name = URL(fileURLWithPath: path).lastPathComponent
+          let severity = issue[asString: "severity"] ?? ""
+          output.append("\n#\(index + 1) \(name) (\(severity)):\n\(message)\n\(path)\n")
+        }
       }
     }
-
-    return false
+    return output
   }
 }
 
 extension WaitForNotarizationCommand {
+  /// The notarization state reported by the status service.
+  enum Status: Equatable {
+    /// Notarization succeeded, so the app can be stapled.
+    case success
+    /// Notarization rejected the app; the report explains why.
+    case invalid(String)
+    /// Notarization hasn't finished; the raw status is kept for logging.
+    case pending(String)
+  }
+
   /// Errors emitted while checking and exporting a notarized app.
   enum Error: Swift.Error, LocalizedError {
     /// Fetching the notarization status threw an error.
@@ -168,7 +202,7 @@ extension WaitForNotarizationCommand {
         case .statusRequestFailed: return "Requesting notarization status failed."
         case .staplingFailed: return "Stapling the notarized app failed."
         case .fetchingStatusFailed(let error): return "Fetching notarization status failed.\n\(error.localizedDescription)"
-        case .notarizationFailed: return "Notarization failed."
+        case .notarizationFailed(let report): return "Notarization failed.\n\(report)"
         case .exportingNotarizedAppFailed(let error): return "Exporting notarized app failed.\n\(error.localizedDescription)"
         case .loadingReceiptFailed: return "Loading notarization receipt failed."
       }
