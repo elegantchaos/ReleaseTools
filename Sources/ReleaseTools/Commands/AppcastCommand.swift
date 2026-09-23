@@ -1,46 +1,15 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 18/04/2019.
-//  All code (c) 2019 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
-enum GenerationError: Error, CustomStringConvertible {
-  case generatedKeys(_ name: String)
-
-  public var description: String {
-    switch self {
-      case .generatedKeys(let name):
-        return """
-          The appcast private key was missing, so we've generated one.
-          Open the keychain, rename the key `Imported Private Key` as `\(name)`, then try running this command again.
-          """
-    }
-  }
-}
-enum AppcastError: Runner.Error {
-  case buildAppcastGeneratorFailed
-  case appcastGeneratorFailed
-  case keyGenerationFailed
-  case keyImportFailed
-
-  func description(for session: Runner.Session) async -> String {
-    switch self {
-      case .buildAppcastGeneratorFailed:
-        return "Failed to build the generate_appcast tool.\n\n\(await session.stderr.string)"
-      case .appcastGeneratorFailed:
-        return "Failed to generate the appcast.\n\n\(await session.stderr.string)"
-      case .keyGenerationFailed:
-        return "Failed to generate appcast keys.\n\n\(await session.stderr.string)"
-      case .keyImportFailed:
-        return "Failed to import appcast keys.\n\n\(await session.stderr.string)"
-    }
-  }
-}
-
+/// Rebuilds a Sparkle Appcast from the compressed release archive.
 struct AppcastCommand: AsyncParsableCommand {
+  /// Describes the `appcast` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "appcast",
@@ -78,7 +47,7 @@ struct AppcastCommand: AsyncParsableCommand {
       "build", "-workspace", engine.workspace, "-scheme", "generate_appcast",
       "BUILD_DIR=\(buildURL.path)",
     ])
-    try await result.throwIfFailed(AppcastError.buildAppcastGeneratorFailed)
+    try await result.throwIfFailed(Error.buildGeneratorFailed)
 
     let workspaceName = URL(fileURLWithPath: engine.workspace).deletingPathExtension()
       .lastPathComponent
@@ -91,7 +60,7 @@ struct AppcastCommand: AsyncParsableCommand {
       if state != .succeeded {
         let output = await genResult.stdout.string
         if !output.contains("Unable to load DSA private key") {
-          try await genResult.throwIfFailed(AppcastError.appcastGeneratorFailed)
+          try await genResult.throwIfFailed(Error.generatingAppcastFailed)
         }
       }
 
@@ -99,7 +68,7 @@ struct AppcastCommand: AsyncParsableCommand {
 
       let keygen = Runner(for: URL(fileURLWithPath: "Dependencies/Sparkle/bin/generate_keys"))
       let keygenResult = keygen.run([])
-      try await keygenResult.throwIfFailed(AppcastError.keyGenerationFailed)
+      try await keygenResult.throwIfFailed(Error.generatingKeysFailed)
 
       engine.log("Importing Key.")
 
@@ -107,7 +76,7 @@ struct AppcastCommand: AsyncParsableCommand {
       let importResult = security.run([
         "import", "dsa_priv.pem", "-a", "labl", "\(engine.scheme) Sparkle Key",
       ])
-      try await importResult.throwIfFailed(AppcastError.keyImportFailed)
+      try await importResult.throwIfFailed(Error.importingKeysFailed)
 
       engine.log("Moving Public Key.")
 
@@ -120,9 +89,41 @@ struct AppcastCommand: AsyncParsableCommand {
 
       try? fm.removeItem(at: rootURL.appendingPathComponent("dsa_priv.pem"))
 
-      throw GenerationError.generatedKeys(keyName)
+      throw Error.generatedKeys(keyName)
     }
 
     try? fm.removeItem(at: updates.url.appendingPathComponent(".tmp"))
+  }
+}
+
+extension AppcastCommand {
+  /// Errors emitted while rebuilding the Appcast.
+  enum Error: Swift.Error, LocalizedError {
+    /// The Appcast key was generated and must be renamed in Keychain Access.
+    case generatedKeys(String)
+
+    /// Building `generate_appcast` failed.
+    case buildGeneratorFailed
+    /// Generating the Appcast failed.
+    case generatingAppcastFailed
+    /// Generating the Appcast keys failed.
+    case generatingKeysFailed
+    /// Importing the Appcast keys failed.
+    case importingKeysFailed
+
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
+      switch self {
+        case .buildGeneratorFailed: return "Failed to build the generate_appcast tool."
+        case .generatingAppcastFailed: return "Failed to generate the appcast."
+        case .generatingKeysFailed: return "Failed to generate appcast keys."
+        case .importingKeysFailed: return "Failed to import appcast keys."
+        case .generatedKeys(let name):
+          return """
+            The appcast private key was missing, so we've generated one.
+            Open the keychain, rename the key `Imported Private Key` as `\(name)`, then try running this command again.
+            """
+      }
+    }
   }
 }

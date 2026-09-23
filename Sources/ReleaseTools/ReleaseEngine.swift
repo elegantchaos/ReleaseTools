@@ -8,69 +8,14 @@ import Files
 import Foundation
 import Runner
 
-/// Common release workflow failures surfaced by `ReleaseEngine`.
-enum GeneralError: Error, CustomStringConvertible, Sendable, Equatable {
-  case infoUnreadable(_ path: String)
-  case missingWorkspace
-  case apiKeyAndIssuer
-  case noDefaultScheme(_ platform: String)
-  case taggingFailed
-  case noVersionTagAtHEAD
-
-  public var description: String {
-    switch self {
-      case .infoUnreadable(let path): return "Couldn't read archive info.plist.\n\(path)"
-
-      case .missingWorkspace: return "The workspace was not specified, and could not be inferred."
-
-      case .taggingFailed: return "Tagging failed."
-
-      case .apiKeyAndIssuer:
-        return """
-          You need to supply both --api-key and --api-issuer together.
-          Either supply both values on the command line, or set default values in
-          the .rt/config.json file:
-
-          {
-            "settings": {
-              "apiKey": "key-here",
-              "apiIssuer": "issuer-here"
-            }
-          }
-
-          A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
-          See https://appstoreconnect.apple.com/access/api to generate a key.
-          """
-
-      case .noDefaultScheme(let platform):
-        return """
-          No scheme specified for \(platform).
-          Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
-          """
-
-      case .noVersionTagAtHEAD:
-        return """
-          No version tag found at HEAD.
-          Please create a version tag before archiving using:
-            \(CommandLine.name) tag --explicit-version <version> [--increment-tag]
-          """
-    }
-  }
-}
-
 /// Coordinates configuration, derived paths, and subprocess helpers for release commands.
 final class ReleaseEngine {
-  /// Requirements that can be enforced before a command begins work.
-  enum Requirement {
-    case archive
-    case workspace
-  }
 
   var showOutput: Bool
   var showCommands: Bool
   var verbose: Bool
   var semaphore: DispatchSemaphore? = nil
-  var error: Error? = nil
+  var error: (any Swift.Error)? = nil
 
   let configPaths: RTConfigPaths
   var configReader: RTConfigReader
@@ -81,17 +26,10 @@ final class ReleaseEngine {
   var apiIssuer: String = ""
   var package: String = ""
   var workspace: String = ""
-  var archive: XcodeArchive!
-
   let git: GitRunner
   let rootURL: URL
   let homeURL = FileManager.default.homeDirectoryForCurrentUser
-  var exportedZipURL: URL { return exportURL.appendingPathComponent("exported.zip") }
-  var exportedAppURL: URL { return exportURL.appendingPathComponent(archive.name) }
-  var exportedIPAURL: URL {
-    return exportURL.appendingPathComponent(archive.shortName).appendingPathExtension(
-      platform == "macOS" ? "pkg" : "ipa")
-  }
+  var exportedZipURL: URL { exportURL.appending(path: "exported.zip") }
   var apiKeyURL: URL {
     return homeURL.appendingPathComponent(".ssh").appendingPathComponent("AuthKey_\(apiKey)")
   }
@@ -105,7 +43,6 @@ final class ReleaseEngine {
   var exportURL: URL { return buildURL.appendingPathComponent("export") }
   var uploadURL: URL { return buildURL.appendingPathComponent("upload") }
   var stapledURL: URL { return buildURL.appendingPathComponent("stapled") }
-  var versionTag: String { return "v\(archive.version)-\(archive.build)-\(platform)" }
 
   /// The first workspace found at the repository root when one was not passed explicitly.
   var defaultWorkspace: String? {
@@ -125,7 +62,6 @@ final class ReleaseEngine {
 
   init(
     root rootURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
-    requires requirements: Set<Requirement> = [],
     options: CommonOptions,
     command: CommandConfiguration,
     scheme: SchemeOption? = nil,
@@ -155,11 +91,11 @@ final class ReleaseEngine {
     configReader = try await RTConfigReader(paths: configPaths, scheme: nil, platform: self.platform)
 
     // Commands that resolve schemes need a workspace before layered config can be finalized.
-    if requirements.contains(.workspace) || scheme != nil {
+    if scheme != nil {
       if let workspace = options.workspace ?? defaultWorkspace {
         self.workspace = workspace
       } else {
-        throw GeneralError.missingWorkspace
+        throw Error.missingWorkspace
       }
     }
 
@@ -167,7 +103,7 @@ final class ReleaseEngine {
       if let scheme = scheme?.scheme ?? defaultScheme {
         self.scheme = scheme
       } else {
-        throw GeneralError.noDefaultScheme(self.platform)
+        throw Error.noDefaultScheme(self.platform)
       }
     }
 
@@ -192,17 +128,30 @@ final class ReleaseEngine {
     if apiKey != nil || apiIssuer != nil {
       // Reject partially configured App Store Connect credentials.
       if self.apiKey.isEmpty != self.apiIssuer.isEmpty {
-        throw GeneralError.apiKeyAndIssuer
+        throw Error.apiKeyAndIssuer
       }
     }
 
-    if requirements.contains(.archive) {
-      if let archive = XcodeArchive(url: archiveURL) {
-        self.archive = archive
-      } else {
-        throw GeneralError.infoUnreadable(archiveURL.path)
-      }
-    }
+  }
+
+  /// Loads and validates the archive at the configured archive path.
+  func requireArchive() throws -> XcodeArchive {
+    try XcodeArchive(url: archiveURL)
+  }
+
+  /// Returns the exported application path for an archive.
+  func exportedAppURL(for archive: XcodeArchive) -> URL {
+    exportURL.appending(path: archive.name)
+  }
+
+  /// Returns the exported package path for an archive.
+  func exportedPackageURL(for archive: XcodeArchive) -> URL {
+    exportURL.appending(path: archive.shortName).appendingPathExtension(platform == "macOS" ? "pkg" : "ipa")
+  }
+
+  /// Returns the git tag assigned to an uploaded archive.
+  func versionTag(for archive: XcodeArchive) -> String {
+    "v\(archive.version)-\(archive.build)-\(platform)"
   }
 
   /// Effective release settings after layered config resolution.
@@ -239,7 +188,87 @@ final class ReleaseEngine {
   }
 
   /// Stores an error for later inspection by older command flows.
-  func fail(_ error: Error) {
+  func fail(_ error: any Swift.Error) {
     self.error = error
+  }
+}
+
+extension ReleaseEngine {
+  /// Common release workflow failures surfaced by the engine.
+  enum Error: Swift.Error, LocalizedError, Sendable, Equatable {
+    /// A command needed a workspace and no workspace could be inferred.
+    case missingWorkspace
+    /// App Store Connect credentials were supplied incompletely.
+    case apiKeyAndIssuer
+    /// A command needed a scheme and no default was configured.
+    case noDefaultScheme(String)
+    /// A release tag could not be created.
+    case taggingFailed
+    /// HEAD does not have a version tag.
+    case noVersionTagAtHEAD
+    /// A version tag already exists at HEAD.
+    case versionTagAlreadyExists(BuildInfo)
+    /// A supplied build number cannot be parsed as a positive integer.
+    case invalidExplicitBuild(String)
+    /// Reading the HEAD commit failed.
+    case gettingCommitFailed
+    /// Parsing the HEAD commit failed.
+    case parsingCommitFailed
+    /// Writing generated build configuration failed.
+    case writingConfigFailed(String)
+
+    /// Listing release tags failed.
+    case gettingBuildFailed
+    /// Updating git's index for generated configuration failed.
+    case updatingIndexFailed
+
+    /// A user-facing description of the release workflow failure.
+    var errorDescription: String? {
+      switch self {
+        case .gettingBuildFailed: return "Failed to get the build number from git."
+        case .updatingIndexFailed: return "Failed to tell git to ignore the config file."
+        case .missingWorkspace:
+          return "The workspace was not specified, and could not be inferred."
+        case .taggingFailed:
+          return "Tagging failed."
+        case .apiKeyAndIssuer:
+          return """
+            You need to supply both --api-key and --api-issuer together.
+            Either supply both values on the command line, or set default values in
+            the .rt/config.json file:
+
+            {
+              "settings": {
+                "apiKey": "key-here",
+                "apiIssuer": "issuer-here"
+              }
+            }
+
+            A corresponding .p8 key file should be stored in ~/.appstoreconnect/private_keys/
+            See https://appstoreconnect.apple.com/access/api to generate a key.
+            """
+        case .noDefaultScheme(let platform):
+          return """
+            No scheme specified for \(platform).
+            Either supply a value with --scheme <scheme>, or set a default value using \(CommandLine.name) set scheme <scheme> --platform \(platform)."
+            """
+        case .noVersionTagAtHEAD:
+          return """
+            No version tag found at HEAD.
+            Please create a version tag before archiving using:
+              \(CommandLine.name) tag --explicit-version <version> [--increment-tag]
+            """
+        case .versionTagAlreadyExists(let info):
+          return "A version tag already exists at HEAD: \(info)"
+        case .invalidExplicitBuild(let value):
+          return "Invalid explicit build number: \(value). Must be a positive integer."
+        case .gettingCommitFailed:
+          return "Failed to get the commit from git."
+        case .parsingCommitFailed:
+          return "Failed to parse the commit information from git."
+        case .writingConfigFailed(let message):
+          return "Failed to write the config file.\n\n\(message)"
+      }
+    }
   }
 }

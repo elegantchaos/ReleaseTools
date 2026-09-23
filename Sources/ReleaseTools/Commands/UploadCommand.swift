@@ -1,79 +1,15 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 25/02/2020.
-//  Copyright © 2020 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
-/// Errors produced while preparing, saving, or interpreting upload results.
-enum UploadError: Error {
-  case uploadFileMissing(String)
-  case uploadOtherError(String)
-  case decodingUploadReceiptFailed(Error, String)
-  case savingUploadReceiptFailed(Error)
-  case uploadingFailedWithErrors([UploadReceiptError])
-}
-
-extension UploadError: LocalizedError {
-  public var errorDescription: String? {
-    switch self {
-      case .uploadFileMissing(let raw):
-        return "Upload file not found.\n\n\(raw)"
-
-      case .uploadOtherError(let raw):
-        return "Upload failed with an unknown error.\n\n\(raw)"
-
-      case .savingUploadReceiptFailed(let error):
-        return "Saving upload receipt failed.\n\(error.localizedDescription)"
-
-      case .decodingUploadReceiptFailed(let error, let content):
-        var description = "Decoding upload receipt failed.\n\(error.localizedDescription)"
-        if content.isEmpty {
-          description += "\n\nNo content was returned from the upload command."
-        } else {
-          description += "\n\nResponse content:\n\(content)"
-        }
-        return description
-
-      case .uploadingFailedWithErrors(let errors):
-        var log = "Upload was rejected.\n"
-
-        // Look for an error that indicates the version has already been released.
-        // If we find it, we can provide a more helpful message to the user.
-        let isAlreadyReleased = errors.contains(where: \.isAlreadyReleased)
-        if isAlreadyReleased {
-          log += "\nThis version has already been released.\n"
-          log += "- Increase CFBundleShortVersionString before submitting a new build.\n"
-        }
-
-        // Log other errors.
-        // Skip the invalid bundle and prerelease train errors as we've already logged them.
-        for error in errors
-        where !(isAlreadyReleased && (error.isAlreadyReleased || error.isInvalidPreReleaseTrainError)) {
-          log += "\n\(error.compactSummary)\n"
-        }
-
-        return log
-    }
-  }
-}
-
-/// Runner-level failure used when the upload subprocess exits unsuccessfully.
-enum UploadRunnerError: Runner.Error {
-  case uploadingFailed
-
-  func description(for session: Runner.Session) async -> String {
-    switch self {
-      case .uploadingFailed:
-        return "Uploading failed.\n\(await session.stderr.string)"
-    }
-  }
-}
-
 /// Uploads an exported build to App Store Connect.
 struct UploadCommand: AsyncParsableCommand {
+  /// Describes the `upload` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "upload",
@@ -89,7 +25,6 @@ struct UploadCommand: AsyncParsableCommand {
 
   func run() async throws {
     let engine = try await ReleaseEngine(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       scheme: scheme,
@@ -102,15 +37,15 @@ struct UploadCommand: AsyncParsableCommand {
   }
 
   static func upload(engine: ReleaseEngine) async throws {
-    engine.log("Uploading \(engine.versionTag) to Apple Connect.")
+    let archive = try engine.requireArchive()
+    engine.log("Uploading \(engine.versionTag(for: archive)) to Apple Connect.")
     let xcrun = XCRunRunner(engine: engine)
-    let uploadResult: Runner.Session
-    uploadResult = xcrun.run([
+    let uploadResult = xcrun.run([
       "altool", "--upload-app", "--apiIssuer", engine.apiIssuer, "--apiKey", engine.apiKey,
-      "--file", engine.exportedIPAURL.path, "--output-format", "json", "--type", engine.platform,
+      "--file", engine.exportedPackageURL(for: archive).path, "--output-format", "json", "--type", engine.platform,
     ])
 
-    // stash a copy of the stdout and stderr in the build folder
+    // Preserve the upload transcript for later diagnosis.
     let stdout = await uploadResult.stdout.string
     let stderr = await uploadResult.stderr.string
     do {
@@ -118,25 +53,22 @@ struct UploadCommand: AsyncParsableCommand {
       try stdout.write(to: engine.uploadingReceiptURL, atomically: true, encoding: .utf8)
       try stderr.write(to: engine.uploadingErrorsURL, atomically: true, encoding: .utf8)
     } catch {
-      throw UploadError.savingUploadReceiptFailed(error)
+      throw Error.savingReceiptFailed(error)
     }
 
     _ = try analyzeUploadOutput(stdout: stdout, stderr: stderr)
 
-    // check for a non-zero result
-    // unfortunately altool doesn't always return a non-zero error, so we parse
-    // its structured output before falling back to the process exit status.
-    try await uploadResult.throwIfFailed(UploadRunnerError.uploadingFailed)
+    // Parse structured errors before trusting the unreliable process status.
+    try await uploadResult.throwIfFailed(Error.uploadingFailed)
 
     engine.log("Finished uploading.")
 
-    // no errors, so tag the commit
     engine.log("Upload was accepted.")
     engine.log("Tagging.")
     let tagResult = engine.git.run([
-      "tag", engine.versionTag, "-m", "Uploaded with \(CommandLine.name)",
+      "tag", engine.versionTag(for: archive), "-m", "Uploaded with \(CommandLine.name)",
     ])
-    try await tagResult.throwIfFailed(GeneralError.taggingFailed)
+    try await tagResult.throwIfFailed(ReleaseEngine.Error.taggingFailed)
 
   }
 
@@ -148,18 +80,18 @@ struct UploadCommand: AsyncParsableCommand {
         decoder.keyDecodingStrategy = .dashCase
         let receipt = try decoder.decode(UploadReceipt.self, from: Data(trimmedStdout.utf8))
         if let errors = receipt.productErrors, !errors.isEmpty {
-          throw UploadError.uploadingFailedWithErrors(errors)
+          throw Error.rejected(errors)
         }
 
         return receipt
-      } catch let error as UploadError {
+      } catch let error as Error {
         throw error
       } catch {
         if let stderrError = stderrError(stderr) {
           throw stderrError
         }
 
-        throw UploadError.decodingUploadReceiptFailed(error, stdout)
+        throw Error.decodingReceiptFailed(error, stdout)
       }
     }
 
@@ -170,7 +102,7 @@ struct UploadCommand: AsyncParsableCommand {
     return nil
   }
 
-  static func stderrError(_ stderr: String) -> UploadError? {
+  static func stderrError(_ stderr: String) -> Error? {
     var lastErrorLine: String?
 
     for line in stderr.split(separator: "\n") {
@@ -191,5 +123,45 @@ struct UploadCommand: AsyncParsableCommand {
     }
 
     return nil
+  }
+}
+
+extension UploadCommand {
+  /// Errors emitted while saving or interpreting upload results.
+  enum Error: Swift.Error, LocalizedError {
+    /// The package selected for upload does not exist.
+    case uploadFileMissing(String)
+    /// The upload tool returned an unrecognized error.
+    case uploadOtherError(String)
+    /// Decoding a structured upload receipt failed.
+    case decodingReceiptFailed(any Swift.Error, String)
+    /// Saving the upload transcript failed.
+    case savingReceiptFailed(any Swift.Error)
+    /// App Store Connect rejected the upload with structured errors.
+    case rejected([UploadReceiptError])
+
+    /// The upload subprocess failed.
+    case uploadingFailed
+
+    /// A user-facing description of the upload failure.
+    var errorDescription: String? {
+      switch self {
+        case .uploadingFailed: return "Uploading failed."
+        case .uploadFileMissing(let raw): return "Upload file not found.\n\n\(raw)"
+        case .uploadOtherError(let raw): return "Upload failed with an unknown error.\n\n\(raw)"
+        case .savingReceiptFailed(let error): return "Saving upload receipt failed.\n\(error.localizedDescription)"
+        case .decodingReceiptFailed(let error, let content):
+          return "Decoding upload receipt failed.\n\(error.localizedDescription)\n\n\(content.isEmpty ? "No content was returned from the upload command." : "Response content:\n\(content)")"
+        case .rejected(let errors):
+          let alreadyReleased = errors.contains(where: \.isAlreadyReleased)
+          let headline = alreadyReleased ? "\nThis version has already been released.\n- Increase CFBundleShortVersionString before submitting a new build.\n" : ""
+          let summaries =
+            errors
+            .filter { !(alreadyReleased && ($0.isAlreadyReleased || $0.isInvalidPreReleaseTrainError)) }
+            .map { "\n\($0.compactSummary)\n" }
+            .joined()
+          return "Upload was rejected.\n\(headline)\(summaries)"
+      }
+    }
   }
 }

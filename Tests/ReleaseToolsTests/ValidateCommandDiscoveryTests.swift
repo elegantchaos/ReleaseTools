@@ -145,7 +145,7 @@ struct ValidateCommandDiscoveryTests {
   }
 
   @Test func invalidOutputModeThrows() {
-    #expect(throws: CLIError.self) {
+    #expect(throws: ValidateCommand.Error.self) {
       _ = try parseArgs(["--output", "loud"])
     }
   }

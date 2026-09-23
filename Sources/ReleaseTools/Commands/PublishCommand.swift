@@ -1,27 +1,15 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 18/04/2019.
-//  All code (c) 2019 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
-enum PublishError: Runner.Error {
-  case commitFailed
-  case pushFailed
-
-  func description(for session: Runner.Session) async -> String {
-    switch self {
-      case .commitFailed:
-        return "Failed to commit the appcast feed and updates.\n\n\(await session.stderr.string)"
-      case .pushFailed:
-        return "Failed to push the appcast feed and updates.\n\n\(await session.stderr.string)"
-    }
-  }
-}
-
+/// Commits and pushes release website changes.
 struct PublishCommand: AsyncParsableCommand {
+  /// Describes the `publish` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "publish",
@@ -36,25 +24,43 @@ struct PublishCommand: AsyncParsableCommand {
 
   func run() async throws {
     let engine = try await ReleaseEngine(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       platform: platform
     )
 
+    let archive = try engine.requireArchive()
     let git = GitRunner()
     git.cwd = website.websiteURL
 
     engine.log("Committing updates.")
     var result = git.run(["add", updates.path])
-    try await result.throwIfFailed(PublishError.commitFailed)
+    try await result.throwIfFailed(Error.commitFailed)
 
-    let message = "v\(engine.archive.version), build \(engine.archive.build)"
+    let message = "v\(archive.version), build \(archive.build)"
     result = git.run(["commit", "-a", "-m", message])
-    try await result.throwIfFailed(PublishError.commitFailed)
+    try await result.throwIfFailed(Error.commitFailed)
 
     engine.log("Pushing updates.")
     let pushResult = git.run(["push"])
-    try await pushResult.throwIfFailed(PublishError.pushFailed)
+    try await pushResult.throwIfFailed(Error.pushFailed)
+  }
+}
+
+extension PublishCommand {
+  /// Errors emitted while publishing release updates.
+  enum Error: Swift.Error, LocalizedError {
+    /// Committing the release changes failed.
+    case commitFailed
+    /// Pushing the release changes failed.
+    case pushFailed
+
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
+      switch self {
+        case .commitFailed: return "Failed to commit the appcast feed and updates."
+        case .pushFailed: return "Failed to push the appcast feed and updates."
+      }
+    }
   }
 }

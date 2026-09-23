@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 24/02/20.
-//  All code (c) 2020 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
@@ -8,42 +8,9 @@ import Coercion
 import Foundation
 import Runner
 
-enum WaitForNotarizationError: Error {
-  case fetchingNotarizationStatusThrew(Error)
-  case notarizationFailed(String)
-  case exportingNotarizedAppThrew(Error)
-  case missingArchive
-  case loadingNotarizationReceiptFailed
-}
-extension WaitForNotarizationError: LocalizedError {
-  public var errorDescription: String? {
-    switch self {
-      case .fetchingNotarizationStatusThrew(let error):
-        return "Fetching notarization status failed.\n\(error)"
-      case .notarizationFailed:
-        return "Notarization failed."
-      case .exportingNotarizedAppThrew(let error): return "Exporting notarized app failed.\n\(error)"
-      case .missingArchive: return "Exporting notarized app couldn't find archive."
-      case .loadingNotarizationReceiptFailed:
-        return "Loading notarization receipt failed."
-    }
-  }
-}
-
-enum WaitForNotarizationRunnerError: Runner.Error {
-  case fetchingNotarizationStatusFailed
-  case exportingNotarizedAppFailed
-
-  func description(for session: Runner.Session) async -> String {
-    switch self {
-      case .fetchingNotarizationStatusFailed:
-        return "Fetching notarization status failed.\n\(await session.stderr.string)"
-      case .exportingNotarizedAppFailed:
-        return "Exporting notarized app failed.\n\(await session.stderr.string)"
-    }
-  }
-}
+/// Waits for notarization, then staples the resulting ticket to the app.
 struct WaitForNotarizationCommand: AsyncParsableCommand {
+  /// Describes the `wait` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "wait",
@@ -64,32 +31,34 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
 
   func run() async throws {
     let engine = try await ReleaseEngine(
-      requires: [.archive],
       options: options,
       command: Self.configuration,
       platform: platform
     )
 
+    // Validate the archive before polling, so a bad archive fails immediately.
+    let archive = try engine.requireArchive()
+
     guard let requestUUID = request ?? savedNotarizationReceipt(engine: engine) else {
-      throw WaitForNotarizationError.loadingNotarizationReceiptFailed
+      throw Error.loadingReceiptFailed
     }
 
     engine.log("Requesting notarization status...")
     do {
-      while !(try await check(request: requestUUID, engine: engine)) {
+      while !(try await check(request: requestUUID, archive: archive, engine: engine)) {
         engine.log("Will retry in \(Self.retryDelay) seconds...")
         try await Task.sleep(for: .seconds(Self.retryDelay))
         engine.log("Retrying fetch of notarization status...")
       }
     } catch {
-      throw WaitForNotarizationError.fetchingNotarizationStatusThrew(error)
+      throw Error.fetchingStatusFailed(error)
     }
 
     engine.log("Tagging.")
     let tagResult = engine.git.run([
-      "tag", engine.versionTag, "-f", "-m", "Uploaded with \(CommandLine.name)",
+      "tag", engine.versionTag(for: archive), "-f", "-m", "Uploaded with \(CommandLine.name)",
     ])
-    try await tagResult.throwIfFailed(GeneralError.taggingFailed)
+    try await tagResult.throwIfFailed(ReleaseEngine.Error.taggingFailed)
   }
 
   func savedNotarizationReceipt(engine: ReleaseEngine) -> String? {
@@ -103,7 +72,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     return upload["RequestUUID"]
   }
 
-  func exportNotarized(engine: ReleaseEngine) async throws {
+  func exportNotarized(archive: XcodeArchive, engine: ReleaseEngine) async throws {
     engine.log("Stapling notarized app.")
 
     do {
@@ -111,22 +80,18 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       try? fm.createDirectory(
         at: engine.stapledURL, withIntermediateDirectories: true, attributes: nil)
 
-      if let archive = engine.archive {
-        let stapledAppURL = engine.stapledURL.appendingPathComponent(archive.name)
-        try? fm.removeItem(at: stapledAppURL)
-        try? fm.copyItem(at: engine.exportedAppURL, to: stapledAppURL)
-        let xcrun = XCRunRunner(engine: engine)
-        let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
-        try await result.throwIfFailed(WaitForNotarizationRunnerError.exportingNotarizedAppFailed)
-      } else {
-        throw WaitForNotarizationError.missingArchive
-      }
+      let stapledAppURL = engine.stapledURL.appending(path: archive.name)
+      try? fm.removeItem(at: stapledAppURL)
+      try? fm.copyItem(at: engine.exportedAppURL(for: archive), to: stapledAppURL)
+      let xcrun = XCRunRunner(engine: engine)
+      let result = xcrun.run(["stapler", "staple", stapledAppURL.path])
+      try await result.throwIfFailed(Error.staplingFailed)
     } catch {
-      throw WaitForNotarizationError.exportingNotarizedAppThrew(error)
+      throw Error.exportingNotarizedAppFailed(error)
     }
   }
 
-  func check(request: String, engine: ReleaseEngine) async throws -> Bool {
+  func check(request: String, archive: XcodeArchive, engine: ReleaseEngine) async throws -> Bool {
     let xcrun = XCRunRunner(engine: engine)
     let result = xcrun.run([
       "altool",
@@ -136,7 +101,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
       "--apiKey", engine.apiKey,
       "--output-format", "xml",
     ])
-    try await result.throwIfFailed(WaitForNotarizationRunnerError.fetchingNotarizationStatusFailed)
+    try await result.throwIfFailed(Error.statusRequestFailed)
 
     engine.log("Received response.")
     let data = await result.stdout.data
@@ -147,7 +112,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     {
       engine.log("Status was \(status).")
       if status == "success" {
-        try await exportNotarized(engine: engine)
+        try await exportNotarized(archive: archive, engine: engine)
         return true
       } else if status == "invalid" {
         let message = (info[asString: "Status Message"]) ?? ""
@@ -172,10 +137,41 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
           }
         }
 
-        engine.fail(WaitForNotarizationError.notarizationFailed(output))
+        engine.fail(Error.notarizationFailed(output))
       }
     }
 
     return false
+  }
+}
+
+extension WaitForNotarizationCommand {
+  /// Errors emitted while checking and exporting a notarized app.
+  enum Error: Swift.Error, LocalizedError {
+    /// Fetching the notarization status threw an error.
+    case fetchingStatusFailed(any Swift.Error)
+    /// The notarization service rejected the app.
+    case notarizationFailed(String)
+    /// Preparing the stapled app threw an error.
+    case exportingNotarizedAppFailed(any Swift.Error)
+    /// The notarization receipt could not be loaded.
+    case loadingReceiptFailed
+
+    /// The notarization status request failed.
+    case statusRequestFailed
+    /// Stapling the notarized app failed.
+    case staplingFailed
+
+    /// A user-facing description of the notarization failure.
+    var errorDescription: String? {
+      switch self {
+        case .statusRequestFailed: return "Requesting notarization status failed."
+        case .staplingFailed: return "Stapling the notarized app failed."
+        case .fetchingStatusFailed(let error): return "Fetching notarization status failed.\n\(error.localizedDescription)"
+        case .notarizationFailed: return "Notarization failed."
+        case .exportingNotarizedAppFailed(let error): return "Exporting notarized app failed.\n\(error.localizedDescription)"
+        case .loadingReceiptFailed: return "Loading notarization receipt failed."
+      }
+    }
   }
 }

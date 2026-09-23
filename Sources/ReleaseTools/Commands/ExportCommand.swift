@@ -1,40 +1,15 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 17/04/2019.
-//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
-/// Errors produced while generating export options before invoking `xcodebuild`.
-enum ExportError: Error {
-  case writingOptionsFailed(Error)
-}
-
-extension ExportError: LocalizedError {
-  /// A description of the error.
-  public var errorDescription: String? {
-    switch self {
-      case .writingOptionsFailed(let error): return "Writing export options file failed.\n\(error.localizedDescription)"
-    }
-  }
-}
-
-/// Runner-level failure used when export subprocess execution fails.
-enum ExportRunnerError: Runner.Error {
-  case exportFailed
-
-  func description(for session: Runner.Session) async -> String {
-    switch self {
-      case .exportFailed:
-        return "Exporting failed.\n\(await session.stderr.string)"
-    }
-  }
-}
-
 /// Exports an archive for App Store Connect or direct distribution.
 struct ExportCommand: AsyncParsableCommand {
+  /// Describes the `export` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "export",
@@ -71,7 +46,7 @@ struct ExportCommand: AsyncParsableCommand {
         fromPropertyList: exportOptions, format: .xml, options: 0)
       try data.write(to: engine.exportOptionsURL)
     } catch {
-      throw ExportError.writingOptionsFailed(error)
+      throw Error.writingOptionsFailed(error)
     }
 
     engine.log("Exporting \(engine.scheme)...")
@@ -83,7 +58,27 @@ struct ExportCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
     ])
 
-    try await result.throwIfFailed(ExportRunnerError.exportFailed)
+    try await result.throwIfFailed(Error.exportFailed)
     engine.log("Exported \(engine.scheme).")
+  }
+}
+
+extension ExportCommand {
+  /// Errors emitted while exporting the archive.
+  enum Error: Swift.Error, LocalizedError {
+    /// Writing the export options file failed.
+    case writingOptionsFailed(any Swift.Error)
+
+    /// Exporting the archive failed.
+    case exportFailed
+
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
+      switch self {
+        case .exportFailed: return "Exporting failed."
+        case .writingOptionsFailed(let error):
+          return "Writing export options file failed.\n\(error.localizedDescription)"
+      }
+    }
   }
 }

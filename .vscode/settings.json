@@ -18,5 +18,7 @@
   "explorer.excludeGitIgnore": true,
   "search.useIgnoreFiles": true,
   "swift.searchSubfoldersForPackages": true,
-  "swift.excludePathsFromPackageDependencies": ["**/.git", "**/.github"]
+  "swift.excludePathsFromPackageDependencies": ["**/.git", "**/.github"],
+  // Change this project name to run the release configurations against a different sibling project.
+  "releaseTools.targetProject": "Bookish"
 }

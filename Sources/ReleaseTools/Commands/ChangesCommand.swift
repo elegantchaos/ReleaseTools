@@ -1,33 +1,19 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 30/03/2020.
-//  All code (c) 2020 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
+
 #if canImport(FoundationModels)
-import FoundationModels
+  import FoundationModels
 #endif
 
-enum ChangesError: Error {
-  case repositoryNotFound(path: String)
-  case gitFailed(command: String, error: String)
-}
-
-extension ChangesError: LocalizedError {
-  public var errorDescription: String? {
-    switch self {
-      case .repositoryNotFound(let path):
-        return "Repository path doesn't exist: \(path)"
-
-      case .gitFailed(let command, let error):
-        return "Git command failed: \(command)\n\(error)"
-    }
-  }
-}
-
+/// Produces a Markdown change log from a git revision range.
 struct ChangesCommand: AsyncParsableCommand {
+  /// Describes the `changes` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "changes",
@@ -89,7 +75,7 @@ struct ChangesCommand: AsyncParsableCommand {
   private func runGitChecked(_ arguments: [String], in repoURL: URL) async throws -> String {
     let result = try await runGit(arguments, in: repoURL)
     guard case .succeeded = result.state else {
-      throw ChangesError.gitFailed(
+      throw Error.gitFailed(
         command: "git \(arguments.joined(separator: " "))",
         error: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
       )
@@ -112,19 +98,19 @@ struct ChangesCommand: AsyncParsableCommand {
         if code == 1 {
           return false
         }
-        throw ChangesError.gitFailed(
+        throw Error.gitFailed(
           command: "git merge-base --is-ancestor \(ancestorRef) \(descendantRef)",
           error: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
       case .startup(let error):
-        throw ChangesError.gitFailed(
+        throw Error.gitFailed(
           command: "git merge-base --is-ancestor \(ancestorRef) \(descendantRef)",
           error: error
         )
 
       case .uncaughtSignal, .unknown:
-        throw ChangesError.gitFailed(
+        throw Error.gitFailed(
           command: "git merge-base --is-ancestor \(ancestorRef) \(descendantRef)",
           error: "\(result.state)"
         )
@@ -134,7 +120,8 @@ struct ChangesCommand: AsyncParsableCommand {
   private func detectPreviousTag(endRef: String, in repoURL: URL) async throws -> String? {
     let endCommit = try await resolvedCommit(for: endRef, in: repoURL)
     let tagsOutput = try await runGitChecked(["tag", "--sort=-v:refname"], in: repoURL)
-    let tags = tagsOutput
+    let tags =
+      tagsOutput
       .split(separator: "\n")
       .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
       .filter { !$0.isEmpty }
@@ -324,7 +311,8 @@ struct ChangesCommand: AsyncParsableCommand {
         return nil
       }
 
-      let bulletList = commits
+      let bulletList =
+        commits
         .map { "- \($0.messageLines.first ?? $0.subject)" }
         .joined(separator: "\n")
       let instructions = """
@@ -360,7 +348,7 @@ struct ChangesCommand: AsyncParsableCommand {
   func run() async throws {
     let repoURL = URL(fileURLWithPath: repoPath)
     guard FileManager.default.fileExists(atPath: repoURL.path) else {
-      throw ChangesError.repositoryNotFound(path: repoPath)
+      throw Error.repositoryNotFound(path: repoPath)
     }
 
     let resolvedStartRef: String?
@@ -385,5 +373,25 @@ struct ChangesCommand: AsyncParsableCommand {
         summary: summary
       )
     )
+  }
+}
+
+extension ChangesCommand {
+  /// Errors emitted while collecting a repository's changes.
+  enum Error: Swift.Error, LocalizedError {
+    /// The supplied repository path does not exist.
+    case repositoryNotFound(path: String)
+    /// A git query failed while generating the change log.
+    case gitFailed(command: String, error: String)
+
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
+      switch self {
+        case .repositoryNotFound(let path):
+          return "Repository path doesn't exist: \(path)"
+        case .gitFailed(let command, let error):
+          return "Git command failed: \(command)\n\(error)"
+      }
+    }
   }
 }

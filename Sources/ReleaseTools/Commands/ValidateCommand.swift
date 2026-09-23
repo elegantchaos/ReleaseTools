@@ -13,6 +13,7 @@ import Foundation
 /// `<Target>Tests` target when one exists. Use comprehensive validation to
 /// verify the complete app or package and its dependencies.
 struct ValidateCommand: AsyncParsableCommand {
+  /// Describes the `validate` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "validate",
@@ -26,9 +27,26 @@ struct ValidateCommand: AsyncParsableCommand {
   mutating func run() async throws {
     do {
       try runValidationFlow(arguments)
-    } catch ValidateSignal.helpRequested {
+    } catch Signal.helpRequested {
       usage()
     }
+  }
+}
+
+extension ValidateCommand {
+  /// Errors emitted while parsing or executing validation.
+  struct Error: Swift.Error, LocalizedError {
+    /// The failure message to display to the user.
+    let message: String
+
+    /// A user-facing description of the validation failure.
+    var errorDescription: String? { message }
+  }
+
+  /// Control-flow signals used to stop normal validation execution.
+  enum Signal: Swift.Error {
+    /// The caller requested the command's usage text.
+    case helpRequested
   }
 }
 
@@ -141,7 +159,7 @@ func run(_ executable: String, _ arguments: [String], cwd: String, environment: 
   process.waitUntilExit()
 
   if process.terminationStatus != 0 {
-    throw CLIError(message: "Command failed with exit code \(process.terminationStatus): " + commandString(executable, arguments))
+    throw ValidateCommand.Error(message: "Command failed with exit code \(process.terminationStatus): " + commandString(executable, arguments))
   }
 
   return process.terminationStatus
@@ -404,7 +422,7 @@ func runValidationStep(
     }
     print("log: \(logPath)")
     recordStep(&steps, summary: summary, status: .fail, warningsPresent: result.warningsPresent, logPath: logPath)
-    throw CLIError(message: "Command failed with exit code \(result.status): \(commandString(executable, arguments))")
+    throw ValidateCommand.Error(message: "Command failed with exit code \(result.status): \(commandString(executable, arguments))")
   }
 
   recordStep(&steps, summary: summary, status: .pass, warningsPresent: result.warningsPresent, logPath: logPath)
@@ -426,7 +444,7 @@ func changedSwiftFiles(repoPath: String, envVars: [String: String]) throws -> [S
   for command in commands {
     let result = try capture("/usr/bin/env", command, cwd: repoPath, environment: envVars)
     guard result.status == 0 else {
-      throw CLIError(message: "Failed to collect changed files: \(command.joined(separator: " "))\n\(result.stderr)")
+      throw ValidateCommand.Error(message: "Failed to collect changed files: \(command.joined(separator: " "))\n\(result.stderr)")
     }
 
     for line in result.stdout.split(separator: "\n").map(String.init) {
@@ -587,35 +605,35 @@ func parseArgs(_ args: [String]) throws -> Config {
     switch args[i] {
       case "--target":
         i += 1
-        guard i < args.count else { throw CLIError(message: "Missing value for --target") }
+        guard i < args.count else { throw ValidateCommand.Error(message: "Missing value for --target") }
         target = args[i]
       case "--clean", "-c":
         clean = true
       case "--workspace":
         i += 1
-        guard i < args.count else { throw CLIError(message: "Missing value for --workspace") }
+        guard i < args.count else { throw ValidateCommand.Error(message: "Missing value for --workspace") }
         workspaceOverride = args[i]
       case "--project":
         i += 1
-        guard i < args.count else { throw CLIError(message: "Missing value for --project") }
+        guard i < args.count else { throw ValidateCommand.Error(message: "Missing value for --project") }
         projectOverride = args[i]
       case "--schemes":
         i += 1
-        guard i < args.count else { throw CLIError(message: "Missing value for --schemes") }
+        guard i < args.count else { throw ValidateCommand.Error(message: "Missing value for --schemes") }
         schemes = parseCSV(args[i])
       case "--destinations":
         i += 1
-        guard i < args.count else { throw CLIError(message: "Missing value for --destinations") }
+        guard i < args.count else { throw ValidateCommand.Error(message: "Missing value for --destinations") }
         destinations = parseCSV(args[i])
       case "--run-xcode-tests":
         runXcodeTests = true
       case "--test-destinations":
         i += 1
-        guard i < args.count else { throw CLIError(message: "Missing value for --test-destinations") }
+        guard i < args.count else { throw ValidateCommand.Error(message: "Missing value for --test-destinations") }
         testDestinations = parseCSV(args[i])
       case "--package-dirs":
         i += 1
-        guard i < args.count else { throw CLIError(message: "Missing value for --package-dirs") }
+        guard i < args.count else { throw ValidateCommand.Error(message: "Missing value for --package-dirs") }
         packageDirsOverride = parseCSV(args[i])
       case "--no-recursive-packages":
         recursivePackageDiscovery = false
@@ -623,9 +641,9 @@ func parseArgs(_ args: [String]) throws -> Config {
         swiftPMDisableSandbox = true
       case "--output":
         i += 1
-        guard i < args.count else { throw CLIError(message: "Missing value for --output") }
+        guard i < args.count else { throw ValidateCommand.Error(message: "Missing value for --output") }
         guard let mode = ValidateOutputMode(rawValue: args[i]) else {
-          throw CLIError(message: "Invalid value for --output: \(args[i]). Expected filtered, quiet, or raw.")
+          throw ValidateCommand.Error(message: "Invalid value for --output: \(args[i]). Expected filtered, quiet, or raw.")
         }
         outputMode = mode
       case "--quiet":
@@ -633,9 +651,9 @@ func parseArgs(_ args: [String]) throws -> Config {
       case "--raw":
         outputMode = .raw
       case "--help", "-h":
-        throw ValidateSignal.helpRequested
+        throw ValidateCommand.Signal.helpRequested
       default:
-        throw CLIError(message: "Unknown argument: \(args[i])")
+        throw ValidateCommand.Error(message: "Unknown argument: \(args[i])")
     }
     i += 1
   }
@@ -824,12 +842,12 @@ func buildDestinations(
   )
   let result = try capture("/usr/bin/env", args, cwd: repoPath, environment: tools.env)
   guard result.status == 0 else {
-    throw CLIError(message: "Failed to read supported platforms for scheme '\(scheme)':\n\(result.stderr)")
+    throw ValidateCommand.Error(message: "Failed to read supported platforms for scheme '\(scheme)':\n\(result.stderr)")
   }
 
   let destinations = try buildDestinations(fromBuildSettingsJSON: result.stdout)
   guard !destinations.isEmpty else {
-    throw CLIError(message: "No supported build destinations found for scheme '\(scheme)'. Provide --destinations to override platform detection.")
+    throw ValidateCommand.Error(message: "No supported build destinations found for scheme '\(scheme)'. Provide --destinations to override platform detection.")
   }
   return destinations
 }
@@ -886,7 +904,7 @@ func parsePackageDescription(packageDir: String, repoPath: String, tools: Toolin
       result.stderr.contains("sandbox_apply: Operation not permitted")
       ? "\nRetry with --swiftpm-disable-sandbox if this environment blocks SwiftPM's internal sandbox."
       : ""
-    throw CLIError(message: "Failed to describe Swift package at \(packageDir):\n\(result.stderr)\(suggestion)")
+    throw ValidateCommand.Error(message: "Failed to describe Swift package at \(packageDir):\n\(result.stderr)\(suggestion)")
   }
   guard let data = result.stdout.data(using: .utf8) else { return nil }
   return try JSONDecoder().decode(PackageDescription.self, from: data)
@@ -927,18 +945,18 @@ func runSwiftPMBroadValidation(
   steps: inout [ValidationStepRecord]
 ) throws {
   guard !packages.isEmpty else {
-    throw CLIError(message: "No Swift package found for broad validation.")
+    throw ValidateCommand.Error(message: "No Swift package found for broad validation.")
   }
 
   for packageDir in packages {
     let package: PackageDescription
     do {
       guard let parsed = try parsePackageDescription(packageDir: packageDir, repoPath: repoPath, tools: tools) else {
-        throw CLIError(message: "Failed to decode Swift package description at \(packageDir).")
+        throw ValidateCommand.Error(message: "Failed to decode Swift package description at \(packageDir).")
       }
       package = parsed
     } catch {
-      throw CLIError(message: "Could not inspect Swift package at \(packageDir) before validation.\n\(error)")
+      throw ValidateCommand.Error(message: "Could not inspect Swift package at \(packageDir) before validation.\n\(error)")
     }
 
     var buildArgs = swiftPMValidationArguments(["swift", "build", "--package-path", packageDir])
@@ -1052,7 +1070,7 @@ func runTargetedValidation(
   }
 
   if !packageInspectionErrors.isEmpty && workspace == nil && project == nil {
-    throw CLIError(
+    throw ValidateCommand.Error(
       message: """
         Could not inspect SwiftPM packages while resolving target '\(target)'.
         \(packageInspectionErrors.joined(separator: "\n\n"))
@@ -1119,7 +1137,7 @@ func runTargetedValidation(
     return
   }
 
-  throw CLIError(message: "Target '\(target)' was not found in discovered Swift packages, and no Xcode workspace/project is available for scheme fallback. Provide --package-dirs, --workspace, or --project.")
+  throw ValidateCommand.Error(message: "Target '\(target)' was not found in discovered Swift packages, and no Xcode workspace/project is available for scheme fallback. Provide --package-dirs, --workspace, or --project.")
 }
 
 func runValidationFlow(_ arguments: [String]) throws {
@@ -1128,7 +1146,7 @@ func runValidationFlow(_ arguments: [String]) throws {
   var steps: [ValidationStepRecord] = []
 
   guard fileExists("\(repoPath)/.git") else {
-    throw CLIError(message: "Current working directory is not a git repo root: \(repoPath)")
+    throw ValidateCommand.Error(message: "Current working directory is not a git repo root: \(repoPath)")
   }
 
   do {
@@ -1224,7 +1242,7 @@ func runValidationFlow(_ arguments: [String]) throws {
       return
     }
 
-    throw CLIError(message: "No workspace/project or Swift packages detected for broad validation in \(repoPath).")
+    throw ValidateCommand.Error(message: "No workspace/project or Swift packages detected for broad validation in \(repoPath).")
   } catch {
     printValidationSummary(steps)
     throw error

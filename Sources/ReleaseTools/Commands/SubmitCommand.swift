@@ -1,19 +1,15 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 13/12/22.
-//  All code (c) 2022 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
 import Foundation
 import Runner
 
-/// Performs the following commands in order:
-/// - archive
-/// - export
-/// - upload
-
+/// Archives, exports, and uploads the configured app in one release workflow.
 struct SubmitCommand: AsyncParsableCommand {
-
+  /// Describes the `submit` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "submit",
@@ -40,8 +36,6 @@ struct SubmitCommand: AsyncParsableCommand {
 
     try await ArchiveCommand.archive(engine: engine, xcconfig: xcconfig)
     try await ExportCommand.export(engine: engine)
-    engine.archive = XcodeArchive(url: engine.archiveURL)
     try await UploadCommand.upload(engine: engine)
-    // TODO: open page in app portal?
   }
 }

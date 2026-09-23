@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 19/04/2019.
-//  All code (c) 2019 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
@@ -9,39 +9,9 @@ import Files
 import Foundation
 import Runner
 
-enum UpdateBuildError: Runner.Error {
-  case fetchingTagsFailed
-  case gettingBuildFailed
-  case gettingCommitFailed
-  case parsingCommitFailed
-  case writingConfigFailed(String)
-  case updatingIndexFailed
-  case invalidExplicitBuild(String)
-  case inconsistentTagState(currentPlatform: String)
-
-  func description(for session: Runner.Session) async -> String {
-    switch self {
-      case .fetchingTagsFailed:
-        return "Failed to fetch tags from git.\n\n\(await session.stderr.string)"
-      case .gettingBuildFailed:
-        return "Failed to get the build number from git.\n\n\(await session.stderr.string)"
-      case .gettingCommitFailed:
-        return "Failed to get the commit from git."
-      case .parsingCommitFailed:
-        return "Failed to parse the commit information from git."
-      case .writingConfigFailed(let message):
-        return "Failed to write the config file.\n\n\(message)"
-      case .updatingIndexFailed:
-        return "Failed to tell git to ignore the config file.\n\n\(await session.stderr.string)"
-      case .invalidExplicitBuild(let value):
-        return "Invalid explicit build number: \(value). Must be a positive integer."
-      case .inconsistentTagState(let currentPlatform):
-        return "Inconsistent tag state: highest build for platform (\(currentPlatform)) is greater than highest build for any platform. This should not happen. Please check your tags."
-    }
-  }
-}
-
+/// Updates build metadata files from the current release history.
 struct UpdateBuildCommand: AsyncParsableCommand {
+  /// Describes the `update-build` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "update-build",
@@ -70,5 +40,4 @@ struct UpdateBuildCommand: AsyncParsableCommand {
       try await engine.generateConfig(config: config)
     }
   }
-
 }

@@ -22,7 +22,7 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    await #expect(throws: GeneralError.noVersionTagAtHEAD) {
+    await #expect(throws: ReleaseEngine.Error.noVersionTagAtHEAD) {
       _ = try await parsed.versionTagAtHEAD()
     }
   }
@@ -48,7 +48,7 @@ struct VersionTagTests {
     let options = try CommonOptions.parse([])
     let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
 
-    await #expect(throws: GeneralError.noVersionTagAtHEAD) {
+    await #expect(throws: ReleaseEngine.Error.noVersionTagAtHEAD) {
       _ = try await parsed.versionTagAtHEAD()
     }
   }

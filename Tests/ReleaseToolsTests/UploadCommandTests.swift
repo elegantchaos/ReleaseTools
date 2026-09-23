@@ -21,7 +21,7 @@ struct UploadCommandTests {
     #expect(error.isInvalidBundleError)
     #expect(error.isAlreadyReleased == false)
 
-    let description = UploadError.uploadingFailedWithErrors([error]).errorDescription ?? ""
+    let description = UploadCommand.Error.rejected([error]).errorDescription ?? ""
     #expect(description.contains("[90062] This bundle is invalid."))
     #expect(description.contains("This version has already been released.") == false)
   }
@@ -37,7 +37,7 @@ struct UploadCommandTests {
     #expect(error.isInvalidPreReleaseTrainError)
     #expect(error.isAlreadyReleased == false)
 
-    let description = UploadError.uploadingFailedWithErrors([error]).errorDescription ?? ""
+    let description = UploadCommand.Error.rejected([error]).errorDescription ?? ""
     #expect(description.contains("[90186] Invalid Pre-Release Train."))
     #expect(description.contains("This version has already been released.") == false)
   }
