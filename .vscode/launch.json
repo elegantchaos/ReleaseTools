@@ -1,4 +1,5 @@
 {
+  // Archive, export, upload, and submit use `releaseTools.targetProject` from settings.json.
   "configurations": [
     {
       "type": "swift",
@@ -32,8 +33,8 @@
       "type": "swift",
       "request": "launch",
       "args": ["archive", "--platform=macOS", "--show-commands"],
-      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
-      "name": "archive Stack",
+      "cwd": "${workspaceFolder:ReleaseTools}/../${config:releaseTools.targetProject}",
+      "name": "Test archive",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt",
       "presentation": {
@@ -46,8 +47,8 @@
       "type": "swift",
       "request": "launch",
       "args": ["export", "--platform=macOS", "--show-commands"],
-      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
-      "name": "export Stack",
+      "cwd": "${workspaceFolder:ReleaseTools}/../${config:releaseTools.targetProject}",
+      "name": "Test export",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt",
       "internalConsoleOptions": "openOnSessionStart",
@@ -61,8 +62,8 @@
       "type": "swift",
       "request": "launch",
       "args": ["upload", "--platform=iOS", "--show-commands"],
-      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
-      "name": "upload Stack",
+      "cwd": "${workspaceFolder:ReleaseTools}/../${config:releaseTools.targetProject}",
+      "name": "Test upload",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt",
       "presentation": {
@@ -75,8 +76,8 @@
       "type": "swift",
       "request": "launch",
       "args": ["submit", "--platform=macOS", "--show-commands"],
-      "cwd": "${workspaceFolder:ReleaseTools}/../Stack",
-      "name": "submit Stack",
+      "cwd": "${workspaceFolder:ReleaseTools}/../${config:releaseTools.targetProject}",
+      "name": "Test submit",
       "program": "${workspaceFolder:ReleaseTools}/.build/debug/rt",
       "preLaunchTask": "swift: Build Debug rt",
       "presentation": {
