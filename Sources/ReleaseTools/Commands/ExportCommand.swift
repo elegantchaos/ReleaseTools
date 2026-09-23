@@ -58,34 +58,27 @@ struct ExportCommand: AsyncParsableCommand {
       "-allowProvisioningUpdates",
     ])
 
-    try await result.throwIfFailed(RunnerError.exportFailed)
+    try await result.throwIfFailed(Error.exportFailed)
     engine.log("Exported \(engine.scheme).")
   }
 }
 
 extension ExportCommand {
-  /// Errors emitted while generating the export options file.
+  /// Errors emitted while exporting the archive.
   enum Error: Swift.Error, LocalizedError {
     /// Writing the export options file failed.
     case writingOptionsFailed(any Swift.Error)
 
-    /// A user-facing description of the failure.
-    var errorDescription: String? {
-      switch self {
-        case .writingOptionsFailed(let error):
-          return "Writing export options file failed.\n\(error.localizedDescription)"
-      }
-    }
-  }
-
-  /// Failures returned by the export subprocess.
-  enum RunnerError: Runner.Error {
     /// Exporting the archive failed.
     case exportFailed
 
-    /// Describes the failed export subprocess session.
-    func description(for session: Runner.Session) async -> String {
-      "Exporting failed.\n\(await session.stderr.string)"
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
+      switch self {
+        case .exportFailed: return "Exporting failed."
+        case .writingOptionsFailed(let error):
+          return "Writing export options file failed.\n\(error.localizedDescription)"
+      }
     }
   }
 }

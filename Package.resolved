@@ -1,5 +1,5 @@
 {
-  "originHash" : "c216a361f635b6849a2dd34d7bf2616997ecd3b39f051f3a83bb8c73abb99246",
+  "originHash" : "ac489817681c7f5ac355de265a2ccaa3492fbb945a7522236684f28a900a44ad",
   "pins" : [
     {
       "identity" : "actionbuildercore",
@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/Runner.git",
       "state" : {
-        "revision" : "ba4b7d5b995d33c82fc1aa51054202caf0aa7297",
-        "version" : "2.1.5"
+        "revision" : "0b9832d8085fe03931d4347e36b2d762571298f1",
+        "version" : "2.2.0"
       }
     },
     {

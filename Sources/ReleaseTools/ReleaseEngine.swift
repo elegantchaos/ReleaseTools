@@ -217,9 +217,16 @@ extension ReleaseEngine {
     /// Writing generated build configuration failed.
     case writingConfigFailed(String)
 
+    /// Listing release tags failed.
+    case gettingBuildFailed
+    /// Updating git's index for generated configuration failed.
+    case updatingIndexFailed
+
     /// A user-facing description of the release workflow failure.
     var errorDescription: String? {
       switch self {
+        case .gettingBuildFailed: return "Failed to get the build number from git."
+        case .updatingIndexFailed: return "Failed to tell git to ignore the config file."
         case .missingWorkspace:
           return "The workspace was not specified, and could not be inferred."
         case .taggingFailed:
@@ -261,24 +268,6 @@ extension ReleaseEngine {
           return "Failed to parse the commit information from git."
         case .writingConfigFailed(let message):
           return "Failed to write the config file.\n\n\(message)"
-      }
-    }
-  }
-
-  /// Failures returned by subprocesses used for build-number operations.
-  enum RunnerError: Runner.Error {
-    /// Listing release tags failed.
-    case gettingBuildFailed
-    /// Updating git's index for generated configuration failed.
-    case updatingIndexFailed
-
-    /// Describes the failed subprocess session.
-    func description(for session: Runner.Session) async -> String {
-      switch self {
-        case .gettingBuildFailed:
-          "Failed to get the build number from git.\n\n\(await session.stderr.string)"
-        case .updatingIndexFailed:
-          "Failed to tell git to ignore the config file.\n\n\(await session.stderr.string)"
       }
     }
   }

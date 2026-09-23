@@ -47,7 +47,7 @@ extension ReleaseEngine {
       }
 
       let result = git.run(["update-index", "--assume-unchanged", configURL.path])
-      try await result.throwIfFailed(ReleaseEngine.RunnerError.updatingIndexFailed)
+      try await result.throwIfFailed(ReleaseEngine.Error.updatingIndexFailed)
     }
   }
 

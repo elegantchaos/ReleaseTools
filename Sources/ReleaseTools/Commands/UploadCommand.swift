@@ -59,7 +59,7 @@ struct UploadCommand: AsyncParsableCommand {
     _ = try analyzeUploadOutput(stdout: stdout, stderr: stderr)
 
     // Parse structured errors before trusting the unreliable process status.
-    try await uploadResult.throwIfFailed(RunnerError.uploadingFailed)
+    try await uploadResult.throwIfFailed(Error.uploadingFailed)
 
     engine.log("Finished uploading.")
 
@@ -140,9 +140,13 @@ extension UploadCommand {
     /// App Store Connect rejected the upload with structured errors.
     case rejected([UploadReceiptError])
 
+    /// The upload subprocess failed.
+    case uploadingFailed
+
     /// A user-facing description of the upload failure.
     var errorDescription: String? {
       switch self {
+        case .uploadingFailed: return "Uploading failed."
         case .uploadFileMissing(let raw): return "Upload file not found.\n\n\(raw)"
         case .uploadOtherError(let raw): return "Upload failed with an unknown error.\n\n\(raw)"
         case .savingReceiptFailed(let error): return "Saving upload receipt failed.\n\(error.localizedDescription)"
@@ -158,17 +162,6 @@ extension UploadCommand {
             .joined()
           return "Upload was rejected.\n\(headline)\(summaries)"
       }
-    }
-  }
-
-  /// Failures returned by the upload subprocess.
-  enum RunnerError: Runner.Error {
-    /// Uploading the archive failed.
-    case uploadingFailed
-
-    /// Describes the failed upload subprocess session.
-    func description(for session: Runner.Session) async -> String {
-      "Uploading failed.\n\(await session.stderr.string)"
     }
   }
 }

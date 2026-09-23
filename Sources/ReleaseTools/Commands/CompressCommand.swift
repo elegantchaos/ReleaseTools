@@ -37,7 +37,7 @@ struct CompressCommand: AsyncParsableCommand {
     let destination = updates.url.appending(path: archive.versionedZipName)
 
     let result = ditto.zip(stapledAppURL, as: destination)
-    try await result.throwIfFailed(RunnerError.compressFailed)
+    try await result.throwIfFailed(Error.compressFailed)
 
     engine.log(
       "Saving copy of archive to \(website.websiteURL.path) as \(archive.unversionedZipName)."
@@ -49,15 +49,15 @@ struct CompressCommand: AsyncParsableCommand {
 }
 
 extension CompressCommand {
-  /// Failures returned by the archive compression subprocess.
-  enum RunnerError: Runner.Error {
+  /// Errors emitted while compressing the release archive.
+  enum Error: Swift.Error, LocalizedError {
     /// The compression subprocess failed.
     case compressFailed
 
-    /// Describes the failed subprocess session.
-    func description(for session: Runner.Session) async -> String {
+    /// A user-facing description of the failure.
+    var errorDescription: String? {
       switch self {
-        case .compressFailed: "Compressing failed.\n\(await session.stderr.string)"
+        case .compressFailed: return "Compressing failed."
       }
     }
   }

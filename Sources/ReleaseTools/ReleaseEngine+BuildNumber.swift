@@ -55,7 +55,7 @@ extension ReleaseEngine {
     process: @escaping (_ platform: String, _ build: UInt, _ tag: String) async -> Void
   ) async throws {
     let tagsResult = git.run(["tag"])
-    try await tagsResult.throwIfFailed(ReleaseEngine.RunnerError.gettingBuildFailed)
+    try await tagsResult.throwIfFailed(ReleaseEngine.Error.gettingBuildFailed)
     for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: Self.platformSpecificTagPattern) {
         let platform = String(parsed.output.platform)
@@ -71,7 +71,7 @@ extension ReleaseEngine {
     process: @escaping (_ build: UInt, _ tag: String) async -> Void
   ) async throws {
     let tagsResult = git.run(["tag"])
-    try await tagsResult.throwIfFailed(ReleaseEngine.RunnerError.gettingBuildFailed)
+    try await tagsResult.throwIfFailed(ReleaseEngine.Error.gettingBuildFailed)
     for await tag in await tagsResult.stdout.lines {
       if let parsed = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
         if let build = UInt(parsed.output.build) {
