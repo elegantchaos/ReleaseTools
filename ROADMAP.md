@@ -18,3 +18,5 @@ High-level tasks for the next ReleaseTools improvements:
    Support hybrid Xcode/SwiftPM development by generating local package validation manifests that resolve sibling packages from `Dependencies/` without relying on manual `swift package edit` state.
 8. [Validate command process cleanup](Extras/Roadmap/ValidateCommandProcessCleanup.md)
    Move validation subprocess execution onto `Runner` and expose validation state to Swift package manifests through the process environment.
+9. Remove `validate`
+   `rt validate` is deprecated in favour of `agt validate` in AgentTools. Remove `ValidateCommand`, `Sources/ReleaseTools/Validation/`, their tests, and the README section once projects have switched. Items 7 and 8 now belong to AgentTools.

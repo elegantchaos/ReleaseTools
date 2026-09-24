@@ -251,6 +251,8 @@ it will be generated, or updated, with three keys `CFBundleVersion`, `Commit`, a
 
 ### validate
 
+**Deprecated:** validation has moved to [AgentTools](https://github.com/elegantchaos/AgentTools) as `agt validate`, which takes the same options. Install it with `mint install elegantchaos/AgentTools`. `rt validate` still works, prints a deprecation warning on every run, and will be removed in a future release.
+
 Runs a standard post-change validation flow for Swift repositories:
 
 - formats and lints changed Swift files

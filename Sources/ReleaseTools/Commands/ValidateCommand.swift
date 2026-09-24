@@ -8,6 +8,9 @@ import Foundation
 
 /// Runs the standard validation workflow for the current Swift repository.
 ///
+/// Deprecated: validation now lives in AgentTools as `agt validate`, which
+/// takes the same options.
+///
 /// Targeted validation is a fast preflight for a modified non-test SwiftPM
 /// target. It builds that target first, then runs a conventionally named
 /// `<Target>Tests` target when one exists. Use comprehensive validation to
@@ -17,14 +20,21 @@ struct ValidateCommand: AsyncParsableCommand {
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "validate",
-      abstract: "Run the standard validation flow for a Swift repository."
+      abstract: "Deprecated: use `agt validate` from AgentTools instead."
     )
   }
+
+  /// Notice printed to standard error on every run.
+  static let deprecationNotice = """
+    warning: rt validate is deprecated and will be removed in a future release.
+    Use agt validate instead; it takes the same options. Install it with: mint install elegantchaos/AgentTools
+    """
 
   @Argument(parsing: .captureForPassthrough, help: "Arguments to pass to the validation flow.")
   var arguments: [String] = []
 
   mutating func run() async throws {
+    FileHandle.standardError.write(Data((Self.deprecationNotice + "\n").utf8))
     do {
       try runValidationFlow(arguments)
     } catch Signal.helpRequested {
@@ -62,6 +72,8 @@ func swiftPMValidationArguments(_ arguments: [String]) -> [String] {
 func usage() {
   print(
     """
+    Deprecated: use agt validate from AgentTools instead (mint install elegantchaos/AgentTools).
+
     Usage:
       rt validate [options]
       rt validate --target <name> [options]

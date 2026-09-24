@@ -248,6 +248,12 @@ struct ValidateCommandDiscoveryTests {
     )
   }
 
+  @Test func deprecationNoticePointsToAgentTools() {
+    #expect(ValidateCommand.deprecationNotice.contains("deprecated"))
+    #expect(ValidateCommand.deprecationNotice.contains("agt validate"))
+    #expect(ValidateCommand.deprecationNotice.contains("mint install elegantchaos/AgentTools"))
+  }
+
   /// Creates a temporary repository root for package discovery tests.
   private func makeTemporaryRepo() throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory())
