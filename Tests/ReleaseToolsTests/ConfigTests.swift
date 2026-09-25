@@ -93,42 +93,42 @@ struct ConfigTests {
     )
 
     try """
-      {
-        "defaultScheme": "Stack",
-        "settings": {
-          "*": {
-            "apiKey": "base-key"
-          },
-          "iOS": {
-            "apiIssuer": "platform-issuer"
-          },
-          "Watch": {
-            "keychain": "watch-keychain"
-          },
-          "Watch.iOS": {
-            "apiKey": "scoped-key"
-          }
+    {
+      "defaultScheme": "Stack",
+      "settings": {
+        "*": {
+          "apiKey": "base-key"
+        },
+        "iOS": {
+          "apiIssuer": "platform-issuer"
+        },
+        "Watch": {
+          "keychain": "watch-keychain"
+        },
+        "Watch.iOS": {
+          "apiKey": "scoped-key"
         }
       }
-      """.write(
-        to: repo.appendingPathComponent(".rt.json"),
-        atomically: true,
-        encoding: .utf8
-      )
+    }
+    """.write(
+      to: repo.appendingPathComponent(".rt.json"),
+      atomically: true,
+      encoding: .utf8
+    )
 
     try """
-      {
-        "settings": {
-          "*": {
-            "apiIssuer": "local-issuer"
-          }
+    {
+      "settings": {
+        "*": {
+          "apiIssuer": "local-issuer"
         }
       }
-      """.write(
-        to: repo.appendingPathComponent(".rt.local.json"),
-        atomically: true,
-        encoding: .utf8
-      )
+    }
+    """.write(
+      to: repo.appendingPathComponent(".rt.local.json"),
+      atomically: true,
+      encoding: .utf8
+    )
 
     let paths = RTConfigPaths(rootURL: repo)
     try RTLegacyConfigMigrator(paths: paths).migrateIfNeeded()
@@ -165,19 +165,19 @@ struct ConfigTests {
     try FileManager.default.createDirectory(at: paths.projectDirectoryURL, withIntermediateDirectories: true)
 
     try """
-      {
-        "defaultScheme": "Stack",
-        "settings": {
-          "*": {
-            "apiKey": "base-key"
-          }
+    {
+      "defaultScheme": "Stack",
+      "settings": {
+        "*": {
+          "apiKey": "base-key"
         }
       }
-      """.write(
-        to: paths.legacyProjectConfigURL,
-        atomically: true,
-        encoding: .utf8
-      )
+    }
+    """.write(
+      to: paths.legacyProjectConfigURL,
+      atomically: true,
+      encoding: .utf8
+    )
 
     try RTLegacyConfigMigrator(paths: paths).migrateIfNeeded()
 
@@ -192,19 +192,19 @@ struct ConfigTests {
     let paths = RTConfigPaths(rootURL: repo)
 
     try """
-      {
-        "defaults": {
-          "scheme": "Stack"
-        },
-        "settings": {
-          "apiKey": "base-key"
-        }
+    {
+      "defaults": {
+        "scheme": "Stack"
+      },
+      "settings": {
+        "apiKey": "base-key"
       }
-      """.write(
-        to: paths.legacyProjectConfigURL,
-        atomically: true,
-        encoding: .utf8
-      )
+    }
+    """.write(
+      to: paths.legacyProjectConfigURL,
+      atomically: true,
+      encoding: .utf8
+    )
 
     do {
       try RTLegacyConfigMigrator(paths: paths).migrateIfNeeded()
@@ -227,24 +227,24 @@ struct ConfigTests {
     try FileManager.default.createDirectory(at: workspaceURL, withIntermediateDirectories: true)
 
     try """
-      {
-        "defaultScheme": "Stack",
-        "settings": {
-          "*": {
-            "apiKey": "base-key",
-            "apiIssuer": "base-issuer"
-          },
-          "Stack": {
-            "apiKey": "scheme-key",
-            "apiIssuer": "scheme-issuer"
-          }
+    {
+      "defaultScheme": "Stack",
+      "settings": {
+        "*": {
+          "apiKey": "base-key",
+          "apiIssuer": "base-issuer"
+        },
+        "Stack": {
+          "apiKey": "scheme-key",
+          "apiIssuer": "scheme-issuer"
         }
       }
-      """.write(
-        to: repo.url.appendingPathComponent(".rt.json"),
-        atomically: true,
-        encoding: .utf8
-      )
+    }
+    """.write(
+      to: repo.url.appendingPathComponent(".rt.json"),
+      atomically: true,
+      encoding: .utf8
+    )
 
     let options = try CommonOptions.parse([])
     let scheme = try SchemeOption.parse([])

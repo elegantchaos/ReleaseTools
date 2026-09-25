@@ -147,11 +147,13 @@ struct RTLegacyConfigMigrator {
     let excludedPrefix: String? =
       root == paths.projectDirectoryURL ? paths.projectLocalDirectoryURL.path + "/" : nil
 
-    guard let enumerator = fileManager.enumerator(
-      at: root,
-      includingPropertiesForKeys: [.isRegularFileKey],
-      options: [.skipsHiddenFiles]
-    ) else {
+    guard
+      let enumerator = fileManager.enumerator(
+        at: root,
+        includingPropertiesForKeys: [.isRegularFileKey],
+        options: [.skipsHiddenFiles]
+      )
+    else {
       return false
     }
 
