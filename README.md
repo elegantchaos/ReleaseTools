@@ -249,25 +249,6 @@ If you specify the `--config` option with a path to an `.xcconfig` file, it will
 If you specify the `--plist` option with a path to a `.plist` file,
 it will be generated, or updated, with three keys `CFBundleVersion`, `Commit`, and `Version`.
 
-### validate
-
-Runs a standard post-change validation flow for Swift repositories:
-
-- formats and lints changed Swift files
-- runs broad validation (Xcode when a workspace is available, SwiftPM otherwise)
-- supports shaped output via `--output filtered|quiet|raw` (`filtered` is the default)
-- writes per-step logs to `.build/validation-logs`
-- writes Xcode validation products to `.build/rt-validate/DerivedData`
-
-Use `rt validate --target <name>` as a fast preflight after modifying a
-non-test SwiftPM target. ReleaseTools searches the discovered packages for that
-target, builds it and its required dependencies, and then runs a conventionally
-named `<name>Tests` target when one exists. The target option is not intended
-for test-target names.
-
-After targeted validation passes, run `rt validate` to verify the complete app
-or package and its dependencies.
-
 ### submit
 
 This performs the `archive`, `export` and `upload` commands in order.

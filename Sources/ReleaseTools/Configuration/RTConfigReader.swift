@@ -15,10 +15,11 @@ struct RTConfigReader {
     var providers: [any ConfigProvider] = []
     for url in paths.candidateURLs(scheme: scheme, platform: platform) {
       do {
-        let fileConfig = ConfigReader(provider: InMemoryProvider(values: [
-          AbsoluteConfigKey(["filePath"]): ConfigValue(.string(url.path), isSecret: false),
-          AbsoluteConfigKey(["allowMissing"]): ConfigValue(.bool(true), isSecret: false),
-        ]))
+        let fileConfig = ConfigReader(
+          provider: InMemoryProvider(values: [
+            AbsoluteConfigKey(["filePath"]): ConfigValue(.string(url.path), isSecret: false),
+            AbsoluteConfigKey(["allowMissing"]): ConfigValue(.bool(true), isSecret: false),
+          ]))
         let provider = try await FileProvider<JSONSnapshot>(
           config: fileConfig
         )

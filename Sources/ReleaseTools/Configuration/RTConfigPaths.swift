@@ -38,7 +38,8 @@ struct RTConfigPaths {
         .appendingPathComponent("rt")
     }
 
-    return homeURL
+    return
+      homeURL
       .appendingPathComponent(".local")
       .appendingPathComponent("config")
       .appendingPathComponent("rt")
@@ -109,7 +110,8 @@ struct RTConfigPaths {
       return nil
     }
 
-    return root
+    return
+      root
       .appendingPathComponent("platforms")
       .appendingPathComponent(platform)
       .appendingPathExtension("json")
@@ -121,7 +123,8 @@ struct RTConfigPaths {
       return nil
     }
 
-    return root
+    return
+      root
       .appendingPathComponent("schemes")
       .appendingPathComponent(scheme)
       .appendingPathExtension("json")
@@ -133,7 +136,8 @@ struct RTConfigPaths {
       return nil
     }
 
-    return root
+    return
+      root
       .appendingPathComponent("schemes")
       .appendingPathComponent(scheme)
       .appendingPathComponent("platforms")

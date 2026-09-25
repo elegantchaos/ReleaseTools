@@ -12,7 +12,7 @@
 - Update documentation when commands, workflows, configuration, or behaviour changes; describe the current state.
 - Use red/green TDD for non-UI code and add or update deterministic tests for changed behaviour.
 - Create previews for UI code when the platform supports them.
-- Run the narrowest relevant validation first, then broaden the checks. `rt validate` is the canonical validation command; target mode runs the matching SwiftPM test target when present. Report skipped validation, gaps, and residual risk.
+- Run the narrowest relevant validation first, then broaden the checks. `agt validate` (from AgentTools) is the canonical validation command; target mode runs the matching SwiftPM test target when present. Report skipped validation, gaps, and residual risk.
 - Prefer trusted primary sources for technical decisions.
 - Use portable path references: repository-relative paths inside this repository and `~/...` for shared resources. Avoid machine-specific absolute paths.
 - When a required Mint-installed command is unavailable on `PATH`, try `~/.mint/bin/<command>` before treating it as missing.
