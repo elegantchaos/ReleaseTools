@@ -6,3 +6,4 @@
 - [2026-09-25: Remove validate](2026-09-25-remove-validate.md)
 - [2026-10-21: Upload rejection messages](2026-10-21-upload-rejection-messages.md)
 - [2026-10-21: Agent guidance refresh](2026-10-21-agent-guidance-refresh.md)
+- [2026-10-21: Existing tag error](2026-10-21-existing-tag-error.md)
