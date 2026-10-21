@@ -164,7 +164,9 @@ If the upload succeeds, the Apple servers return an xml receipt containing a Req
 
 Takes the ipa exported with the `export` command, and uploads it to Apple Connect for review.
 
-If the upload succeeds, the Apple servers return an xml receipt containing status message. This isn't of much use, but is stored in `.build/<platform>/export/receipt.xml`.
+The upload response is saved to `.build/<platform>/upload/receipt.json`, and the tool's stderr is saved to `.build/<platform>/upload/errors.log`, including when the upload fails.
+
+Rejections report Apple's error code and complete message. Recognized release-version and sandbox failures provide focused guidance. Unsupported-Xcode failures report `Xcode version <version> (<build>) not accepted by App Store Connect`, using `CFBundleShortVersionString` and `ProductBuildVersion` from the upload application's `Contents/version.plist`. The application is located using the receipt's `tool-path`. If its metadata is unavailable or incomplete, the error omits the version and build. The receipt's `tool-version` is the upload tool's version.
 
 ### wait
 
