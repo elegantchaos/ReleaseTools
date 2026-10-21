@@ -8,8 +8,10 @@ import Testing
 
 @testable import ReleaseTools
 
+/// Verifies upload receipt analysis and user-facing failure diagnostics.
 struct UploadCommandTests {
 
+  /// Unknown bundle failures retain the complete validation explanation.
   @Test func preservesOtherInvalidBundleErrors() {
     let error = UploadReceiptError(
       code: 90062,
@@ -23,9 +25,11 @@ struct UploadCommandTests {
 
     let description = UploadCommand.Error.rejected([error]).errorDescription ?? ""
     #expect(description.contains("[90062] This bundle is invalid."))
+    #expect(description.contains("A different validation failed."))
     #expect(description.contains("This version has already been released.") == false)
   }
 
+  /// A standalone train failure includes the affected version and submission restriction.
   @Test func preservesStandaloneInvalidPreReleaseTrainErrors() {
     let error = UploadReceiptError(
       code: 90186,
@@ -39,9 +43,79 @@ struct UploadCommandTests {
 
     let description = UploadCommand.Error.rejected([error]).errorDescription ?? ""
     #expect(description.contains("[90186] Invalid Pre-Release Train."))
+    #expect(description.contains("The train version '3.0.1' is closed for new build submissions."))
     #expect(description.contains("This version has already been released.") == false)
   }
 
+  /// Xcode rejections read the exact version and build from the upload application's metadata.
+  @Test(arguments: [
+    ("/Applications/Xcodes/Xcode-27.2.0-Release.Candidate.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources", "Xcode-27.2.0-Release.Candidate.app"),
+    ("/Applications/Xcode.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources", "Xcode.app"),
+    ("/usr/local/lib/ContentDelivery.framework/Resources", ""),
+  ])
+  func explainsRejectedXcodeVersion(toolPath: String, applicationName: String) throws {
+    let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    var receiptToolPath = toolPath
+    if !applicationName.isEmpty {
+      let contents = root.appending(path: applicationName).appending(path: "Contents")
+      try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+      let metadata = ["CFBundleShortVersionString": "27.2", "ProductBuildVersion": "27B48", "CFBundleVersion": "25400.60.4"]
+      try PropertyListEncoder().encode(metadata).write(to: contents.appending(path: "version.plist"))
+      receiptToolPath = contents.appending(path: "SharedFrameworks/ContentDelivery.framework/Resources").path
+    }
+
+    let stdout = #"""
+      {
+        "os-version": "Version 27.0.1",
+        "product-errors": [{
+          "code": 90301,
+          "message": "This bundle is invalid. Apple is not currently accepting applications built with this version of Xcode.",
+          "underlying-errors": [{
+            "code": -19241,
+            "message": "A server error occurred.",
+            "underlying-errors": [],
+            "user-info": {
+              "description": "This bundle is invalid. Apple is not currently accepting applications built with this version of Xcode."
+            }
+          }],
+          "user-info": { "NSLocalizedFailureReason": "n/a (ID: example-rejection-id)" }
+        }],
+        "tool-path": "\#(receiptToolPath)",
+        "tool-version": "27.10.4 (2.2)"
+      }
+      """#
+
+    do {
+      _ = try UploadCommand.analyzeUploadOutput(stdout: stdout, stderr: "ERROR: [altool.main] ExitFailure (31)")
+      Issue.record("Expected upload analysis to throw for a rejected Xcode version.")
+    } catch let error as UploadCommand.Error {
+      let description = try #require(error.errorDescription)
+      let version = applicationName.isEmpty ? "" : " 27.2 (27B48)"
+      #expect(description.trimmingCharacters(in: .whitespacesAndNewlines) == "Upload was rejected.\n\nXcode version\(version) not accepted by App Store Connect.")
+      #expect(description.contains("25400.60.4") == false)
+      #expect(description.contains("27.10.4") == false)
+      #expect(description.contains("n/a") == false)
+      #expect(description.contains("A server error occurred.") == false)
+      #expect(description.contains("ExitFailure (31)") == false)
+    }
+  }
+
+  /// Error 90301 is only specialized when Apple's message identifies an Xcode rejection.
+  @Test func preservesOther90301Errors() {
+    let error = UploadReceiptError(
+      code: 90301,
+      message: "This bundle is invalid. Another validation failed.",
+      underlyingErrors: [],
+      userInfo: nil
+    )
+
+    let description = UploadCommand.Error.rejected([error]).errorDescription ?? ""
+    #expect(description.contains("[90301] This bundle is invalid. Another validation failed."))
+    #expect(description.contains("Rebuild and export") == false)
+  }
+
+  /// Approved release versions produce a concise version-increment instruction.
   @Test func explainsWhenTheReleaseVersionHasAlreadyBeenReleased() throws {
     let stdout = #"""
       {
@@ -82,6 +156,7 @@ struct UploadCommandTests {
     }
   }
 
+  /// Sandbox errors extract entitlement guidance and executable paths from the receipt.
   @Test func summarizesSandboxReceiptRejection() throws {
     let stdout = #"""
       {
@@ -135,11 +210,12 @@ struct UploadCommandTests {
       #expect(description.contains("[90296] App sandbox not enabled."))
       #expect(description.contains("Enable the \"com.apple.security.app-sandbox\" entitlement."))
       #expect(description.contains("Executable: com.elegantchaos.clocksync.pkg/Payload/ClockSync.app/Contents/MacOS/ClockSync"))
-      #expect(!description.contains("The server’s response was:"))
-      #expect(!description.contains("ExitFailure (31)"))
+      #expect(description.contains("The server’s response was:") == false)
+      #expect(description.contains("ExitFailure (31)") == false)
     }
   }
 
+  /// Missing receipt output still reports a missing upload file from stderr.
   @Test func fallsBackToStderrWhenNoReceiptWasReturned() throws {
     let stderr = "2026-04-07 11:22:31.580 ERROR: File does not exist at path /tmp/Missing.pkg"
 
@@ -153,6 +229,7 @@ struct UploadCommandTests {
     }
   }
 
+  /// Unstructured failures report the final stderr error instead of an empty uploader heading.
   @Test func prefersTheLastUsefulStderrErrorLine() throws {
     let stderr = """
       Running altool at path '/Applications/Xcode.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources/altool'...
@@ -170,7 +247,7 @@ struct UploadCommandTests {
       let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
       #expect(description.contains("Upload failed with an unknown error."))
       #expect(description.contains("ExitFailure (31)"))
-      #expect(!description.contains("[ContentDelivery.Uploader.BF8C44D80]"))
+      #expect(description.contains("[ContentDelivery.Uploader.BF8C44D80]") == false)
     }
   }
 }

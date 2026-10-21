@@ -17,12 +17,22 @@ struct UploadCommand: AsyncParsableCommand {
     )
   }
 
+  /// The archive scheme selected for submission.
   @OptionGroup() var scheme: SchemeOption
+
+  /// The App Store Connect authentication key.
   @OptionGroup() var apiKey: ApiKeyOption
+
+  /// The issuer of the App Store Connect authentication key.
   @OptionGroup() var apiIssuer: ApiIssuerOption
+
+  /// The destination platform for the upload.
   @OptionGroup() var platform: PlatformOption
+
+  /// Shared release configuration and logging options.
   @OptionGroup() var options: CommonOptions
 
+  /// Creates the release engine and submits the exported package.
   func run() async throws {
     let engine = try await ReleaseEngine(
       options: options,
@@ -36,6 +46,7 @@ struct UploadCommand: AsyncParsableCommand {
     try await Self.upload(engine: engine)
   }
 
+  /// Uploads the package, saves diagnostic output, and tags an accepted submission.
   static func upload(engine: ReleaseEngine) async throws {
     let archive = try engine.requireArchive()
     engine.log("Uploading \(engine.versionTag(for: archive)) to Apple Connect.")
@@ -72,6 +83,7 @@ struct UploadCommand: AsyncParsableCommand {
 
   }
 
+  /// Decodes the receipt and reports structured rejections before falling back to stderr.
   static func analyzeUploadOutput(stdout: String, stderr: String) throws -> UploadReceipt? {
     let trimmedStdout = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
     if !trimmedStdout.isEmpty {
@@ -80,7 +92,8 @@ struct UploadCommand: AsyncParsableCommand {
         decoder.keyDecodingStrategy = .dashCase
         let receipt = try decoder.decode(UploadReceipt.self, from: Data(trimmedStdout.utf8))
         if let errors = receipt.productErrors, !errors.isEmpty {
-          throw Error.rejected(errors)
+          let xcodeVersion = errors.contains(where: \.isUnsupportedXcode) ? receipt.xcodeVersion : nil
+          throw Error.rejected(errors, xcodeVersion: xcodeVersion)
         }
 
         return receipt
@@ -102,6 +115,7 @@ struct UploadCommand: AsyncParsableCommand {
     return nil
   }
 
+  /// Extracts a missing-file error or the final error line from unstructured upload output.
   static func stderrError(_ stderr: String) -> Error? {
     var lastErrorLine: String?
 
@@ -137,8 +151,8 @@ extension UploadCommand {
     case decodingReceiptFailed(any Swift.Error, String)
     /// Saving the upload transcript failed.
     case savingReceiptFailed(any Swift.Error)
-    /// App Store Connect rejected the upload with structured errors.
-    case rejected([UploadReceiptError])
+    /// App Store Connect rejected the upload, optionally identifying the upload application's version and build.
+    case rejected([UploadReceiptError], xcodeVersion: String? = nil)
 
     /// The upload subprocess failed.
     case uploadingFailed
@@ -152,13 +166,13 @@ extension UploadCommand {
         case .savingReceiptFailed(let error): return "Saving upload receipt failed.\n\(error.localizedDescription)"
         case .decodingReceiptFailed(let error, let content):
           return "Decoding upload receipt failed.\n\(error.localizedDescription)\n\n\(content.isEmpty ? "No content was returned from the upload command." : "Response content:\n\(content)")"
-        case .rejected(let errors):
+        case .rejected(let errors, let xcodeVersion):
           let alreadyReleased = errors.contains(where: \.isAlreadyReleased)
           let headline = alreadyReleased ? "\nThis version has already been released.\n- Increase CFBundleShortVersionString before submitting a new build.\n" : ""
           let summaries =
             errors
             .filter { !(alreadyReleased && ($0.isAlreadyReleased || $0.isInvalidPreReleaseTrainError)) }
-            .map { "\n\($0.compactSummary)\n" }
+            .map { "\n\($0.compactSummary(xcodeVersion: xcodeVersion))\n" }
             .joined()
           return "Upload was rejected.\n\(headline)\(summaries)"
       }
