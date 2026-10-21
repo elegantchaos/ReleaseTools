@@ -8,39 +8,91 @@ import Files
 import Foundation
 import Runner
 
-/// Coordinates configuration, derived paths, and subprocess helpers for release commands.
+/// Resolves layered release settings and owns the repository's Git runner and output paths.
+/// Commands use it to read configuration, validate archives, and report progress.
 final class ReleaseEngine {
 
+  /// Whether subprocess output is displayed.
   var showOutput: Bool
+
+  /// Whether subprocess command lines are displayed.
   var showCommands: Bool
+
+  /// Whether additional diagnostic messages are displayed.
   var verbose: Bool
+
+  /// An optional synchronization gate available to release operations.
   var semaphore: DispatchSemaphore? = nil
 
+  /// Locations used to discover release configuration.
   let configPaths: RTConfigPaths
+
+  /// Reads settings for the selected scheme and platform.
   var configReader: RTConfigReader
 
+  /// The selected release platform.
   var platform: String = ""
+
+  /// The selected Xcode scheme.
   var scheme: String = ""
+
+  /// The App Store Connect API key identifier.
   var apiKey: String = ""
+
+  /// The App Store Connect API issuer identifier.
   var apiIssuer: String = ""
+
+  /// The package name inferred from the repository directory.
   var package: String = ""
+
+  /// The selected Xcode workspace path.
   var workspace: String = ""
+
+  /// Executes Git commands in the release repository.
   let git: GitRunner
+
+  /// The repository directory containing release inputs and outputs.
   let rootURL: URL
+
+  /// The current user's home directory for shared release resources.
   let homeURL = FileManager.default.homeDirectoryForCurrentUser
+
+  /// The compressed exported application.
   var exportedZipURL: URL { exportURL.appending(path: "exported.zip") }
+
+  /// The API authentication key location derived from the configured identifier.
   var apiKeyURL: URL {
     return homeURL.appendingPathComponent(".ssh").appendingPathComponent("AuthKey_\(apiKey)")
   }
+
+  /// The generated archive export options.
   var exportOptionsURL: URL { return buildURL.appendingPathComponent("options.plist") }
+
+  /// The generated change log.
   var changesURL: URL { return buildURL.appendingPathComponent("changes.txt") }
+
+  /// The notarization submission receipt.
   var notarizingReceiptURL: URL { return exportURL.appendingPathComponent("receipt.xml") }
+
+  /// The structured App Store Connect upload response.
   var uploadingReceiptURL: URL { return uploadURL.appendingPathComponent("receipt.json") }
+
+  /// The upload tool's diagnostic transcript.
   var uploadingErrorsURL: URL { return uploadURL.appendingPathComponent("errors.log") }
+
+  /// The platform-specific release output directory.
   var buildURL: URL { return rootURL.appendingPathComponents([".build", platform]) }
+
+  /// The Xcode archive selected for release.
   var archiveURL: URL { return buildURL.appendingPathComponent("archive.xcarchive") }
+
+  /// The exported application and supporting release files.
   var exportURL: URL { return buildURL.appendingPathComponent("export") }
+
+  /// The upload response and diagnostic output directory.
   var uploadURL: URL { return buildURL.appendingPathComponent("upload") }
+
+  /// The application with notarization tickets stapled to it.
   var stapledURL: URL { return buildURL.appendingPathComponent("stapled") }
 
   /// The first workspace found at the repository root when one was not passed explicitly.
@@ -59,6 +111,7 @@ final class ReleaseEngine {
     return nil
   }
 
+  /// Resolves repository configuration and command options, validating required scheme and authentication settings.
   init(
     root rootURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
     options: CommonOptions,
@@ -253,7 +306,7 @@ extension ReleaseEngine {
               \(CommandLine.name) tag --explicit-version <version> [--increment-tag]
             """
         case .versionTagAlreadyExists(let info):
-          return "A version tag already exists at HEAD: \(info)"
+          return "A version tag already exists at HEAD: v\(info.version)-\(info.build)."
         case .invalidExplicitBuild(let value):
           return "Invalid explicit build number: \(value). Must be a positive integer."
         case .gettingCommitFailed:

@@ -113,7 +113,7 @@ Finally, you can also specify the path of source and destination `.plist` files.
 
 ReleaseTools supports automatically incrementing the version tag, using the `rt tag` command.
 
-This command finds the oldest previous tag in the correct format, increments the build number by one, and uses git to create and push a new tag.
+This command creates a platform-agnostic `v<version>-<build>` tag at HEAD, using the highest existing build number plus one unless an explicit build is supplied. If HEAD already has a version tag, it reports the existing tag, for example: `A version tag already exists at HEAD: v1.0.0-267.`
 
 
 
