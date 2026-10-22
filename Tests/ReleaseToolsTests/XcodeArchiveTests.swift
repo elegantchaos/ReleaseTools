@@ -79,7 +79,7 @@ struct XcodeArchiveTests {
       }
 
       #expect(url == infoURL)
-      #expect(!reason.isEmpty)
+      #expect(reason.isEmpty == false)
       #expect(error.errorDescription?.contains(reason) == true)
     }
   }
@@ -145,7 +145,9 @@ struct XcodeArchiveTests {
       "CFBundleIdentifier": "com.example.app",
       "Team": "ABCDE12345",
     ]
-    keys.forEach { applicationProperties.removeValue(forKey: $0) }
+    for key in keys {
+      applicationProperties.removeValue(forKey: key)
+    }
 
     let info = ["ApplicationProperties": applicationProperties]
     let data = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)

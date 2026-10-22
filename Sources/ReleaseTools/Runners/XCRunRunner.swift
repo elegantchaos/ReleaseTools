@@ -7,6 +7,7 @@ import Runner
 
 /// `xcrun` runner that mirrors the engine's logging preferences.
 final class XCRunRunner: Runner {
+  /// Release context supplying logging preferences for this runner.
   let engine: ReleaseEngine
 
   /// Creates a runner bound to one release engine instance.

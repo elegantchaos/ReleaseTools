@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 17/04/2019.
-//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
@@ -9,6 +9,21 @@ import Runner
 
 /// Compresses an exported application and stages the distribution archives.
 struct CompressCommand: AsyncParsableCommand {
+  /// Scheme selection supplied on the command line.
+  @OptionGroup() var scheme: SchemeOption
+
+  /// Target platform supplied on the command line.
+  @OptionGroup() var platform: PlatformOption
+
+  /// Destination of the website repository.
+  @OptionGroup() var website: WebsiteOption
+
+  /// Destination of published application updates.
+  @OptionGroup() var updates: UpdatesOption
+
+  /// Shared workspace and diagnostic flags for this command.
+  @OptionGroup() var options: CommonOptions
+
   /// Describes the `compress` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -17,16 +32,10 @@ struct CompressCommand: AsyncParsableCommand {
     )
   }
 
-  @OptionGroup() var scheme: SchemeOption
-  @OptionGroup() var platform: PlatformOption
-  @OptionGroup() var website: WebsiteOption
-  @OptionGroup() var updates: UpdatesOption
-  @OptionGroup() var options: CommonOptions
-
+  /// Copies a compressed notarized app into the configured website update paths.
   func run() async throws {
     let engine = try await ReleaseEngine(
       options: options,
-      command: Self.configuration,
       scheme: scheme,
       platform: platform
     )

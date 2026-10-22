@@ -8,7 +8,8 @@ import Foundation
 
 /// Loads layered configuration snapshots from the paths resolved by `RTConfigPaths`.
 struct RTConfigReader {
-  let config: ConfigReader
+  /// Layered provider snapshot used to resolve effective configuration values.
+  private let config: ConfigReader
 
   /// Creates a reader using the candidate config files for the active scheme and platform.
   init(paths: RTConfigPaths, scheme: String?, platform: String?) async throws {
@@ -25,7 +26,7 @@ struct RTConfigReader {
         )
         providers.append(provider)
       } catch {
-        throw RTConfigError.invalidConfigurationFile(url, error)
+        throw Error.invalidConfigurationFile(url, error)
       }
     }
 
@@ -44,5 +45,21 @@ struct RTConfigReader {
       apiKey: config.string(forKey: "settings.apiKey", isSecret: true),
       apiIssuer: config.string(forKey: "settings.apiIssuer", isSecret: true)
     )
+  }
+}
+
+extension RTConfigReader {
+  /// Failures loading canonical JSON configuration.
+  enum Error: Swift.Error, LocalizedError {
+    /// A configuration document could not be read or decoded.
+    case invalidConfigurationFile(URL, any Swift.Error)
+
+    /// Includes the failed document's path and the provider's underlying error.
+    var errorDescription: String? {
+      switch self {
+        case .invalidConfigurationFile(let url, let error):
+          return "Failed to load configuration file at \(url.path).\n\n\(error)"
+      }
+    }
   }
 }

@@ -5,12 +5,18 @@
 
 import Foundation
 
-/// Resolves canonical and legacy configuration file locations for project and user scopes.
+/// Resolves canonical configuration file locations for project and user scopes.
 struct RTConfigPaths {
+  /// Repository directory containing project configuration.
   let rootURL: URL
+
+  /// Home directory used to resolve global configuration defaults.
   let homeURL: URL
+
+  /// Environment snapshot used to resolve XDG configuration paths.
   let environment: [String: String]
 
+  /// Captures the repository, home, and environment used for configuration discovery.
   init(
     rootURL: URL,
     homeURL: URL = FileManager.default.homeDirectoryForCurrentUser,
@@ -50,21 +56,6 @@ struct RTConfigPaths {
     globalDirectoryURL.appendingPathComponent("local")
   }
 
-  /// The legacy repository-local configuration file.
-  var legacyProjectConfigURL: URL {
-    rootURL.appendingPathComponent(".rt.json")
-  }
-
-  /// The legacy repository-local private configuration file.
-  var legacyProjectLocalConfigURL: URL {
-    rootURL.appendingPathComponent(".rt.local.json")
-  }
-
-  /// The repository `.gitignore` file.
-  var gitIgnoreURL: URL {
-    rootURL.appendingPathComponent(".gitignore")
-  }
-
   /// Candidate configuration files ordered from most specific to least specific.
   func candidateURLs(scheme: String?, platform: String?) -> [URL] {
     let normalizedScheme = normalizedComponent(scheme)
@@ -90,6 +81,7 @@ struct RTConfigPaths {
     ].compactMap { $0 }
   }
 
+  /// Trims scope names and treats missing or blank values as unscoped.
   private func normalizedComponent(_ component: String?) -> String? {
     guard let component else {
       return nil

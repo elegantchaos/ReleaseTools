@@ -7,6 +7,7 @@ import ArgumentParser
 
 /// Common command-line option for selecting an App Store Connect API key.
 struct ApiKeyOption: ParsableArguments {
+  /// App Store Connect API key identifier supplied by the caller.
   @Option(name: .customLong("api-key"), help: "The App Store Connect api key ID we're using.")
   var key: String?
 }

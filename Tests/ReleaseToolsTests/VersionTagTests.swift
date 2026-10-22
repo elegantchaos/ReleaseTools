@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Tests on 08/10/25.
-//  All code (c) 2025 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 08/10/2025.
+//  Copyright © 2025 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
@@ -10,126 +10,115 @@ import Testing
 
 @testable import ReleaseTools
 
+/// Checks build-number and version selection from repository tags.
 struct VersionTagTests {
-
-  // MARK: - Tests
-
+  /// A required HEAD version fails when no release tag is present.
   @Test func failsWithoutVersionTagAtHEAD() async throws {
     let repo = try await TestRepo()
 
-    // Create a non-version tag (should not count)
     try await repo.tag(name: "some-tag")
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     await #expect(throws: ReleaseEngine.Error.noVersionTagAtHEAD) {
       _ = try await parsed.versionTagAtHEAD()
     }
   }
 
+  /// A shared HEAD tag supplies its version and build.
   @Test func succeedsWithVersionTagAtHEAD() async throws {
     let repo = try await TestRepo()
 
-    // Create a platform-agnostic version tag
     try await repo.tag(name: "v1.2.3-42")
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
-    // Should not throw
     _ = try await parsed.versionTagAtHEAD()
   }
 
+  /// Platform-specific tags do not satisfy the shared HEAD-tag requirement.
   @Test func ignoresPlatformSpecificTags() async throws {
     let repo = try await TestRepo()
 
-    // Create only a platform-specific tag (should not count)
     try await repo.tag(name: "v1.2.3-42-iOS")
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     await #expect(throws: ReleaseEngine.Error.noVersionTagAtHEAD) {
       _ = try await parsed.versionTagAtHEAD()
     }
   }
 
+  /// Additional unrelated HEAD tags do not hide a valid release tag.
   @Test func allowsMultipleTagsAtHEAD() async throws {
     let repo = try await TestRepo()
 
-    // Create multiple tags at HEAD
     try await repo.tag(name: "v1.2.3-42")
     try await repo.tag(name: "v1.2.3-42-iOS")
     try await repo.tag(name: "release-tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
-    // Should not throw as long as there's at least one platform-agnostic version tag
     _ = try await parsed.versionTagAtHEAD()
   }
 
-  // MARK: - Tests for requireHeadTag = false
-
+  /// An untagged repository calculates build 1.
   @Test func calculatesNextBuildNumberWithNoTags() async throws {
     let repo = try await TestRepo()
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
-    // Should return build number 1 when no tags exist
     #expect(buildInfo.build == 1)
 
-    // Verify commit SHA is valid (40 character hex string)
     #expect(buildInfo.commit.count == 40)
     #expect(buildInfo.commit.allSatisfy { $0.isHexDigit })
   }
 
+  /// A shared tag supplies the baseline for the next build.
   @Test func calculatesNextBuildNumberFromPlatformAgnosticTag() async throws {
     let repo = try await TestRepo()
 
-    // Create a platform-agnostic tag
     try await repo.tag(name: "v1.0.0-5")
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
-    // Should return next build number (6)
     #expect(buildInfo.build == 6)
 
-    // Verify commit SHA is valid
     #expect(buildInfo.commit.count == 40)
     #expect(buildInfo.commit.allSatisfy { $0.isHexDigit })
   }
 
+  /// A platform-specific tag supplies the baseline for the next build.
   @Test func calculatesNextBuildNumberFromPlatformSpecificTag() async throws {
     let repo = try await TestRepo()
 
-    // Create a platform-specific tag
     try await repo.tag(name: "v1.0.0-10-iOS")
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
-    // Should return next build number (11), converting from platform-specific
     #expect(buildInfo.build == 11)
 
-    // Verify commit SHA is valid
     #expect(buildInfo.commit.count == 40)
     #expect(buildInfo.commit.allSatisfy { $0.isHexDigit })
   }
 
+  /// The highest build wins across multiple versions and platforms.
   @Test func calculatesNextBuildNumberFromMultipleTags() async throws {
     let repo = try await TestRepo()
 
-    // Create multiple tags with different build numbers
     try await repo.tag(name: "v1.0.0-5")
     try await repo.tag(name: "v1.0.0-10-iOS")
     try await repo.tag(name: "v1.0.0-8-macOS")
@@ -137,72 +126,65 @@ struct VersionTagTests {
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
-    // Should return next build number based on highest (20 + 1 = 21)
     #expect(buildInfo.build == 21)
 
-    // Verify commit SHA is valid
     #expect(buildInfo.commit.count == 40)
     #expect(buildInfo.commit.allSatisfy { $0.isHexDigit })
   }
 
+  /// Calculated build metadata retains the current HEAD commit.
   @Test func returnsCurrentHeadCommitWhenRequireHeadTagIsFalse() async throws {
     let repo = try await TestRepo()
 
-    // Create an initial tag
     try await repo.tag(name: "v1.0.0-1")
 
-    // Create a new commit (so HEAD is different from the tag)
     try await repo.commit(message: "new commit")
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
-    // Should return next build number
     #expect(buildInfo.build == 2)
 
-    // Verify it returns the current HEAD commit, not the tag's commit
     let headResult = await repo.checkedGit(["rev-parse", "HEAD"])
     let headCommit = headResult.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
     #expect(buildInfo.commit == headCommit)
   }
 
+  /// A higher shared tag supplies the next build’s version.
   @Test func prefersAgnosticOverPlatformSpecificForNextBuild() async throws {
     let repo = try await TestRepo()
 
-    // Create tags where platform-agnostic has higher build number
     try await repo.tag(name: "v1.0.0-30")
     try await repo.tag(name: "v1.0.0-20-iOS")
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
-    // Should use the highest build number (30) and return 31
     #expect(buildInfo.build == 31)
   }
 
+  /// A higher platform-specific tag supplies the next build’s version.
   @Test func prefersPlatformSpecificOverAgnosticForNextBuild() async throws {
     let repo = try await TestRepo()
 
-    // Create tags where platform-specific has higher build number
     try await repo.tag(name: "v1.0.0-10")
     try await repo.tag(name: "v1.0.0-25-macOS")
     try await repo.commit(message: "commit with no tag")
 
     let options = try CommonOptions.parse([])
-    let parsed = try await ReleaseEngine(root: repo.url, options: options, command: ArchiveCommand.configuration)
+    let parsed = try await ReleaseEngine(root: repo.url, options: options)
 
     let buildInfo = try await parsed.buildInfoFromTag(requireHeadTag: false)
 
-    // Should use the highest build number (25) and return 26
     #expect(buildInfo.build == 26)
   }
 }

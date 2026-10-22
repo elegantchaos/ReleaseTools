@@ -7,6 +7,7 @@ import ArgumentParser
 
 /// Common command-line option for selecting an App Store Connect issuer.
 struct ApiIssuerOption: ParsableArguments {
+  /// App Store Connect API issuer identifier supplied by the caller.
   @Option(name: .customLong("api-issuer"), help: "The App Store Connect issuer ID we're using.")
   var issuer: String?
 }

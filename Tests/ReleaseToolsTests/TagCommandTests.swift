@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Tests on 08/10/25.
-//  All code (c) 2025 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 08/10/2025.
+//  Copyright © 2025 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
@@ -9,155 +9,129 @@ import Testing
 
 @testable import ReleaseTools
 
+/// Exercises tag creation and rejection through the current build’s executable.
 struct TagCommandTests {
-
-  // MARK: - Tests
-
+  /// Explicit version and build options produce the requested tag.
   @Test func createsTagWithExplicitVersion() async throws {
     let repo = try await TestRepo()
 
-    // Run the tag command with explicit version and build number
     await repo.checkedRT(["tag", "--explicit-version", "1.2.3", "--explicit-build", "42"])
 
-    // Verify the tag was created with the explicit build number
     try await repo.expectHeadTagsContains(["v1.2.3-42"])
   }
 
+  /// Duplicate tags fail with the current executable’s readable version-tag message.
   @Test func failsIfTagAlreadyExists() async throws {
     let repo = try await TestRepo()
 
-    // Create a tag at HEAD
     try await repo.tag(name: "v1.0.0-1")
 
-    // Verify the tag exists at HEAD
     let tags = try await repo.headTags()
     #expect(tags.contains("v1.0.0-1"), "Tag v1.0.0-1 should exist at HEAD, found: \(tags)")
 
-    // Try to create another tag - should fail
     let result = await repo.runRT(["tag", "--explicit-version", "1.0.0", "--explicit-build", "2"])
 
-    // Command should fail
     #expect(result.state != .succeeded, "Command should have failed but succeeded")
     let output = result.stdout + result.stderr
     #expect(
-      output.contains("already exists") || output.contains("tagAlreadyExists"),
+      output.contains("Error: A version tag already exists at HEAD: v1.0.0-1."),
       "Error message should mention tag already exists. stdout: \(result.stdout), stderr: \(result.stderr)")
   }
 
+  /// Unrelated tags do not prevent creation of a release version tag.
   @Test func allowsNonVersionTagsAtHEAD() async throws {
     let repo = try await TestRepo()
 
-    // Create a non-version tag at HEAD
     try await repo.tag(name: "some-other-tag")
 
-    // Run the tag command - should succeed despite the other tag
     await repo.checkedRT(["tag", "--explicit-version", "1.0.0", "--explicit-build", "1"])
 
-    // Verify both tags exist
     try await repo.expectHeadTagsContains(["v1.0.0-1", "some-other-tag"])
   }
 
+  /// Tag creation increments the highest existing build number.
   @Test func calculatesIncrementalBuildNumber() async throws {
     let repo = try await TestRepo()
 
-    // Create an existing tag on a previous commit
     try await repo.tag(name: "v1.0.0-5")
     try await repo.commit(message: "second commit")
 
-    // Run the tag command (always increments tag now)
     await repo.checkedRT(["tag", "--explicit-version", "1.0.0"])
 
-    // Verify the tag was created with build number 6
     try await repo.expectHeadTagsContains(["v1.0.0-6"])
   }
 
+  /// Platform-specific tags contribute to the next shared build number.
   @Test func convertsFromPlatformSpecificTags() async throws {
     let repo = try await TestRepo()
 
-    // Create platform-specific tags
     try await repo.tag(name: "v1.0.0-10-iOS")
     try await repo.tag(name: "v1.0.0-15-macOS")
     try await repo.commit(message: "second commit")
 
-    // Run the tag command
-    // It should find the highest platform-specific tag (15) and increment it
     await repo.checkedRT(["tag", "--explicit-version", "1.0.1"])
 
-    // Verify the tag was created with build number 16 (15 + 1)
     try await repo.expectHeadTagsContains(["v1.0.1-16"])
   }
 
+  /// A higher platform-specific build wins when creating a tag.
   @Test func prefersPlatformSpecificOverAgnosticWhenHigher() async throws {
     let repo = try await TestRepo()
 
-    // Create both platform-agnostic and platform-specific tags
     try await repo.tag(name: "v1.0.0-10")
     try await repo.tag(name: "v1.0.0-20-iOS")
     try await repo.commit(message: "second commit")
 
-    // Run the tag command
-    // It should use the highest build number (20 from iOS) and increment it
     await repo.checkedRT(["tag", "--explicit-version", "1.0.1"])
 
-    // Verify the tag was created with build number 21 (20 + 1)
     try await repo.expectHeadTagsContains(["v1.0.1-21"])
   }
 
+  /// A higher shared build wins when creating a tag.
   @Test func prefersAgnosticOverPlatformSpecificWhenHigher() async throws {
     let repo = try await TestRepo()
 
-    // Create both platform-agnostic and platform-specific tags
     try await repo.tag(name: "v1.0.0-30")
     try await repo.tag(name: "v1.0.0-20-iOS")
     try await repo.commit(message: "second commit")
 
-    // Run the tag command
-    // It should use the highest build number (30 from agnostic) and increment it
     await repo.checkedRT(["tag", "--explicit-version", "1.0.1"])
 
-    // Verify the tag was created with build number 31 (30 + 1)
     try await repo.expectHeadTagsContains(["v1.0.1-31"])
   }
 
+  /// An inferred version follows the tag with the highest build number.
   @Test func usesVersionFromHighestTag() async throws {
     let repo = try await TestRepo()
 
-    // Create tags with different versions
     try await repo.tag(name: "v1.0.0-5")
     try await repo.tag(name: "v2.3.1-10")
     try await repo.commit(message: "new commit")
 
-    // Run tag command without specifying version
-    // It should use version 2.3.1 from the highest tag (build 10)
     await repo.checkedRT(["tag"])
 
-    // Verify it created v2.3.1-11 (same version, incremented build)
     try await repo.expectHeadTagsContains(["v2.3.1-11"])
   }
 
+  /// An untagged repository starts at version 1.0.0 and build 1.
   @Test func fallsBackToDefaultVersion() async throws {
     let repo = try await TestRepo()
 
-    // No tags exist, should fall back to 1.0.0
     await repo.checkedRT(["tag"])
 
-    // Verify it created v1.0.0-1
     try await repo.expectHeadTagsContains(["v1.0.0-1"])
   }
 
+  /// A platform-specific tag supplies the inferred version when it has the highest build.
   @Test func usesVersionFromPlatformSpecificTag() async throws {
     let repo = try await TestRepo()
 
-    // Create only platform-specific tags
     try await repo.tag(name: "v3.5.0-15-iOS")
     try await repo.tag(name: "v3.5.0-10-macOS")
     try await repo.commit(message: "new commit")
 
-    // Run tag command without specifying version
-    // It should use version 3.5.0 from the highest platform-specific tag
     await repo.checkedRT(["tag"])
 
-    // Verify it created v3.5.0-16 (same version, incremented build from 15)
     try await repo.expectHeadTagsContains(["v3.5.0-16"])
   }
 }

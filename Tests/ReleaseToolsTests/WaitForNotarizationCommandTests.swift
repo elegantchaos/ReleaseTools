@@ -26,7 +26,7 @@ struct WaitForNotarizationCommandTests {
     for error in errors {
       let description = error.errorDescription ?? ""
       #expect(description.contains(expected))
-      #expect(!description.contains("missingRequiredMetadata"))
+      #expect(description.contains("missingRequiredMetadata") == false)
     }
   }
 

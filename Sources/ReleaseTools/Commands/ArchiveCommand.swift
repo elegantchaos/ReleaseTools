@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 17/04/2019.
-//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
@@ -9,6 +9,18 @@ import Runner
 
 /// Archives the configured scheme for a release build.
 struct ArchiveCommand: AsyncParsableCommand {
+  /// Optional build settings file passed to Xcode.
+  @Option(help: "Additional xcconfig file to use when building") var xcconfig: String?
+
+  /// Scheme selection supplied on the command line.
+  @OptionGroup() var scheme: SchemeOption
+
+  /// Target platform supplied on the command line.
+  @OptionGroup() var platform: PlatformOption
+
+  /// Shared workspace and diagnostic flags for this command.
+  @OptionGroup() var options: CommonOptions
+
   /// Describes the `archive` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -17,15 +29,10 @@ struct ArchiveCommand: AsyncParsableCommand {
     )
   }
 
-  @Option(help: "Additional xcconfig file to use when building") var xcconfig: String?
-  @OptionGroup() var scheme: SchemeOption
-  @OptionGroup() var platform: PlatformOption
-  @OptionGroup() var options: CommonOptions
-
+  /// Resolves command options and creates the release archive.
   func run() async throws {
     let engine = try await ReleaseEngine(
       options: options,
-      command: Self.configuration,
       scheme: scheme,
       platform: platform,
     )
@@ -33,6 +40,7 @@ struct ArchiveCommand: AsyncParsableCommand {
     try await Self.archive(engine: engine, xcconfig: xcconfig)
   }
 
+  /// Generates version metadata and archives the selected workspace, scheme, and platform.
   static func archive(engine: ReleaseEngine, xcconfig: String? = nil) async throws {
     let infoHeaderPath = "\(engine.buildURL.path)/VersionInfo.h"
     let buildInfo = try await engine.generateHeader(

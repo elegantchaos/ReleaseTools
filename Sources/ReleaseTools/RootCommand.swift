@@ -6,13 +6,16 @@
 import ArgumentParser
 import Foundation
 import Logger
-import Runner
 
 /// Root command that's run if no subcommand is specified.
 ///
 /// Handles the `--version` flag, or shows the help if no arguments are provided.
 @main
 struct RootCommand: AsyncParsableCommand {
+  /// Whether to print the executable’s version metadata.
+  @Flag(help: "Show the version.") var version = false
+
+  /// Registers the root command’s available release operations.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
       commandName: "rt",
@@ -35,8 +38,7 @@ struct RootCommand: AsyncParsableCommand {
     )
   }
 
-  @Flag(help: "Show the version.") var version = false
-
+  /// Prints version metadata when requested, otherwise displays root command help.
   mutating func run() async throws {
     if version {
       let string = VersionatorVersion.git.contains("-0-") ? VersionatorVersion.tag : VersionatorVersion.git
@@ -46,6 +48,7 @@ struct RootCommand: AsyncParsableCommand {
     }
   }
 
+  /// Parses and executes commands, shutting down logging before success or failure exits.
   public static func main() async {
     do {
       var command = try parseAsRoot(nil)
