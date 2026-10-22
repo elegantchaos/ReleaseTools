@@ -80,3 +80,17 @@ no lint findings), full `agt validate` (macOS build and 65 tests in 10 suites),
 The user clarified that consistent copyright formatting must preserve each file's
 original year. Restored years from the pre-cleanup sources, including source
 provenance for split/moved files; retained the standardized copyright wording.
+
+## Header provenance correction — 2026-10-22
+
+Audited creation and copyright dates together after the user identified conflicting
+years. BasicSettings already existed in WorkspaceSettings (created 12 August 2025,
+introduced by commit 97acfee); extraction in March 2026 copied an unrelated 2020
+copyright. Its header now retains the originating 2025 date and publication year.
+RTConfigDocument was introduced in March 2026 and uses 2026.
+
+Restored originating dates for receipt and coding-key types split into new files,
+and corrected newly added headers for Package.swift and ConfigTests using their
+initial Git additions. Existing creation dates were preserved elsewhere, and
+copyright years now agree with the originating creation years. Checked all 50
+Swift headers for consistency; the corrections only affect header comments.

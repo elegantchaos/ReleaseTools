@@ -1,8 +1,8 @@
 // swift-tools-version:6.2
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 21/10/2026.
-//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
+//  Created by Sam Deane on 17/04/2019.
+//  Copyright © 2019 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import PackageDescription
