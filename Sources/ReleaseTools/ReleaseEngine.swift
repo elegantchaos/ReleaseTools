@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 24/02/2020.
-//  Copyright © 2020 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import ArgumentParser
@@ -11,7 +11,6 @@ import Runner
 /// Resolves layered release settings and owns the repository's Git runner and output paths.
 /// Commands use it to read configuration, validate archives, and report progress.
 final class ReleaseEngine {
-
   /// Whether subprocess output is displayed.
   var showOutput: Bool
 
@@ -20,9 +19,6 @@ final class ReleaseEngine {
 
   /// Whether additional diagnostic messages are displayed.
   var verbose: Bool
-
-  /// An optional synchronization gate available to release operations.
-  var semaphore: DispatchSemaphore? = nil
 
   /// Locations used to discover release configuration.
   let configPaths: RTConfigPaths
@@ -54,16 +50,81 @@ final class ReleaseEngine {
   /// The repository directory containing release inputs and outputs.
   let rootURL: URL
 
-  /// The current user's home directory for shared release resources.
-  let homeURL = FileManager.default.homeDirectoryForCurrentUser
+  /// Resolves repository configuration and command options, validating required scheme and authentication settings.
+  init(
+    root rootURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
+    options: CommonOptions,
+    scheme: SchemeOption? = nil,
+    apiKey: ApiKeyOption? = nil,
+    apiIssuer: ApiIssuerOption? = nil,
+    platform: PlatformOption? = nil,
+    setDefaultPlatform: Bool = true
+  ) async throws {
+    let git = GitRunner()
+    git.cwd = rootURL
+    self.git = git
+
+    self.rootURL = rootURL
+    self.configPaths = RTConfigPaths(
+      rootURL: rootURL,
+      homeURL: FileManager.default.homeDirectoryForCurrentUser
+    )
+    showOutput = options.showOutput
+    showCommands = options.showCommands
+    verbose = options.verbose
+    package = rootURL.lastPathComponent
+    if let platform = platform {
+      self.platform = platform.platform ?? (setDefaultPlatform ? "macOS" : "")
+    }
+
+    configReader = try await RTConfigReader(paths: configPaths, scheme: nil, platform: self.platform)
+
+    // Commands that resolve schemes need a workspace before layered config can be finalized.
+    if scheme != nil {
+      if let workspace = options.workspace ?? defaultWorkspace {
+        self.workspace = workspace
+      } else {
+        throw Error.missingWorkspace
+      }
+    }
+
+    if scheme != nil {
+      if let scheme = scheme?.scheme ?? defaultScheme {
+        self.scheme = scheme
+      } else {
+        throw Error.noDefaultScheme(self.platform)
+      }
+    }
+
+    configReader = try await RTConfigReader(
+      paths: configPaths,
+      scheme: self.scheme,
+      platform: self.platform
+    )
+
+    if apiKey != nil {
+      if let key = apiKey?.key ?? getSettings().apiKey {
+        self.apiKey = key
+      }
+    }
+
+    if apiIssuer != nil {
+      if let issuer = apiIssuer?.issuer ?? getSettings().apiIssuer {
+        self.apiIssuer = issuer
+      }
+    }
+
+    if apiKey != nil || apiIssuer != nil {
+      // Reject partially configured App Store Connect credentials.
+      if self.apiKey.isEmpty != self.apiIssuer.isEmpty {
+        throw Error.apiKeyAndIssuer
+      }
+    }
+
+  }
 
   /// The compressed exported application.
   var exportedZipURL: URL { exportURL.appending(path: "exported.zip") }
-
-  /// The API authentication key location derived from the configured identifier.
-  var apiKeyURL: URL {
-    return homeURL.appendingPathComponent(".ssh").appendingPathComponent("AuthKey_\(apiKey)")
-  }
 
   /// The generated archive export options.
   var exportOptionsURL: URL { return buildURL.appendingPathComponent("options.plist") }
@@ -109,81 +170,6 @@ final class ReleaseEngine {
       }
     }
     return nil
-  }
-
-  /// Resolves repository configuration and command options, validating required scheme and authentication settings.
-  init(
-    root rootURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
-    options: CommonOptions,
-    command: CommandConfiguration,
-    scheme: SchemeOption? = nil,
-    apiKey: ApiKeyOption? = nil,
-    apiIssuer: ApiIssuerOption? = nil,
-    platform: PlatformOption? = nil,
-    setDefaultPlatform: Bool = true
-  ) async throws {
-    let git = GitRunner()
-    git.cwd = rootURL
-    self.git = git
-
-    self.rootURL = rootURL
-    self.configPaths = RTConfigPaths(
-      rootURL: rootURL,
-      homeURL: FileManager.default.homeDirectoryForCurrentUser
-    )
-    showOutput = options.showOutput
-    showCommands = options.showCommands
-    verbose = options.verbose
-    package = rootURL.lastPathComponent
-    if let platform = platform {
-      self.platform = platform.platform ?? (setDefaultPlatform ? "macOS" : "")
-    }
-
-    try RTLegacyConfigMigrator(paths: configPaths).migrateIfNeeded()
-    configReader = try await RTConfigReader(paths: configPaths, scheme: nil, platform: self.platform)
-
-    // Commands that resolve schemes need a workspace before layered config can be finalized.
-    if scheme != nil {
-      if let workspace = options.workspace ?? defaultWorkspace {
-        self.workspace = workspace
-      } else {
-        throw Error.missingWorkspace
-      }
-    }
-
-    if scheme != nil {
-      if let scheme = scheme?.scheme ?? defaultScheme {
-        self.scheme = scheme
-      } else {
-        throw Error.noDefaultScheme(self.platform)
-      }
-    }
-
-    configReader = try await RTConfigReader(
-      paths: configPaths,
-      scheme: self.scheme,
-      platform: self.platform
-    )
-
-    if apiKey != nil {
-      if let key = apiKey?.key ?? getSettings().apiKey {
-        self.apiKey = key
-      }
-    }
-
-    if apiIssuer != nil {
-      if let issuer = apiIssuer?.issuer ?? getSettings().apiIssuer {
-        self.apiIssuer = issuer
-      }
-    }
-
-    if apiKey != nil || apiIssuer != nil {
-      // Reject partially configured App Store Connect credentials.
-      if self.apiKey.isEmpty != self.apiIssuer.isEmpty {
-        throw Error.apiKeyAndIssuer
-      }
-    }
-
   }
 
   /// Loads and validates the archive at the configured archive path.
@@ -245,27 +231,37 @@ extension ReleaseEngine {
   enum Error: Swift.Error, LocalizedError, Sendable, Equatable {
     /// A command needed a workspace and no workspace could be inferred.
     case missingWorkspace
+
     /// App Store Connect credentials were supplied incompletely.
     case apiKeyAndIssuer
+
     /// A command needed a scheme and no default was configured.
     case noDefaultScheme(String)
+
     /// A release tag could not be created.
     case taggingFailed
+
     /// HEAD does not have a version tag.
     case noVersionTagAtHEAD
+
     /// A version tag already exists at HEAD.
     case versionTagAlreadyExists(BuildInfo)
+
     /// A supplied build number cannot be parsed as a positive integer.
     case invalidExplicitBuild(String)
+
     /// Reading the HEAD commit failed.
     case gettingCommitFailed
+
     /// Parsing the HEAD commit failed.
     case parsingCommitFailed
+
     /// Writing generated build configuration failed.
     case writingConfigFailed(String)
 
     /// Listing release tags failed.
     case gettingBuildFailed
+
     /// Updating git's index for generated configuration failed.
     case updatingIndexFailed
 

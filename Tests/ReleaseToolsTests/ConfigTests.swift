@@ -1,11 +1,17 @@
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//  Created by Sam Deane on 21/10/2026.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 import ArgumentParser
 import Foundation
 import Testing
 
 @testable import ReleaseTools
 
+/// Checks canonical configuration discovery, precedence, and engine initialization.
 struct ConfigTests {
-
+  /// Global configuration honors the supplied XDG root.
   @Test func usesXDGConfigHomeForGlobalRoot() throws {
     let root = try makeTempDirectory()
     let home = try makeTempDirectory()
@@ -20,6 +26,7 @@ struct ConfigTests {
     #expect(paths.globalDirectoryURL.path == xdg.appendingPathComponent("rt").path)
   }
 
+  /// Specific local overrides win while unspecified fields inherit broader defaults.
   @Test func resolvesConfigWithExpectedPrecedence() async throws {
     let root = try makeTempDirectory()
     let home = try makeTempDirectory()
@@ -56,21 +63,21 @@ struct ConfigTests {
       RTConfigDocument(
         settings: BasicSettings(apiKey: "project-scheme-key")
       ),
-      to: paths.schemeURL(root: paths.projectDirectoryURL, scheme: "App")!
+      to: try #require(paths.schemeURL(root: paths.projectDirectoryURL, scheme: "App"))
     )
 
     try writeConfig(
       RTConfigDocument(
         settings: BasicSettings(apiKey: "project-platform-key")
       ),
-      to: paths.platformURL(root: paths.projectDirectoryURL, platform: "iOS")!
+      to: try #require(paths.platformURL(root: paths.projectDirectoryURL, platform: "iOS"))
     )
 
     try writeConfig(
       RTConfigDocument(
         settings: BasicSettings(apiKey: "project-local-scoped-key")
       ),
-      to: paths.scopedURL(root: paths.projectLocalDirectoryURL, scheme: "App", platform: "iOS")!
+      to: try #require(paths.scopedURL(root: paths.projectLocalDirectoryURL, scheme: "App", platform: "iOS"))
     )
 
     let defaultReader = try await RTConfigReader(paths: paths, scheme: nil, platform: "iOS")
@@ -84,184 +91,49 @@ struct ConfigTests {
     #expect(settings.keychain == "/global/keychain")
   }
 
-  @Test func migratesLegacyProjectFilesIntoDotRTDirectory() throws {
-    let repo = try makeTempDirectory()
-    try "# Existing ignore rules\n".write(
-      to: repo.appendingPathComponent(".gitignore"),
-      atomically: true,
-      encoding: .utf8
-    )
-
-    try """
-    {
-      "defaultScheme": "Stack",
-      "settings": {
-        "*": {
-          "apiKey": "base-key"
-        },
-        "iOS": {
-          "apiIssuer": "platform-issuer"
-        },
-        "Watch": {
-          "keychain": "watch-keychain"
-        },
-        "Watch.iOS": {
-          "apiKey": "scoped-key"
-        }
-      }
-    }
-    """.write(
-      to: repo.appendingPathComponent(".rt.json"),
-      atomically: true,
-      encoding: .utf8
-    )
-
-    try """
-    {
-      "settings": {
-        "*": {
-          "apiIssuer": "local-issuer"
-        }
-      }
-    }
-    """.write(
-      to: repo.appendingPathComponent(".rt.local.json"),
-      atomically: true,
-      encoding: .utf8
-    )
-
-    let paths = RTConfigPaths(rootURL: repo)
-    try RTLegacyConfigMigrator(paths: paths).migrateIfNeeded()
-
-    #expect(!FileManager.default.fileExists(atPath: paths.legacyProjectConfigURL.path))
-    #expect(!FileManager.default.fileExists(atPath: paths.legacyProjectLocalConfigURL.path))
-
-    let base = try loadConfig(at: paths.baseURL(root: paths.projectDirectoryURL))
-    #expect(base.defaults?.scheme == "Stack")
-    #expect(base.settings?.apiKey == "base-key")
-
-    let platform = try loadConfig(at: paths.platformURL(root: paths.projectDirectoryURL, platform: "iOS")!)
-    #expect(platform.settings?.apiIssuer == "platform-issuer")
-
-    let scheme = try loadConfig(at: paths.schemeURL(root: paths.projectDirectoryURL, scheme: "Watch")!)
-    #expect(scheme.settings?.keychain == "watch-keychain")
-
-    let scoped = try loadConfig(
-      at: paths.scopedURL(root: paths.projectDirectoryURL, scheme: "Watch", platform: "iOS")!
-    )
-    #expect(scoped.settings?.apiKey == "scoped-key")
-
-    let localBase = try loadConfig(at: paths.baseURL(root: paths.projectLocalDirectoryURL))
-    #expect(localBase.settings?.apiIssuer == "local-issuer")
-
-    let gitIgnore = try String(contentsOf: paths.gitIgnoreURL, encoding: .utf8)
-    #expect(gitIgnore.contains(".rt/local/"))
-  }
-
-  @Test func migratesLegacyBaseConfigWhenDotRTDirectoryAlreadyExists() throws {
-    let repo = try makeTempDirectory()
-    let paths = RTConfigPaths(rootURL: repo)
-
-    try FileManager.default.createDirectory(at: paths.projectDirectoryURL, withIntermediateDirectories: true)
-
-    try """
-    {
-      "defaultScheme": "Stack",
-      "settings": {
-        "*": {
-          "apiKey": "base-key"
-        }
-      }
-    }
-    """.write(
-      to: paths.legacyProjectConfigURL,
-      atomically: true,
-      encoding: .utf8
-    )
-
-    try RTLegacyConfigMigrator(paths: paths).migrateIfNeeded()
-
-    let base = try loadConfig(at: paths.baseURL(root: paths.projectDirectoryURL))
-    #expect(base.defaults?.scheme == "Stack")
-    #expect(base.settings?.apiKey == "base-key")
-    #expect(!FileManager.default.fileExists(atPath: paths.legacyProjectConfigURL.path))
-  }
-
-  @Test func rejectsCanonicalConfigStoredInLegacyFileLocation() throws {
-    let repo = try makeTempDirectory()
-    let paths = RTConfigPaths(rootURL: repo)
-
-    try """
-    {
-      "defaults": {
-        "scheme": "Stack"
-      },
-      "settings": {
-        "apiKey": "base-key"
-      }
-    }
-    """.write(
-      to: paths.legacyProjectConfigURL,
-      atomically: true,
-      encoding: .utf8
-    )
-
-    do {
-      try RTLegacyConfigMigrator(paths: paths).migrateIfNeeded()
-      Issue.record("Expected canonical config in a legacy file location to be rejected.")
-    } catch let error as RTConfigError {
-      guard case .mixedLegacyAndCanonicalSchema(let url) = error else {
-        Issue.record("Unexpected error: \(error)")
-        return
-      }
-
-      #expect(url == paths.legacyProjectConfigURL)
-      #expect(FileManager.default.fileExists(atPath: paths.legacyProjectConfigURL.path))
-      #expect(!FileManager.default.fileExists(atPath: paths.baseURL(root: paths.projectDirectoryURL).path))
-    }
-  }
-
-  @Test func releaseEngineMigratesLegacyConfigAndResolvesSchemeSettings() async throws {
+  /// Engine initialization reads canonical settings without modifying unrelated files.
+  @Test func ignoresLegacyConfigurationFiles() async throws {
     let repo = try await TestRepo()
-    let workspaceURL = repo.url.appendingPathComponent("Stack.xcworkspace")
-    try FileManager.default.createDirectory(at: workspaceURL, withIntermediateDirectories: true)
+    let legacy = repo.url.appending(path: ".rt.json")
+    let local = repo.url.appending(path: ".rt.local.json")
+    let contents = "{\"defaultScheme\":\"Ignored\",\"settings\":{\"*\":{\"apiKey\":\"ignored\"}}}"
+    try contents.write(to: legacy, atomically: true, encoding: .utf8)
+    try contents.write(to: local, atomically: true, encoding: .utf8)
+    let options = try CommonOptions.parse([])
+    let engine = try await ReleaseEngine(root: repo.url, options: options)
 
-    try """
-    {
-      "defaultScheme": "Stack",
-      "settings": {
-        "*": {
-          "apiKey": "base-key",
-          "apiIssuer": "base-issuer"
-        },
-        "Stack": {
-          "apiKey": "scheme-key",
-          "apiIssuer": "scheme-issuer"
-        }
-      }
-    }
-    """.write(
-      to: repo.url.appendingPathComponent(".rt.json"),
-      atomically: true,
-      encoding: .utf8
+    #expect(engine.configReader.defaultScheme == nil)
+    #expect(engine.getSettings().apiKey == nil)
+    #expect(try String(contentsOf: legacy, encoding: .utf8) == contents)
+    #expect(try String(contentsOf: local, encoding: .utf8) == contents)
+    #expect(FileManager.default.fileExists(atPath: repo.url.appending(path: ".rt").path) == false)
+    #expect(FileManager.default.fileExists(atPath: repo.url.appending(path: ".gitignore").path) == false)
+  }
+
+  /// Scheme-specific canonical settings override the base document during engine initialization.
+  @Test func releaseEngineResolvesCanonicalSchemeSettings() async throws {
+    let repo = try await TestRepo()
+    let workspace = repo.url.appending(path: "Stack.xcworkspace")
+    try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
+    let paths = RTConfigPaths(rootURL: repo.url)
+    try writeConfig(
+      RTConfigDocument(defaults: .init(scheme: "Stack"), settings: .init(apiKey: "base-key", apiIssuer: "base-issuer")),
+      to: paths.baseURL(root: paths.projectDirectoryURL)
     )
-
+    try writeConfig(
+      RTConfigDocument(settings: .init(apiKey: "scheme-key", apiIssuer: "scheme-issuer")),
+      to: try #require(paths.schemeURL(root: paths.projectDirectoryURL, scheme: "Stack"))
+    )
     let options = try CommonOptions.parse([])
     let scheme = try SchemeOption.parse([])
-    let engine = try await ReleaseEngine(
-      root: repo.url,
-      options: options,
-      command: ArchiveCommand.configuration,
-      scheme: scheme
-    )
+    let engine = try await ReleaseEngine(root: repo.url, options: options, scheme: scheme)
 
     #expect(engine.scheme == "Stack")
     #expect(engine.getSettings().apiKey == "scheme-key")
     #expect(engine.getSettings().apiIssuer == "scheme-issuer")
-    #expect(FileManager.default.fileExists(atPath: repo.url.appendingPathComponent(".rt/config.json").path))
-    #expect(!FileManager.default.fileExists(atPath: repo.url.appendingPathComponent(".rt.json").path))
   }
 
+  /// Creates an isolated directory for configuration fixtures.
   private func makeTempDirectory() throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory())
       .appendingPathComponent("ReleaseToolsConfigTests-\(UUID().uuidString)")
@@ -269,6 +141,7 @@ struct ConfigTests {
     return url
   }
 
+  /// Writes a canonical JSON fixture, creating its parent directories.
   private func writeConfig(_ config: RTConfigDocument, to url: URL) throws {
     try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
 
@@ -276,11 +149,5 @@ struct ConfigTests {
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     let data = try encoder.encode(config)
     try data.write(to: url)
-  }
-
-  private func loadConfig(at url: URL) throws -> RTConfigDocument {
-    let data = try Data(contentsOf: url)
-    let decoder = JSONDecoder()
-    return try decoder.decode(RTConfigDocument.self, from: data)
   }
 }

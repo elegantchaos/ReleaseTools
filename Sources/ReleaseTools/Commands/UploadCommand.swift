@@ -9,6 +9,21 @@ import Runner
 
 /// Uploads an exported build to App Store Connect.
 struct UploadCommand: AsyncParsableCommand {
+  /// Scheme selection supplied on the command line.
+  @OptionGroup() var scheme: SchemeOption
+
+  /// App Store Connect API key selection.
+  @OptionGroup() var apiKey: ApiKeyOption
+
+  /// App Store Connect API issuer selection.
+  @OptionGroup() var apiIssuer: ApiIssuerOption
+
+  /// Target platform supplied on the command line.
+  @OptionGroup() var platform: PlatformOption
+
+  /// Shared workspace and diagnostic flags for this command.
+  @OptionGroup() var options: CommonOptions
+
   /// Describes the `upload` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -17,26 +32,10 @@ struct UploadCommand: AsyncParsableCommand {
     )
   }
 
-  /// The archive scheme selected for submission.
-  @OptionGroup() var scheme: SchemeOption
-
-  /// The App Store Connect authentication key.
-  @OptionGroup() var apiKey: ApiKeyOption
-
-  /// The issuer of the App Store Connect authentication key.
-  @OptionGroup() var apiIssuer: ApiIssuerOption
-
-  /// The destination platform for the upload.
-  @OptionGroup() var platform: PlatformOption
-
-  /// Shared release configuration and logging options.
-  @OptionGroup() var options: CommonOptions
-
   /// Creates the release engine and submits the exported package.
   func run() async throws {
     let engine = try await ReleaseEngine(
       options: options,
-      command: Self.configuration,
       scheme: scheme,
       apiKey: apiKey,
       apiIssuer: apiIssuer,
@@ -145,12 +144,16 @@ extension UploadCommand {
   enum Error: Swift.Error, LocalizedError {
     /// The package selected for upload does not exist.
     case uploadFileMissing(String)
+
     /// The upload tool returned an unrecognized error.
     case uploadOtherError(String)
+
     /// Decoding a structured upload receipt failed.
     case decodingReceiptFailed(any Swift.Error, String)
+
     /// Saving the upload transcript failed.
     case savingReceiptFailed(any Swift.Error)
+
     /// App Store Connect rejected the upload, optionally identifying the upload application's version and build.
     case rejected([UploadReceiptError], xcodeVersion: String? = nil)
 

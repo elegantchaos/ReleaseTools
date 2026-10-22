@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 24/02/2020.
-//  Copyright © 2020 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
@@ -8,6 +8,7 @@ import Runner
 
 /// `ditto` runner used for archive compression.
 final class DittoRunner: Runner {
+  /// Release context supplying logging preferences for this runner.
   let engine: ReleaseEngine
 
   /// Creates a runner bound to one release engine instance.

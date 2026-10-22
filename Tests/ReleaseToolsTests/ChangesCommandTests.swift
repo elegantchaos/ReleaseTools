@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Tests on 27/02/26.
-//  All code (c) 2026 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 27/02/2026.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
@@ -8,8 +8,9 @@ import Testing
 
 @testable import ReleaseTools
 
+/// Exercises change-log ranges and presentation using isolated repository histories.
 struct ChangesCommandTests {
-
+  /// The default change range excludes the previous tag and includes HEAD.
   @Test func defaultsToPreviousTagAndHead() async throws {
     let repo = try await TestRepo()
     try await repo.tag(name: "v1.0.0")
@@ -25,6 +26,7 @@ struct ChangesCommandTests {
     #expect(result.stdout.contains("Range: `v1.0.0..HEAD`"))
   }
 
+  /// Explicit revisions select only commits within the requested range.
   @Test func supportsExplicitStartAndEnd() async throws {
     let repo = try await TestRepo()
     try await repo.tag(name: "v1.0.0")
@@ -36,10 +38,11 @@ struct ChangesCommandTests {
 
     #expect(result.stdout.contains("## Changes since v1.0.0"))
     #expect(result.stdout.contains("second commit"))
-    #expect(!result.stdout.contains("third commit"))
+    #expect(result.stdout.contains("third commit") == false)
     #expect(result.stdout.contains("Range: `v1.0.0..v1.1.0`"))
   }
 
+  /// The repository option reads history from the specified directory.
   @Test func supportsAlternateRepository() async throws {
     let commandRepo = try await TestRepo()
     let dataRepo = try await TestRepo()
@@ -52,6 +55,7 @@ struct ChangesCommandTests {
     #expect(result.stdout.contains("repo specific commit"))
   }
 
+  /// A GitHub origin produces commit and comparison links.
   @Test func includesGitHubCommitAndDiffLinksByDefault() async throws {
     let repo = try await TestRepo()
     await repo.checkedGit(["remote", "add", "origin", "git@github.com:elegantchaos/ReleaseTools.git"])
@@ -65,6 +69,7 @@ struct ChangesCommandTests {
     #expect(result.stdout.contains("- linked commit"))
   }
 
+  /// Presentation flags omit the range and GitHub links.
   @Test func suppressesRangeAndLinksWhenRequested() async throws {
     let repo = try await TestRepo()
     await repo.checkedGit(["remote", "add", "origin", "git@github.com:elegantchaos/ReleaseTools.git"])
@@ -73,10 +78,11 @@ struct ChangesCommandTests {
 
     let result = await repo.checkedRT(["changes", "--no-links", "--no-range"])
 
-    #expect(!result.stdout.contains("https://github.com/"))
-    #expect(!result.stdout.contains("_Range:"))
+    #expect(result.stdout.contains("https://github.com/") == false)
+    #expect(result.stdout.contains("_Range:") == false)
   }
 
+  /// The commit-list flag leaves the top-level changes visible.
   @Test func suppressesCommitsWhenRequested() async throws {
     let repo = try await TestRepo()
     try await repo.tag(name: "v1.0.0")
@@ -85,10 +91,11 @@ struct ChangesCommandTests {
     let result = await repo.checkedRT(["changes", "--no-commits"])
 
     #expect(result.stdout.contains("- hidden commit"))
-    #expect(!result.stdout.contains("## Commits"))
+    #expect(result.stdout.contains("## Commits") == false)
     #expect(result.stdout.contains("_Range:"))
   }
 
+  /// Additional commit-message lines become nested change bullets.
   @Test func expandsMultilineCommitMessagesInTopList() async throws {
     let repo = try await TestRepo()
     try await repo.tag(name: "v1.0.0")
@@ -100,6 +107,7 @@ struct ChangesCommandTests {
     #expect(result.stdout.contains("  - detail line"))
   }
 
+  /// Optional summary generation retains readable changes when unavailable.
   @Test func summaryFlagShowsSummaryOrFallsBackToTopChangesList() async throws {
     let repo = try await TestRepo()
     try await repo.tag(name: "v1.0.0")
@@ -113,6 +121,6 @@ struct ChangesCommandTests {
     let marker = "## Changes since v1.0.0\n\n"
     let afterHeader = result.stdout.components(separatedBy: marker).dropFirst().first ?? ""
     let beforeCommits = afterHeader.components(separatedBy: "\n## Commits").first ?? ""
-    #expect(!beforeCommits.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    #expect(beforeCommits.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
   }
 }

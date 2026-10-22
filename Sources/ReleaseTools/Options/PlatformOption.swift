@@ -7,6 +7,7 @@ import ArgumentParser
 
 /// Common command-line option for selecting a target platform.
 struct PlatformOption: ParsableArguments {
+  /// Target platform supplied on the command line.
   @Option(help: "The platform to build for. Should be one of: macOS, iOS, tvOS, watchOS.")
   var platform: String?
 }

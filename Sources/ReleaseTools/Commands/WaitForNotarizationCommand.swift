@@ -1,5 +1,5 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 24/02/20.
+//  Created by Sam Deane on 24/02/2020.
 //  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -10,6 +10,21 @@ import Runner
 
 /// Waits for notarization, then staples the resulting ticket to the app.
 struct WaitForNotarizationCommand: AsyncParsableCommand {
+  /// Submission identifier to poll, or nil to read the saved receipt.
+  @Option(
+    help:
+      "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command."
+  ) var request: String?
+
+  /// Target platform supplied on the command line.
+  @OptionGroup() var platform: PlatformOption
+
+  /// Shared workspace and diagnostic flags for this command.
+  @OptionGroup() var options: CommonOptions
+
+  /// Time to wait before checking the notarization status again.
+  static let retryDelay = 30
+
   /// Describes the `wait` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -18,21 +33,10 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     )
   }
 
-  @Option(
-    help:
-      "The uuid of the notarization request. Defaults to the value previously stored by the `notarize` command."
-  ) var request: String?
-
-  @OptionGroup() var platform: PlatformOption
-  @OptionGroup() var options: CommonOptions
-
-  /// Time to wait before checking the notarization status again.
-  static let retryDelay = 30
-
+  /// Polls the saved submission, staples the accepted app, and adds its upload tag.
   func run() async throws {
     let engine = try await ReleaseEngine(
       options: options,
-      command: Self.configuration,
       platform: platform
     )
 
@@ -63,6 +67,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     try await tagResult.throwIfFailed(ReleaseEngine.Error.taggingFailed)
   }
 
+  /// Reads the submission identifier from the saved XML receipt.
   func savedNotarizationReceipt(engine: ReleaseEngine) -> String? {
     let notarizingReceiptURL = engine.exportURL.appendingPathComponent("receipt.xml")
     guard let data = try? Data(contentsOf: notarizingReceiptURL),
@@ -74,6 +79,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     return upload["RequestUUID"]
   }
 
+  /// Copies the exported application into the stapled output directory and staples its ticket.
   func exportNotarized(archive: XcodeArchive, engine: ReleaseEngine) async throws {
     engine.log("Stapling notarized app.")
 
@@ -93,6 +99,7 @@ struct WaitForNotarizationCommand: AsyncParsableCommand {
     }
   }
 
+  /// Queries notarization status, stapling on success and returning false while pending.
   func check(request: String, archive: XcodeArchive, engine: ReleaseEngine) async throws -> Bool {
     let xcrun = XCRunRunner(engine: engine)
     let result = xcrun.run([
@@ -174,8 +181,10 @@ extension WaitForNotarizationCommand {
   enum Status: Equatable {
     /// Notarization succeeded, so the app can be stapled.
     case success
+
     /// Notarization rejected the app; the report explains why.
     case invalid(String)
+
     /// Notarization hasn't finished; the raw status is kept for logging.
     case pending(String)
   }
@@ -184,15 +193,19 @@ extension WaitForNotarizationCommand {
   enum Error: Swift.Error, LocalizedError {
     /// Fetching the notarization status threw an error.
     case fetchingStatusFailed(any Swift.Error)
+
     /// The notarization service rejected the app.
     case notarizationFailed(String)
+
     /// Preparing the stapled app threw an error.
     case exportingNotarizedAppFailed(any Swift.Error)
+
     /// The notarization receipt could not be loaded.
     case loadingReceiptFailed
 
     /// The notarization status request failed.
     case statusRequestFailed
+
     /// Stapling the notarized app failed.
     case staplingFailed
 

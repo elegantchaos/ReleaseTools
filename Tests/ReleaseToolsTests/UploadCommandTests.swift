@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Tests on 07/04/26.
-//  All code (c) 2026 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 07/04/2026.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
@@ -10,7 +10,6 @@ import Testing
 
 /// Verifies upload receipt analysis and user-facing failure diagnostics.
 struct UploadCommandTests {
-
   /// Unknown bundle failures retain the complete validation explanation.
   @Test func preservesOtherInvalidBundleErrors() {
     let error = UploadReceiptError(

@@ -1,12 +1,13 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 24/02/2020.
-//  Copyright © 2020 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Runner
 
 /// `xcrun` runner that mirrors the engine's logging preferences.
 final class XCRunRunner: Runner {
+  /// Release context supplying logging preferences for this runner.
   let engine: ReleaseEngine
 
   /// Creates a runner bound to one release engine instance.

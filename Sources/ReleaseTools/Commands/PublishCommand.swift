@@ -9,6 +9,18 @@ import Runner
 
 /// Commits and pushes release website changes.
 struct PublishCommand: AsyncParsableCommand {
+  /// Destination of the website repository.
+  @OptionGroup() var website: WebsiteOption
+
+  /// Destination of published application updates.
+  @OptionGroup() var updates: UpdatesOption
+
+  /// Target platform supplied on the command line.
+  @OptionGroup() var platform: PlatformOption
+
+  /// Shared workspace and diagnostic flags for this command.
+  @OptionGroup() var options: CommonOptions
+
   /// Describes the `publish` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -17,15 +29,10 @@ struct PublishCommand: AsyncParsableCommand {
     )
   }
 
-  @OptionGroup() var website: WebsiteOption
-  @OptionGroup() var updates: UpdatesOption
-  @OptionGroup() var platform: PlatformOption
-  @OptionGroup() var options: CommonOptions
-
+  /// Commits website updates and pushes the website and parent repositories.
   func run() async throws {
     let engine = try await ReleaseEngine(
       options: options,
-      command: Self.configuration,
       platform: platform
     )
 
@@ -52,6 +59,7 @@ extension PublishCommand {
   enum Error: Swift.Error, LocalizedError {
     /// Committing the release changes failed.
     case commitFailed
+
     /// Pushing the release changes failed.
     case pushFailed
 

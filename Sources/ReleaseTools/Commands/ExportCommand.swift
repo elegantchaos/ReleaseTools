@@ -9,6 +9,18 @@ import Runner
 
 /// Exports an archive for App Store Connect or direct distribution.
 struct ExportCommand: AsyncParsableCommand {
+  /// Whether export options select distribution outside the App Store.
+  @Flag(help: "Export for distribution outside of the appstore.") var distribution = false
+
+  /// Scheme selection supplied on the command line.
+  @OptionGroup() var scheme: SchemeOption
+
+  /// Target platform supplied on the command line.
+  @OptionGroup() var platform: PlatformOption
+
+  /// Shared workspace and diagnostic flags for this command.
+  @OptionGroup() var options: CommonOptions
+
   /// Describes the `export` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -17,15 +29,10 @@ struct ExportCommand: AsyncParsableCommand {
     )
   }
 
-  @Flag(help: "Export for distribution outside of the appstore.") var distribution = false
-  @OptionGroup() var scheme: SchemeOption
-  @OptionGroup() var platform: PlatformOption
-  @OptionGroup() var options: CommonOptions
-
+  /// Resolves command options and exports the release archive.
   func run() async throws {
     let engine = try await ReleaseEngine(
       options: options,
-      command: Self.configuration,
       scheme: scheme,
       platform: platform
     )
@@ -33,6 +40,7 @@ struct ExportCommand: AsyncParsableCommand {
     try await Self.export(engine: engine, distribution: distribution)
   }
 
+  /// Writes distribution options and exports the configured Xcode archive.
   static func export(engine: ReleaseEngine, distribution: Bool = false) async throws {
     engine.log(
       "Generating export options for \(distribution ? "direct" : "appstore") distribution.")

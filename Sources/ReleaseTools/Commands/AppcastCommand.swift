@@ -9,6 +9,23 @@ import Runner
 
 /// Rebuilds a Sparkle Appcast from the compressed release archive.
 struct AppcastCommand: AsyncParsableCommand {
+  /// Keychain containing release signing credentials.
+  @Option(
+    help: "Path the to the keychain to get the appcast key from. Defaults to the login keychain.")
+  var keychain: String?
+
+  /// Scheme selection supplied on the command line.
+  @OptionGroup() var scheme: SchemeOption
+
+  /// Target platform supplied on the command line.
+  @OptionGroup() var platform: PlatformOption
+
+  /// Destination of published application updates.
+  @OptionGroup() var updates: UpdatesOption
+
+  /// Shared workspace and diagnostic flags for this command.
+  @OptionGroup() var options: CommonOptions
+
   /// Describes the `appcast` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -17,18 +34,10 @@ struct AppcastCommand: AsyncParsableCommand {
     )
   }
 
-  @Option(
-    help: "Path the to the keychain to get the appcast key from. Defaults to the login keychain.")
-  var keychain: String?
-  @OptionGroup() var scheme: SchemeOption
-  @OptionGroup() var platform: PlatformOption
-  @OptionGroup() var updates: UpdatesOption
-  @OptionGroup() var options: CommonOptions
-
+  /// Builds and runs Sparkle’s feed generator using the selected signing key.
   func run() async throws {
     let engine = try await ReleaseEngine(
       options: options,
-      command: Self.configuration,
       scheme: scheme,
       platform: platform
     )
@@ -104,10 +113,13 @@ extension AppcastCommand {
 
     /// Building `generate_appcast` failed.
     case buildGeneratorFailed
+
     /// Generating the Appcast failed.
     case generatingAppcastFailed
+
     /// Generating the Appcast keys failed.
     case generatingKeysFailed
+
     /// Importing the Appcast keys failed.
     case importingKeysFailed
 

@@ -1,16 +1,18 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 20/03/26.
-//  All code (c) 2020 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 20/03/2026.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
 
+/// Authentication and keychain overrides resolved independently across configuration scopes.
 struct BasicSettings: Codable, Equatable {
+  /// Keychain containing release signing credentials.
   var keychain: String?
-  var apiKey: String?
-  var apiIssuer: String?
 
-  var isEmpty: Bool {
-    keychain == nil && apiKey == nil && apiIssuer == nil
-  }
+  /// App Store Connect API key selection.
+  var apiKey: String?
+
+  /// App Store Connect API issuer selection.
+  var apiIssuer: String?
 }

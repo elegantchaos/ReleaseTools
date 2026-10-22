@@ -1,12 +1,11 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 13/02/25.
-//  All code (c) 2025 - present day, Elegant Chaos Limited.
+//  Created by Sam Deane on 13/02/2025.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
 
 extension ReleaseEngine {
-
   /// Pattern for platform-agnostic version tags: v<version>-<build> (e.g., v1.2.3-42)
   private nonisolated(unsafe) static let platformAgnosticTagPattern: Regex<(Substring, version: Substring, Substring?, build: Substring)> =
     #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)$/#
@@ -15,34 +14,13 @@ extension ReleaseEngine {
   private nonisolated(unsafe) static let platformSpecificTagPattern: Regex<(Substring, version: Substring, Substring?, build: Substring, platform: Substring)> =
     #/^v(?<version>\d+\.\d+(\.\d+)*)-(?<build>\d+)-(?<platform>.*)$/#
 
-  /// Information about a build including build number, commit hash, and version string
-  struct BuildInfo: Equatable, Sendable {
-    /// The build number (e.g., 42)
-    let build: UInt
-    /// The full commit hash (e.g., "f13a5c4e2bde037cafdc8706abbd7e93013b2102")
-    let commit: String
-    /// The semantic version string (e.g., "1.2.3")
-    let version: String
-
-    /// C-style #define statements for build info
-    var defines: String {
-      return """
-        #define RT_BUILD \(build)
-        #define RT_COMMIT \(commit)
-        #define RT_VERSION \(version)
-        """
-    }
-  }
-
   /// Get build information including build number, commit hash, and version string
   /// - Parameter requireHeadTag: If true, requires a version tag at HEAD and extracts info from it.
   ///                           If false, calculates next build number and uses version from highest existing tag.
   func buildInfoFromTag(requireHeadTag: Bool = true) async throws -> BuildInfo {
     if requireHeadTag {
-      // versionTagAtHEAD already returns complete BuildInfo with all parsed information
       return try await versionTagAtHEAD()
     } else {
-      // For incremental builds, we need to calculate the next build number
       let commit = try await git.headCommit()
       let build = try await nextPlatformAgnosticBuildNumber()
       let version = try await versionFromHighestTag() ?? "1.0.0"
@@ -91,7 +69,6 @@ extension ReleaseEngine {
     var maxTag: String?
     var isPlatformSpecific = false
 
-    // Check platform-agnostic tags
     try await processAllPlatformAgnosticVersionTags { build, tag in
       if build > maxBuild {
         maxBuild = build
@@ -100,7 +77,6 @@ extension ReleaseEngine {
       }
     }
 
-    // Also check platform-specific tags to avoid conflicts
     try await processAllVersionTags { platform, build, tag in
       if build > maxBuild {
         maxBuild = build
@@ -127,7 +103,6 @@ extension ReleaseEngine {
   /// Throw an error if one is not found.
   func versionTagAtHEAD() async throws -> BuildInfo {
 
-    // Get tags pointing at HEAD
     let result = git.run(["tag", "--points-at", "HEAD"])
     let state = await result.waitUntilExit()
     guard case .succeeded = state else {
@@ -157,7 +132,6 @@ extension ReleaseEngine {
     var highestVersion: String?
     var highestBuild: UInt = 0
 
-    // Check platform-agnostic tags first
     try await processAllPlatformAgnosticVersionTags { build, tag in
       if build > highestBuild {
         if let match = tag.firstMatch(of: Self.platformAgnosticTagPattern) {
@@ -167,7 +141,6 @@ extension ReleaseEngine {
       }
     }
 
-    // Also check platform-specific tags
     try await processAllVersionTags { _, build, tag in
       if build > highestBuild {
         if let match = tag.firstMatch(of: Self.platformSpecificTagPattern) {
@@ -186,17 +159,35 @@ extension ReleaseEngine {
       let info = try await versionTagAtHEAD()
       throw ReleaseEngine.Error.versionTagAlreadyExists(info)
     } catch ReleaseEngine.Error.noVersionTagAtHEAD {
-      // This is what we want - no existing tag
       return
     }
   }
 
-  /// Ensure tags are up-to-date by fetching from remote, ignoring failures if no remote exists.
+  /// Fetches remote tags opportunistically, retaining local tags when the fetch fails.
   private func ensureTagsUpToDate(using git: GitRunner) async {
-    let fetchResult = git.run(["fetch", "--tags"])
-    let fetchState = await fetchResult.waitUntilExit()
-    if case .failed(_) = fetchState {
-      // Ignore fetch failures (e.g., no remote configured) and continue with local tags
+    _ = await git.run(["fetch", "--tags"]).waitUntilExit()
+  }
+}
+
+extension ReleaseEngine {
+  /// Information about a build including build number, commit hash, and version string
+  struct BuildInfo: Equatable, Sendable {
+    /// The build number (e.g., 42)
+    let build: UInt
+
+    /// The full commit hash (e.g., "f13a5c4e2bde037cafdc8706abbd7e93013b2102")
+    let commit: String
+
+    /// The semantic version string (e.g., "1.2.3")
+    let version: String
+
+    /// C-style #define statements for build info
+    var defines: String {
+      return """
+        #define RT_BUILD \(build)
+        #define RT_COMMIT \(commit)
+        #define RT_VERSION \(version)
+        """
     }
   }
 }

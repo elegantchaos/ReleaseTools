@@ -8,6 +8,7 @@ import Foundation
 
 /// Common command-line option for locating the updates folder within the website repository.
 struct UpdatesOption: ParsableArguments {
+  /// Destination of published application updates.
   @Option(help: "The local path to the updates folder inside the website repository. Defaults to `Dependencies/Website/updates`.")
   var updates: String?
 

@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 08/10/2025.
-//  Copyright © 2025 Elegant Chaos Limited. All rights reserved.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Foundation
@@ -9,10 +9,12 @@ import Testing
 
 @testable import ReleaseTools
 
-/// A test git repository with helper methods for common operations
+/// Creates an isolated Git repository and captures command transcripts for integration tests.
+/// Owns per-repository runners; CLI invocations use the executable built with this test bundle.
 final class TestRepo {
   /// The URL of the repository
   let url: URL
+
   /// Captured command transcript used to improve failing test diagnostics.
   var transcript: String = ""
 
@@ -39,22 +41,12 @@ final class TestRepo {
     gitRunner.cwd = tempURL
     self.git = gitRunner
 
-    let packageRoot = URL(fileURLWithPath: #filePath)
+    // SwiftPM builds the executable dependency in the test bundle's products directory.
+    let rtURL = Bundle(for: TestBundle.self).bundleURL
       .deletingLastPathComponent()
-      .deletingLastPathComponent()
-      .deletingLastPathComponent()
+      .appending(path: "rt")
+    try #require(FileManager.default.isExecutableFile(atPath: rtURL.path), "Missing current-build executable: \(rtURL.path)")
 
-    // Reuse one release build artifact when it already exists for the test scratch path.
-    let scratchPath = packageRoot.appendingPathComponent(".build/test-scratch").path
-    let rtBuilder = Runner(command: "swift")
-    rtBuilder.cwd = packageRoot
-    let rtPath = await rtBuilder.run(["build", "--configuration", "release", "--scratch-path", scratchPath, "--show-bin-path"]).stdout.string.trimmingCharacters(in: .whitespacesAndNewlines)
-    let rtURL = URL(filePath: rtPath).appending(path: "rt")
-    if !FileManager.default.fileExists(atURL: rtURL) {
-      _ = await rtBuilder.run(["build", "--configuration", "release", "--scratch-path", scratchPath]).waitUntilExit()
-    }
-
-    // Execute the built `rt` binary inside the temporary repository.
     let rtRunner = Runner(for: rtURL)
     rtRunner.cwd = tempURL
     self.rt = rtRunner
@@ -100,17 +92,9 @@ final class TestRepo {
   }
 
   /// Asserts that all supplied tags point at the current HEAD commit.
-  func expectHeadTagsContains(_ tags: [String]) async throws {
+  func expectHeadTagsContains(_ tags: [String], sourceLocation: SourceLocation = #_sourceLocation) async throws {
     let existingTags = try await headTags()
-    var contained = true
-    for tag in tags {
-      if !existingTags.contains(tag) {
-        contained = false
-        break
-      }
-    }
-
-    #expect(contained, "Expected tags \(tags) to be contained in \(existingTags)")
+    #expect(tags.allSatisfy(existingTags.contains), "Expected tags \(tags) to be contained in \(existingTags)", sourceLocation: sourceLocation)
   }
 
   /// Run a git command with GitRunner and capture stdout/stderr/exit code
@@ -159,4 +143,9 @@ final class TestRepo {
     #expect(r.state == .succeeded, Comment(rawValue: "rt command failed:\n\(r.stderr)"), sourceLocation: sourceLocation)
     return r
   }
+}
+
+extension TestRepo {
+  /// Locates this test target's bundle independently of the process's test host.
+  private final class TestBundle: NSObject {}
 }

@@ -1,5 +1,5 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-//  Created by Sam Deane on 24/02/20.
+//  Created by Sam Deane on 24/02/2020.
 //  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -9,6 +9,15 @@ import Runner
 
 /// Submits the exported application to Apple's notarization service.
 struct NotarizeCommand: AsyncParsableCommand {
+  /// Scheme selection supplied on the command line.
+  @OptionGroup() var scheme: SchemeOption
+
+  /// Target platform supplied on the command line.
+  @OptionGroup() var platform: PlatformOption
+
+  /// Shared workspace and diagnostic flags for this command.
+  @OptionGroup() var options: CommonOptions
+
   /// Describes the `notarize` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -17,15 +26,11 @@ struct NotarizeCommand: AsyncParsableCommand {
     )
   }
 
-  @OptionGroup() var scheme: SchemeOption
-  @OptionGroup() var platform: PlatformOption
-  @OptionGroup() var options: CommonOptions
-
+  /// Compresses the exported app and saves its notarization submission receipt.
   func run() async throws {
 
     let engine = try await ReleaseEngine(
       options: options,
-      command: Self.configuration,
       scheme: scheme,
       platform: platform
     )
@@ -69,6 +74,7 @@ extension NotarizeCommand {
 
     /// Compressing the app for notarization failed.
     case compressingFailed
+
     /// Submitting the app to the notarization service failed.
     case notarizingFailed
 

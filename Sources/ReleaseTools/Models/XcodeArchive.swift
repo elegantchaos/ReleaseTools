@@ -1,6 +1,6 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 18/04/2019.
-//  All code (c) 2019 - present day, Elegant Chaos Limited.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import Coercion
@@ -19,16 +19,22 @@ struct XcodeArchive {
 
   /// The build number recorded in the archive.
   let build: String
+
   /// The marketing version recorded in the archive.
   let version: String
+
   /// The archived application's file name.
   let name: String
+
   /// The archived application's name without its extension.
   let shortName: String
+
   /// A filesystem-safe lowercase version of the short name.
   let lowername: String
+
   /// The archived application's bundle identifier.
   let identifier: String
+
   /// The signing team recorded in the archive.
   let team: String
 
@@ -101,10 +107,13 @@ extension XcodeArchive {
   enum Error: Swift.Error, Equatable, LocalizedError {
     /// No archive metadata exists at the supplied archive path.
     case archiveNotFound(URL)
+
     /// The archive metadata plist exists but could not be read.
     case unreadableMetadata(URL, reason: String)
+
     /// The archive metadata plist was not a valid property list dictionary.
     case invalidMetadata(URL)
+
     /// The archive metadata was missing values required by release commands,
     /// or contained them with an unexpected type.
     case missingRequiredMetadata(URL, [String])

@@ -1,6 +1,6 @@
 # Project Specific Rules
 
-- This repository is a Swift package that provides the `rt` release automation CLI and package plugin.
+- This repository is a Swift package that provides the `rt` release automation CLI.
 - The tool can be refactored aggressively to work with the latest release version of Swift.
 - New tool releases do not need to maintain backwards compatibility unless explicitly requested.
 - Keep `Extras/Journal/` as dated Markdown entries and update `Extras/Journal/index.md` when a work session produces useful context, research, prototype notes, findings, open questions, or implementation plans.

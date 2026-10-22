@@ -11,8 +11,54 @@ import Runner
   import FoundationModels
 #endif
 
-/// Produces a Markdown change log from a git revision range.
+/// Reads a repository’s revision range and renders Markdown changes, commits, and links.
+/// Owns presentation flags and delegates Git queries to per-operation runners; an optional
+/// Foundation Models summary falls back to the commit messages when unavailable.
 struct ChangesCommand: AsyncParsableCommand {
+  /// Repository whose history supplies the change log.
+  @Option(name: .customLong("repo"), help: "Path to the git repository. Defaults to the current directory.")
+  var repoPath: String = "."
+
+  /// Optional starting revision, excluded from the change range.
+  @Option(name: .customLong("start"), help: "Start reference for the change range (defaults to the previous tag).")
+  var startRef: String?
+
+  /// Ending revision included in the change range.
+  @Option(name: .customLong("end"), help: "End reference for the change range.")
+  var endRef: String = "HEAD"
+
+  /// Whether merge commits contribute to the change log.
+  @Flag(name: .customLong("include-merges"), help: "Include merge commits in the output.")
+  var includeMerges = false
+
+  /// Whether to append a commit list to the rendered changes.
+  @Flag(
+    name: .customLong("commits"),
+    inversion: .prefixedNo,
+    help: "Include a ## Commits section with hash + first-line summaries."
+  )
+  var includeCommits = true
+
+  /// Whether to append the selected revision range.
+  @Flag(
+    name: .customLong("range"),
+    inversion: .prefixedNo,
+    help: "Include the range summary line in the output."
+  )
+  var includeRangeLine = true
+
+  /// Whether to link commits and ranges to a GitHub origin.
+  @Flag(
+    name: .customLong("links"),
+    inversion: .prefixedNo,
+    help: "Include GitHub links in the output when a GitHub origin remote is available."
+  )
+  var includeLinks = true
+
+  /// Whether to request an optional model-generated prose summary.
+  @Flag(name: .customLong("summary"), help: "Add an AI-generated summary paragraph at the top when available.")
+  var includeSummary = false
+
   /// Describes the `changes` command for ArgumentParser.
   static var configuration: CommandConfiguration {
     CommandConfiguration(
@@ -21,57 +67,52 @@ struct ChangesCommand: AsyncParsableCommand {
     )
   }
 
-  @Option(name: .customLong("repo"), help: "Path to the git repository. Defaults to the current directory.")
-  var repoPath: String = "."
-  @Option(name: .customLong("start"), help: "Start reference for the change range (defaults to the previous tag).")
-  var startRef: String?
-  @Option(name: .customLong("end"), help: "End reference for the change range.")
-  var endRef: String = "HEAD"
-  @Flag(name: .customLong("include-merges"), help: "Include merge commits in the output.")
-  var includeMerges = false
-  @Flag(
-    name: .customLong("commits"),
-    inversion: .prefixedNo,
-    help: "Include a ## Commits section with hash + first-line summaries."
-  )
-  var includeCommits = true
-  @Flag(
-    name: .customLong("range"),
-    inversion: .prefixedNo,
-    help: "Include the range summary line in the output."
-  )
-  var includeRangeLine = true
-  @Flag(
-    name: .customLong("links"),
-    inversion: .prefixedNo,
-    help: "Include GitHub links in the output when a GitHub origin remote is available."
-  )
-  var includeLinks = true
-  @Flag(name: .customLong("summary"), help: "Add an AI-generated summary paragraph at the top when available.")
-  var includeSummary = false
+  /// Collects repository changes and prints the requested Markdown sections.
+  func run() async throws {
+    let repoURL = URL(fileURLWithPath: repoPath)
+    guard FileManager.default.fileExists(atPath: repoURL.path) else {
+      throw Error.repositoryNotFound(path: repoPath)
+    }
 
-  private struct GitOutput {
-    let state: RunState
-    let stdout: String
-    let stderr: String
+    let resolvedStartRef: String?
+    if let suppliedStartRef = startRef {
+      resolvedStartRef = suppliedStartRef
+    } else {
+      resolvedStartRef = try await detectPreviousTag(endRef: endRef, in: repoURL)
+    }
+    let range = resolvedStartRef.map { "\($0)..\(endRef)" } ?? endRef
+    let commits = try await collectCommits(range: range, in: repoURL)
+    let githubURL = includeLinks ? try await githubRemoteURL(in: repoURL) : nil
+    let summary = await summaryParagraph(commits: commits)
+
+    print(
+      formatChanges(
+        previousTag: resolvedStartRef,
+        range: range,
+        startRef: resolvedStartRef,
+        endRef: endRef,
+        commits: commits,
+        githubURL: githubURL,
+        summary: summary
+      )
+    )
   }
 
-  private struct Commit {
-    let shortHash: String
-    let subject: String
-    let messageLines: [String]
-  }
-
+  /// Runs a Git query and captures its exit state and both output streams.
   private func runGit(_ arguments: [String], in repoURL: URL) async throws -> GitOutput {
     let git = GitRunner()
     git.cwd = repoURL
     let session = git.run(arguments)
+
     let state = await session.waitUntilExit()
+
     let stdout = await session.stdout.string
+
     let stderr = await session.stderr.string
     return GitOutput(state: state, stdout: stdout, stderr: stderr)
   }
 
+  /// Returns Git output or throws a failure containing the command and stderr.
   private func runGitChecked(_ arguments: [String], in repoURL: URL) async throws -> String {
     let result = try await runGit(arguments, in: repoURL)
     guard case .succeeded = result.state else {
@@ -83,11 +124,13 @@ struct ChangesCommand: AsyncParsableCommand {
     return result.stdout
   }
 
+  /// Resolves a revision expression to its full commit identifier.
   private func resolvedCommit(for ref: String, in repoURL: URL) async throws -> String {
     let output = try await runGitChecked(["rev-parse", "\(ref)^{commit}"], in: repoURL)
     return output.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
+  /// Checks reachability, treating Git’s unrelated-revision result separately from failures.
   private func isAncestor(_ ancestorRef: String, of descendantRef: String, in repoURL: URL) async throws -> Bool {
     let result = try await runGit(["merge-base", "--is-ancestor", ancestorRef, descendantRef], in: repoURL)
     switch result.state {
@@ -117,6 +160,7 @@ struct ChangesCommand: AsyncParsableCommand {
     }
   }
 
+  /// Finds the newest version-sorted reachable tag before the ending commit.
   private func detectPreviousTag(endRef: String, in repoURL: URL) async throws -> String? {
     let endCommit = try await resolvedCommit(for: endRef, in: repoURL)
     let tagsOutput = try await runGitChecked(["tag", "--sort=-v:refname"], in: repoURL)
@@ -142,6 +186,7 @@ struct ChangesCommand: AsyncParsableCommand {
     return nil
   }
 
+  /// Reads commits in chronological order, retaining their complete nonempty message lines.
   private func collectCommits(range: String, in repoURL: URL) async throws -> [Commit] {
     var arguments = ["log", "--reverse", "--pretty=format:%h%x1f%B%x1e"]
     if !includeMerges {
@@ -165,6 +210,7 @@ struct ChangesCommand: AsyncParsableCommand {
     }
   }
 
+  /// Converts supported GitHub origin URLs into a browser URL for change links.
   private func githubRemoteURL(in repoURL: URL) async throws -> URL? {
     let result = try await runGit(["config", "--get", "remote.origin.url"], in: repoURL)
     guard case .succeeded = result.state else {
@@ -196,6 +242,7 @@ struct ChangesCommand: AsyncParsableCommand {
     return URL(string: "https://github.com\(path)")
   }
 
+  /// Renders change bullets and the requested commit, link, and range sections.
   private func formatChanges(
     previousTag: String?,
     range: String,
@@ -262,6 +309,7 @@ struct ChangesCommand: AsyncParsableCommand {
     return lines.joined(separator: "\n")
   }
 
+  /// Returns an accepted model summary when requested and available.
   private func summaryParagraph(commits: [Commit]) async -> String? {
     guard includeSummary, !commits.isEmpty else {
       return nil
@@ -277,6 +325,7 @@ struct ChangesCommand: AsyncParsableCommand {
     #endif
   }
 
+  /// Rejects empty, list-like, and formulaic model responses before publication.
   private func validatedSummary(_ summary: String) -> String? {
     let trimmed = summary.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return nil }
@@ -304,6 +353,7 @@ struct ChangesCommand: AsyncParsableCommand {
   }
 
   #if canImport(FoundationModels)
+    /// Asks the available system model for a short prose summary of the commits.
     @available(macOS 26.0, *)
     private func generateSummaryWithFoundationModelsAvailable(commits: [Commit]) async -> String? {
       let model = SystemLanguageModel.default
@@ -337,6 +387,7 @@ struct ChangesCommand: AsyncParsableCommand {
       }
     }
 
+    /// Requests a summary when Foundation Models is supported by the current OS.
     private func generateSummaryWithFoundationModels(commits: [Commit]) async -> String? {
       guard #available(macOS 26.0, *) else {
         return nil
@@ -344,36 +395,6 @@ struct ChangesCommand: AsyncParsableCommand {
       return await generateSummaryWithFoundationModelsAvailable(commits: commits)
     }
   #endif
-
-  func run() async throws {
-    let repoURL = URL(fileURLWithPath: repoPath)
-    guard FileManager.default.fileExists(atPath: repoURL.path) else {
-      throw Error.repositoryNotFound(path: repoPath)
-    }
-
-    let resolvedStartRef: String?
-    if let suppliedStartRef = startRef {
-      resolvedStartRef = suppliedStartRef
-    } else {
-      resolvedStartRef = try await detectPreviousTag(endRef: endRef, in: repoURL)
-    }
-    let range = resolvedStartRef.map { "\($0)..\(endRef)" } ?? endRef
-    let commits = try await collectCommits(range: range, in: repoURL)
-    let githubURL = includeLinks ? try await githubRemoteURL(in: repoURL) : nil
-    let summary = await summaryParagraph(commits: commits)
-
-    print(
-      formatChanges(
-        previousTag: resolvedStartRef,
-        range: range,
-        startRef: resolvedStartRef,
-        endRef: endRef,
-        commits: commits,
-        githubURL: githubURL,
-        summary: summary
-      )
-    )
-  }
 }
 
 extension ChangesCommand {
@@ -381,6 +402,7 @@ extension ChangesCommand {
   enum Error: Swift.Error, LocalizedError {
     /// The supplied repository path does not exist.
     case repositoryNotFound(path: String)
+
     /// A git query failed while generating the change log.
     case gitFailed(command: String, error: String)
 
@@ -393,5 +415,31 @@ extension ChangesCommand {
           return "Git command failed: \(command)\n\(error)"
       }
     }
+  }
+}
+
+extension ChangesCommand {
+  /// Captured output and completion state from one Git query.
+  private struct GitOutput {
+    /// Completion status of the Git process.
+    let state: RunState
+
+    /// Captured standard output.
+    let stdout: String
+
+    /// Captured error output.
+    let stderr: String
+  }
+
+  /// Commit identity and message lines used to render a change log.
+  private struct Commit {
+    /// Abbreviated commit identifier used for displayed links.
+    let shortHash: String
+
+    /// First message line used in the commit list.
+    let subject: String
+
+    /// Nonempty message lines rendered as change bullets.
+    let messageLines: [String]
   }
 }

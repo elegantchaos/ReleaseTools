@@ -1,7 +1,13 @@
 // swift-tools-version:6.2
 
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//  Created by Sam Deane on 21/10/2026.
+//  Copyright © 2026 Elegant Chaos Limited. All rights reserved.
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 import PackageDescription
 
+/// Defines the release executable, its dependencies, and integration test target.
 let package = Package(
   name: "ReleaseTools",
 
@@ -10,8 +16,7 @@ let package = Package(
   ],
 
   products: [
-    .executable(name: "rt", targets: ["ReleaseTools"]),
-    .plugin(name: "rt-plugin", targets: ["ReleaseToolsPlugin"]),
+    .executable(name: "rt", targets: ["ReleaseTools"])
   ],
 
   dependencies: [
@@ -22,7 +27,6 @@ let package = Package(
     .package(url: "https://github.com/elegantchaos/Runner.git", from: "2.2.0"),
     .package(url: "https://github.com/elegantchaos/Versionator.git", from: "2.0.3"),
     .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
-    .package(url: "https://github.com/elegantchaos/ActionBuilderPlugin.git", from: "2.1.2"),
   ],
 
   targets: [
@@ -38,23 +42,6 @@ let package = Package(
       ],
       plugins: [
         .plugin(name: "VersionatorPlugin", package: "Versionator")
-      ]
-    ),
-
-    .plugin(
-      name: "ReleaseToolsPlugin",
-      capability: .command(
-        intent: .custom(
-          verb: "rt",
-          description: "Manages archiving and uploading releases."
-        ),
-        permissions: [
-          .writeToPackageDirectory(reason: "Builds and archives releases.")
-        ]
-      ),
-
-      dependencies: [
-        .target(name: "ReleaseTools")
       ]
     ),
 
