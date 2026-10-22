@@ -74,3 +74,9 @@ is clean.
 Before committing and opening the feature PR, reran `agt format` (50 Swift files,
 no lint findings), full `agt validate` (macOS build and 65 tests in 10 suites),
 `actionlint`, and `git diff --check`. All passed.
+
+## Copyright correction — 2026-10-22
+
+The user clarified that consistent copyright formatting must preserve each file's
+original year. Restored years from the pre-cleanup sources, including source
+provenance for split/moved files; retained the standardized copyright wording.
