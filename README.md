@@ -253,9 +253,6 @@ Alternatively you can build & install it somewhere, eg using [Mint](https://gith
 
 ReleaseTools is distributed as the `rt` executable. Run it directly or from a shell build phase.
 
-Run `agt format` and `agt validate` to check changes. Command integration tests run the `rt` executable from the current test build’s products directory. Refresh GitHub Actions workflows and README badges with `ActionBuilderTool` from the repository root.
-
-
 # Configuration
 
 To cut down on the amount of configuration that you have to do, `rt` relies on naming conventions and defaults for a lot of things.
