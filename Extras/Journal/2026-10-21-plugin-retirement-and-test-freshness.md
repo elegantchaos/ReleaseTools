@@ -94,3 +94,11 @@ and corrected newly added headers for Package.swift and ConfigTests using their
 initial Git additions. Existing creation dates were preserved elsewhere, and
 copyright years now agree with the originating creation years. Checked all 50
 Swift headers for consistency; the corrections only affect header comments.
+
+## README current-state pass — 2026-10-22
+
+Removed configuration-migration comparisons and personal usage history from the
+README. Describe canonical paths and defaults directly. Checked command options,
+output paths, scheme discovery, and build-number selection against the current
+sources, correcting stale examples and filenames encountered during the pass.
+The README remains user-facing; no shared agent instructions were added.
