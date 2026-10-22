@@ -44,3 +44,15 @@ Running ActionBuilderTool 2.2.6 with the updated manifest generated Swift 6.3 an
 Local `agt format` and `agt validate --fast` passed (65 tests); `actionlint` and
 `git diff --check` passed. The local compiler is Swift 6.4. The remote Swift 6.3
 release-test job is the verification of whether this baseline avoids the failure.
+
+## Swift 6.4 baseline
+
+CI on commit 48fa781 confirmed that Swift 6.3.3 also compiles and links the tests,
+then runs the CLI entry point and fails on `--test-bundle-path`. Both the push and
+PR runs failed on 6.3.3 and passed on Swift 6.4:
+https://github.com/elegantchaos/ReleaseTools/actions/runs/39759263629
+
+The user requested a Swift 6.4 tools baseline, accepting that minimum for this
+internal tool. Updated the manifest and regenerated workflows/badges with
+ActionBuilderTool 2.2.6; the compiler matrix contains Swift 6.4. The README's
+build instructions state the minimum Swift version.
