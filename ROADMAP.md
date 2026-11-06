@@ -10,3 +10,5 @@ High-level tasks for the next ReleaseTools improvements:
    Close smaller command-level follow-ups that are related to the larger workflow improvements.
 4. [Subprocess API adoption](Extras/Roadmap/SubprocessAPIAdoption.md)
    Replace the `Runner` dependency with Swift's newer subprocess APIs, or fold those APIs into `Runner` if that still provides meaningful ergonomics.
+5. [Logger dependency review](Extras/Roadmap/LoggerDependencyReview.md)
+   Drop Logger in favour of plain `stderr` output unless a real diagnostic need appears, and consider a small CLI support package shared with AgentTools.
