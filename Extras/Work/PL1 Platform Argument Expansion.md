@@ -1,10 +1,15 @@
-# Platform argument expansion
+# PL1: Platform Argument Expansion
 
-## Goal
+- **Status:** Proposed
+- **Release:** Unassigned
+- **Depends on:** nothing
+- **Sources:** [Previous roadmap plan](https://github.com/elegantchaos/ReleaseTools/blob/1802a4efdb874f12f2ef492c48759967152d04cf/Extras/Roadmap/PlatformArgumentExpansion.md)
 
-Expand relevant commands so they accept either a single `--platform` or a multi-value `--platforms` input, then execute per resolved platform with predictable ordering and logging.
+## Finish Condition
 
-## High-level tasks
+Platform-aware commands accept either a single platform or an ordered selection, infer the platform when needed and execute with predictable logs. Multi-platform submission keeps artifacts and receipts isolated per platform, with tests for selection, orchestration and aggregated errors.
+
+## Delivery Outline
 
 1. Refactor platform parsing into a shared selection abstraction that returns an ordered platform list.
 2. Add `--platforms` parsing, canonicalization, de-duplication, and mutual exclusion with `--platform`.

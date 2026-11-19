@@ -1,14 +1,13 @@
-# Roadmap
+# ReleaseTools Roadmap
 
-High-level tasks for the next ReleaseTools improvements:
+ReleaseTools automates building, signing and distributing Apple-platform releases. The [Release Plan](Extras/Documentation/Release%20Plan.md) indexes open work, and the [journal](Extras/Journal/index.md) records what happened.
 
-1. [Post-upload TestFlight automation](Extras/Roadmap/PostUploadTestFlightAutomation.md)
-   Add a dedicated command for build-localization updates, external group assignment, and TestFlight review submission after upload processing completes.
-2. [Platform argument expansion](Extras/Roadmap/PlatformArgumentExpansion.md)
-   Extend platform-aware commands to accept multi-platform selection, consistent inference, and controlled multi-platform execution.
-3. [Existing TODO follow-ups](Extras/Roadmap/ExistingTodoFollowUps.md)
-   Close smaller command-level follow-ups that are related to the larger workflow improvements.
-4. [Subprocess API adoption](Extras/Roadmap/SubprocessAPIAdoption.md)
-   Replace the `Runner` dependency with Swift's newer subprocess APIs, or fold those APIs into `Runner` if that still provides meaningful ergonomics.
-5. [Logger dependency review](Extras/Roadmap/LoggerDependencyReview.md)
-   Drop Logger in favour of plain `stderr` output unless a real diagnostic need appears, and consider a small CLI support package shared with AgentTools.
+## Release Direction
+
+- **App Store Connect workflow.** Extend release automation through TestFlight review and make it easier to open the relevant portal page after submission.
+- **Upload diagnostics.** Keep the evidence from each upload attempt and make failures actionable when Apple returns sparse diagnostics.
+- **Multi-platform releases.** Make platform selection and execution predictable when releasing to several platforms.
+- **Process execution.** Evaluate Swift's subprocess APIs and adopt them where they simplify command execution.
+- **CLI diagnostics.** Review the Logger dependency and clarify which output belongs on stderr and stdout.
+
+Update this roadmap when a goal is delivered or release scope changes. Track individual items and their order in the [Release Plan](Extras/Documentation/Release%20Plan.md).

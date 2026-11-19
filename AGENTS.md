@@ -5,6 +5,7 @@
 - New tool releases do not need to maintain backwards compatibility unless explicitly requested.
 - Keep `Extras/Journal/` as dated Markdown entries and update `Extras/Journal/index.md` when a work session produces useful context, research, prototype notes, findings, open questions, or implementation plans.
 - Keep `Extras/Decisions/` as an explicit log of important decisions, with one Markdown file per decision. Ask for explicit user confirmation before recording a decision. Check relevant decisions before implementing new code.
+- Use `ROADMAP.md` for release direction and `Extras/Documentation/Release Plan.md` for the open work index. Keep work items and reviews under `Extras/Work/` and `Extras/Reviews/` and follow their READMEs when recording or closing them.
 
 # Standard Rules
 
