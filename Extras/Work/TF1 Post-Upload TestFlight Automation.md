@@ -1,14 +1,15 @@
-# Post-upload TestFlight automation
+# TF1: Post-Upload TestFlight Automation
 
-## Goal
+- **Status:** Proposed
+- **Release:** Unassigned
+- **Depends on:** nothing
+- **Sources:** [Previous roadmap plan](https://github.com/elegantchaos/ReleaseTools/blob/1802a4efdb874f12f2ef492c48759967152d04cf/Extras/Roadmap/PostUploadTestFlightAutomation.md)
 
-Add a new command that runs after `upload` and performs the remaining App Store Connect and TestFlight setup:
+## Finish Condition
 
-- Set TestFlight build details text.
-- Assign the uploaded build to external TestFlight groups.
-- Submit the build for TestFlight review.
+A dedicated post-upload command can update the processed build’s localized TestFlight details, assign external groups and submit for review. It records receipts and reports the outcome. Command wiring, summary fallback and the API sequence are covered by tests.
 
-## High-level tasks
+## Delivery Outline
 
 1. Add a dedicated command, likely `testflight`, and register it in `RootCommand`.
 2. Define CLI inputs for app/build identifiers, external groups, locale, and summary generation mode.

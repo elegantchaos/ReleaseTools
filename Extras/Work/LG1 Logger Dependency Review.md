@@ -1,8 +1,13 @@
-# Logger dependency review
+# LG1: Logger Dependency Review
 
-## Goal
+- **Status:** Proposed
+- **Release:** Unassigned
+- **Depends on:** nothing
+- **Sources:** [Previous roadmap plan](https://github.com/elegantchaos/ReleaseTools/blob/bb3dff84154e728e98b150d76a5874bf163c860f/Extras/Roadmap/LoggerDependencyReview.md)
 
-Decide whether ReleaseTools still needs Logger, and replace it with something smaller if not.
+## Finish Condition
+
+ReleaseTools sends diagnostic and progress output to stderr and leaves stdout available for script-consumed results. The Logger dependency and shutdown call are removed unless the review identifies a concrete need for named diagnostic channels. If Logger stays, its shutdown waits for output to drain.
 
 ## Background
 
@@ -10,7 +15,7 @@ Logger was added with the idea that `--verbose` would turn verbose log channels 
 
 The package requires `from: "2.0.0"`. Logger 3.0 is source-compatible with that call, and its `shutdown()` now waits for every channel to drain.
 
-## High-level tasks
+## Delivery Outline
 
 1. Confirm that nothing else depends on Logger, directly or through another package.
 2. Move diagnostic and progress output to `stderr`, following the usual CLI convention, and keep `stdout` for results that scripts consume.

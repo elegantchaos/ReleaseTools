@@ -1,10 +1,15 @@
-# Subprocess API adoption
+# SP1: Subprocess API Adoption
 
-## Goal
+- **Status:** Proposed
+- **Release:** Unassigned
+- **Depends on:** nothing
+- **Sources:** [Previous roadmap plan](https://github.com/elegantchaos/ReleaseTools/blob/1802a4efdb874f12f2ef492c48759967152d04cf/Extras/Roadmap/SubprocessAPIAdoption.md)
 
-Move process execution onto Swift's newer subprocess APIs, either directly or via an updated `Runner` wrapper if it still provides worthwhile ergonomics over the standard library.
+## Finish Condition
 
-## High-level tasks
+ReleaseTools uses Swift’s newer subprocess APIs through a consistent approach, either directly or through Runner. The migration preserves the output, exit, environment and working-directory behavior each caller relies on.
+
+## Delivery Outline
 
 1. Review every current `Runner` use site and classify which capabilities are actually needed: streaming output, exit-status handling, environment overrides, and working-directory control.
 2. Evaluate whether the current `Runner` package already exposes the new subprocess APIs with enough ergonomics to justify keeping it.
